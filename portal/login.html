@@ -153,11 +153,11 @@
       try {
         let emailToUse = username;
 
-        // Si no tiene @, buscar email por username
+        // Si no tiene @, resolver email via RPC o usar placeholder
         if (!username.includes('@')) {
-          const { data: emailData, error: rpcErr } = await sb.rpc('get_email_by_username', { p_username: username.toLowerCase() });
-          if (rpcErr || !emailData) throw new Error('Usuario no encontrado');
-          emailToUse = emailData;
+          const { data: emailData } = await sb.rpc('get_email_by_username', { p_username: username.toLowerCase() });
+          // Si tiene email real úsalo; si no, usar el placeholder con que fue creado en Auth
+          emailToUse = emailData || `${username.toLowerCase()}@portal.indusquim`;
         }
 
         const { error } = await sb.auth.signInWithPassword({ email: emailToUse, password });

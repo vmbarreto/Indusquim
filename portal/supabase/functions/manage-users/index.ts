@@ -50,7 +50,7 @@ Deno.serve(async (req) => {
       const { data: authData, error: authErr } = await supabaseAdmin.auth.admin.createUser({
         email: authEmail,
         password,
-        email_confirm: !hasRealEmail, // si es placeholder, confirmar automáticamente
+        email_confirm: true, // admin crea las cuentas, siempre confirmadas
         user_metadata: { full_name, company_name }
       })
       if (authErr) throw authErr
