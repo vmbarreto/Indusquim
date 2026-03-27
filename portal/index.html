@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Portal Indusquim</title>
+  <style>body{display:flex;align-items:center;justify-content:center;min-height:100vh;font-family:system-ui;color:#3C4A39;background:#F8F6F1;}</style>
+</head>
+<body>
+  <p>Redirigiendo…</p>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="assets/js/supabase-client.js"></script>
+  <script>
+    (async () => {
+      const { data: { user } } = await sb.auth.getUser();
+      if (!user) { window.location.href = 'login.html'; return; }
+
+      const { data: profile } = await sb.from('profiles')
+        .select('role, client_type')
+        .eq('id', user.id)
+        .single();
+
+      if (!profile) { await sb.auth.signOut(); window.location.href = 'login.html'; return; }
+
+      if (profile.role === 'admin') {
+        window.location.href = 'admin/index.html';
+      } else if (profile.client_type === 'large') {
+        window.location.href = 'cliente/grande.html';
+      } else {
+        window.location.href = 'cliente/pequeno.html';
+      }
+    })();
+  </script>
+</body>
+</html>

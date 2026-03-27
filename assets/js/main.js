@@ -1,25 +1,20 @@
 /**
- * INDUSQUIM — Main JavaScript
- * Interacciones: header scroll, menú móvil, contador animado,
- * AOS, scroll suave, scroll-to-top, formulario, nav activo
+ * INDUSQUIM — main.js v2
+ * Header scroll · Menú móvil · Contadores · AOS · Scroll-to-top · Nav activo
  */
 
 'use strict';
 
-/* ─────────────────────────────────────────
-   Utilidades
-───────────────────────────────────────── */
-const $ = (selector, scope = document) => scope.querySelector(selector);
-const $$ = (selector, scope = document) => [...scope.querySelectorAll(selector)];
+/* ── Utilidades ────────────────────────────────────────────── */
+const $ = (sel, ctx = document) => ctx.querySelector(sel);
+const $$ = (sel, ctx = document) => [...ctx.querySelectorAll(sel)];
 
-const onReady = (fn) => {
+function onReady(fn) {
   if (document.readyState !== 'loading') fn();
   else document.addEventListener('DOMContentLoaded', fn);
-};
+}
 
-/* ─────────────────────────────────────────
-   1. AOS — Animate On Scroll
-───────────────────────────────────────── */
+/* ── 1. AOS (Animate On Scroll) ────────────────────────────── */
 function initAOS() {
   if (typeof AOS === 'undefined') return;
   AOS.init({
@@ -27,196 +22,150 @@ function initAOS() {
     easing: 'ease-out-cubic',
     once: true,
     offset: 60,
-    delay: 0,
   });
 }
 
-/* ─────────────────────────────────────────
-   2. Header — scroll effect
-───────────────────────────────────────── */
+/* ── 2. Header scroll — añade clase .scrolled a la píldora ─── */
 function initHeader() {
   const header = $('#header');
   if (!header) return;
 
-  let lastScroll = 0;
-
-  const onScroll = () => {
-    const y = window.scrollY;
-
-    // Clase scrolled
-    header.classList.toggle('scrolled', y > 20);
-
-    // Ocultar/mostrar header en scroll (solo móvil hacia abajo)
-    if (window.innerWidth <= 768) {
-      if (y > lastScroll && y > 80) {
-        header.style.transform = 'translateY(-100%)';
-      } else {
-        header.style.transform = '';
-      }
-    } else {
-      header.style.transform = '';
-    }
-
-    lastScroll = y;
+  const update = () => {
+    header.classList.toggle('scrolled', window.scrollY > 40);
   };
 
-  window.addEventListener('scroll', onScroll, { passive: true });
-  onScroll();
+  window.addEventListener('scroll', update, { passive: true });
+  update();
 }
 
-/* ─────────────────────────────────────────
-   3. Menú móvil — hamburguesa
-───────────────────────────────────────── */
+/* ── 3. Menú móvil ──────────────────────────────────────────── */
 function initMobileMenu() {
-  const burger = $('#burgerBtn');
-  const nav    = $('#mainNav');
-  if (!burger || !nav) return;
+  const burger   = $('#burgerBtn');
+  const menu     = $('#mobileMenu');
+  const closeBtn = $('#menuClose');
+
+  if (!burger || !menu) return;
+
+  const open = () => {
+    menu.classList.add('open');
+    burger.setAttribute('aria-expanded', 'true');
+    document.body.style.overflow = 'hidden';
+  };
 
   const close = () => {
+    menu.classList.remove('open');
     burger.setAttribute('aria-expanded', 'false');
-    nav.classList.remove('open');
     document.body.style.overflow = '';
   };
 
-  burger.addEventListener('click', () => {
-    const isOpen = burger.getAttribute('aria-expanded') === 'true';
-    if (isOpen) {
-      close();
-    } else {
-      burger.setAttribute('aria-expanded', 'true');
-      nav.classList.add('open');
-      document.body.style.overflow = 'hidden';
-    }
-  });
+  burger.addEventListener('click', open);
+  closeBtn?.addEventListener('click', close);
 
-  // Cerrar al hacer click en un enlace
-  $$('.nav__link', nav).forEach(link => {
-    link.addEventListener('click', close);
-  });
-
-  // Cerrar al hacer click fuera
-  document.addEventListener('click', (e) => {
-    if (!burger.contains(e.target) && !nav.contains(e.target)) {
-      close();
-    }
-  });
-
-  // Cerrar con Escape
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') close();
-  });
-
-  // Cerrar al redimensionar a desktop
-  window.addEventListener('resize', () => {
-    if (window.innerWidth > 768) close();
-  });
-}
-
-/* ─────────────────────────────────────────
-   4. Navegación activa por sección visible
-───────────────────────────────────────── */
-function initActiveNav() {
-  const sections = $$('section[id]');
-  const navLinks = $$('.nav__link');
-  if (!sections.length || !navLinks.length) return;
-
-  const observer = new IntersectionObserver(
-    (entries) => {
-      entries.forEach((entry) => {
-        if (!entry.isIntersecting) return;
-        const id = entry.target.getAttribute('id');
-        navLinks.forEach((link) => {
-          const href = link.getAttribute('href');
-          link.classList.toggle('active', href === `#${id}`);
-        });
-      });
-    },
-    { rootMargin: '-40% 0px -50% 0px' }
+  // Cerrar al hacer clic en un link
+  $$('.mobile-menu__link', menu).forEach(link =>
+    link.addEventListener('click', close)
   );
 
-  sections.forEach((s) => observer.observe(s));
+  // Cerrar con Escape
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && menu.classList.contains('open')) close();
+  });
 }
 
-/* ─────────────────────────────────────────
-   5. Contador animado — Stats
-───────────────────────────────────────── */
+/* ── 4. Nav activo — marca el link de la página actual ─────── */
+function initActiveNav() {
+  const current = window.location.pathname.split('/').pop() || 'index.html';
+  $$('.nav__link').forEach(link => {
+    const href = link.getAttribute('href');
+    if (href === current || (current === '' && href === 'index.html')) {
+      link.classList.add('active');
+    }
+  });
+}
+
+/* ── 5. Hero — Slideshow automático (3 fotos + 1 video) ─────── */
+function initHeroSlideshow() {
+  const slides = $$('.hero__slide', document);
+  if (!slides.length) return;
+
+  let current = 0;
+  const INTERVAL = 6000; // ms entre slides
+
+  const goTo = (idx) => {
+    slides[current].classList.remove('active');
+    current = (idx + slides.length) % slides.length;
+    slides[current].classList.add('active');
+
+    // Si el slide activo es un video, reproducirlo
+    const video = slides[current].querySelector('video');
+    if (video) {
+      video.currentTime = 0;
+      video.play().catch(() => {}); // silenciar error de autoplay
+    }
+  };
+
+  // Iniciar ciclo automático
+  let timer = setInterval(() => goTo(current + 1), INTERVAL);
+
+  // Pausar al salir de la página (ahorro de CPU)
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) clearInterval(timer);
+    else timer = setInterval(() => goTo(current + 1), INTERVAL);
+  });
+}
+
+/* ── 6. Contadores animados ─────────────────────────────────── */
 function initCounters() {
-  const counters = $$('.stats__number[data-target]');
+  const counters = $$('.counter[data-target]');
   if (!counters.length) return;
 
-  const easeOut = (t) => 1 - Math.pow(1 - t, 3);
-  const DURATION = 2000;
+  const easeOut = t => 1 - Math.pow(1 - t, 3);
+  const DURATION = 1800;
 
   const animate = (el, target) => {
     const start = performance.now();
     const step = (now) => {
-      const elapsed = now - start;
-      const progress = Math.min(elapsed / DURATION, 1);
-      const current = Math.round(easeOut(progress) * target);
-      el.textContent = current;
+      const progress = Math.min((now - start) / DURATION, 1);
+      el.textContent = Math.floor(easeOut(progress) * target);
       if (progress < 1) requestAnimationFrame(step);
+      else el.textContent = target;
     };
     requestAnimationFrame(step);
   };
 
-  const observer = new IntersectionObserver(
-    (entries) => {
-      entries.forEach((entry) => {
-        if (!entry.isIntersecting) return;
-        const el = entry.target;
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        const el     = entry.target;
         const target = parseInt(el.dataset.target, 10);
-        if (isNaN(target)) return;
         animate(el, target);
         observer.unobserve(el);
-      });
-    },
-    { threshold: 0.5 }
-  );
+      }
+    });
+  }, { threshold: 0.5 });
 
-  counters.forEach((c) => observer.observe(c));
+  counters.forEach(el => observer.observe(el));
 }
 
-/* ─────────────────────────────────────────
-   6. Scroll suave para anclas internas
-───────────────────────────────────────── */
+/* ── 7. Scroll suave para anclajes internos ─────────────────── */
 function initSmoothScroll() {
-  $$('a[href^="#"]').forEach((anchor) => {
-    anchor.addEventListener('click', (e) => {
-      const id = anchor.getAttribute('href');
-      if (id === '#') return;
-      const target = $(id);
-      if (!target) return;
-
-      e.preventDefault();
-
-      const headerHeight = parseInt(
-        getComputedStyle(document.documentElement).getPropertyValue('--header-height') || '72',
-        10
-      );
-      const top = target.getBoundingClientRect().top + window.scrollY - headerHeight - 16;
-
-      window.scrollTo({ top, behavior: 'smooth' });
-    });
+  document.addEventListener('click', e => {
+    const anchor = e.target.closest('a[href^="#"]');
+    if (!anchor) return;
+    const target = document.getElementById(anchor.getAttribute('href').slice(1));
+    if (!target) return;
+    e.preventDefault();
+    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
   });
 }
 
-/* ─────────────────────────────────────────
-   7. Botón scroll-to-top
-───────────────────────────────────────── */
+/* ── 8. Scroll-to-top ───────────────────────────────────────── */
 function initScrollTop() {
-  // Crear el botón dinámicamente
-  const btn = document.createElement('button');
-  btn.className = 'scroll-top';
-  btn.setAttribute('aria-label', 'Volver al inicio');
-  btn.innerHTML = `
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
-      <path d="M18 15l-6-6-6 6" stroke-linecap="round" stroke-linejoin="round"/>
-    </svg>
-  `;
-  document.body.appendChild(btn);
+  const btn = $('#scrollTop');
+  if (!btn) return;
 
   window.addEventListener('scroll', () => {
-    btn.classList.toggle('visible', window.scrollY > 400);
+    btn.classList.toggle('visible', window.scrollY > 500);
   }, { passive: true });
 
   btn.addEventListener('click', () => {
@@ -224,166 +173,61 @@ function initScrollTop() {
   });
 }
 
-/* ─────────────────────────────────────────
-   8. Formulario de contacto
-───────────────────────────────────────── */
+/* ── 9. Formulario de contacto (WhatsApp redirect) ──────────── */
 function initContactForm() {
-  const form = $('.contact-form');
+  const form = $('#contactForm');
   if (!form) return;
 
-  form.addEventListener('submit', (e) => {
+  form.addEventListener('submit', e => {
     e.preventDefault();
+    const nombre  = ($('#formNombre',  form)?.value || '').trim();
+    const empresa = ($('#formEmpresa', form)?.value || '').trim();
+    const sector  = ($('#formSector',  form)?.value || '').trim();
+    const mensaje = ($('#formMensaje', form)?.value || '').trim();
 
-    const name    = $('#name', form)?.value.trim();
-    const company = $('#company', form)?.value.trim();
-    const phone   = $('#phone', form)?.value.trim();
+    const text = encodeURIComponent(
+      `Hola Indusquim, soy *${nombre}*${empresa ? ` de *${empresa}*` : ''}` +
+      (sector  ? ` (sector: ${sector})` : '') + '.\n\n' +
+      (mensaje || 'Me gustaría recibir información sobre sus productos.')
+    );
 
-    if (!name || !company || !phone) {
-      showFormMessage(form, 'Por favor completa los campos obligatorios.', 'error');
-      return;
-    }
-
-    const sector  = $('#sector', form)?.value || '';
-    const message = $('#message', form)?.value.trim() || '';
-
-    // Construir mensaje para WhatsApp
-    const lines = [
-      `*Nueva consulta desde indusquim.co*`,
-      ``,
-      `👤 *Nombre:* ${name}`,
-      `🏢 *Empresa:* ${company}`,
-      `📞 *Teléfono:* ${phone}`,
-      sector  ? `🏭 *Sector:* ${sector}` : '',
-      message ? `💬 *Mensaje:* ${message}` : '',
-    ].filter(Boolean).join('\n');
-
-    const waURL = `https://wa.me/573000000000?text=${encodeURIComponent(lines)}`;
-
-    // Feedback visual
-    const submitBtn = form.querySelector('[type="submit"]');
-    if (submitBtn) {
-      submitBtn.textContent = '¡Enviando...';
-      submitBtn.disabled = true;
-    }
-
-    setTimeout(() => {
-      showFormMessage(form, '¡Listo! Te redirigimos a WhatsApp para completar tu solicitud.', 'success');
-      setTimeout(() => {
-        window.open(waURL, '_blank', 'noopener,noreferrer');
-        form.reset();
-        if (submitBtn) {
-          submitBtn.textContent = 'Enviar solicitud';
-          submitBtn.disabled = false;
-        }
-      }, 800);
-    }, 600);
+    window.open(`https://wa.me/573023169861?text=${text}`, '_blank');
   });
 }
 
-function showFormMessage(form, text, type) {
-  // Remover mensaje anterior si existe
-  const prev = $('.form-message', form.parentElement);
-  if (prev) prev.remove();
-
-  const msg = document.createElement('p');
-  msg.className = 'form-message';
-  msg.textContent = text;
-  msg.style.cssText = `
-    padding: 0.75rem 1rem;
-    border-radius: 0.5rem;
-    font-size: 0.875rem;
-    font-weight: 500;
-    margin-top: 0.5rem;
-    background: ${type === 'success' ? '#edf7e8' : '#fef2f2'};
-    color: ${type === 'success' ? '#3d8a27' : '#dc2626'};
-    border: 1px solid ${type === 'success' ? 'rgba(92,186,60,0.3)' : 'rgba(220,38,38,0.3)'};
-  `;
-  form.appendChild(msg);
-
-  // Auto-remover después de 5s
-  setTimeout(() => msg.remove(), 5000);
-}
-
-/* ─────────────────────────────────────────
-   9. Cards — tilt 3D removido (estilo institucional)
-   Se mantiene solo el lift via CSS (:hover translateY)
-───────────────────────────────────────── */
-function initCardTilt() {
-  // Desactivado: el efecto 3D no aplica al estilo corporativo
-  // El hover lift está manejado 100% por CSS
-}
-
-/* ─────────────────────────────────────────
-   10. Lazy loading de imágenes
-───────────────────────────────────────── */
-function initLazyImages() {
-  if (!('IntersectionObserver' in window)) return;
-
-  const images = $$('img[data-src]');
-  if (!images.length) return;
-
-  const observer = new IntersectionObserver(
-    (entries) => {
-      entries.forEach((entry) => {
-        if (!entry.isIntersecting) return;
-        const img = entry.target;
-        img.src = img.dataset.src;
-        img.removeAttribute('data-src');
-        img.addEventListener('load', () => img.classList.add('loaded'));
-        observer.unobserve(img);
-      });
-    },
-    { rootMargin: '200px' }
-  );
-
-  images.forEach((img) => observer.observe(img));
-}
-
-/* ─────────────────────────────────────────
-   11. Accesibilidad — Skip link
-───────────────────────────────────────── */
+/* ── 10. Accesibilidad — Skip link ──────────────────────────── */
 function initSkipLink() {
   const skip = document.createElement('a');
   skip.href = '#inicio';
   skip.textContent = 'Saltar al contenido principal';
-  skip.style.cssText = `
-    position: fixed;
-    top: -100%;
-    left: 1rem;
-    z-index: 9999;
-    background: var(--color-brand);
-    color: white;
-    padding: 0.5rem 1rem;
-    border-radius: 0 0 0.5rem 0.5rem;
-    font-weight: 700;
-    font-size: 0.875rem;
-    transition: top 0.2s;
-  `;
+  Object.assign(skip.style, {
+    position: 'fixed',
+    top: '-100%',
+    left: '1rem',
+    zIndex: '9999',
+    background: 'var(--c-brand)',
+    color: 'white',
+    padding: '0.5rem 1.25rem',
+    borderRadius: '0 0 0.5rem 0.5rem',
+    fontWeight: '600',
+    fontSize: '0.875rem',
+    transition: 'top 0.2s',
+  });
   skip.addEventListener('focus', () => { skip.style.top = '0'; });
   skip.addEventListener('blur',  () => { skip.style.top = '-100%'; });
   document.body.prepend(skip);
 }
 
-/* ─────────────────────────────────────────
-   INIT — Punto de entrada
-───────────────────────────────────────── */
+/* ── INIT ────────────────────────────────────────────────────── */
 onReady(() => {
   initAOS();
   initHeader();
   initMobileMenu();
   initActiveNav();
+  initHeroSlideshow();
   initCounters();
   initSmoothScroll();
   initScrollTop();
   initContactForm();
-  initCardTilt();
-  initLazyImages();
   initSkipLink();
-
-  // Quitar loader si existe (para futura implementación)
-  const loader = $('#pageLoader');
-  if (loader) {
-    loader.style.opacity = '0';
-    setTimeout(() => loader.remove(), 300);
-  }
 });
