@@ -988,7 +988,7 @@ section { position: relative; }
 }
 
 @media (max-width: 768px) {
-  .portal-access { display: none; }
+  .portal-access { top: 66px; right: 16px; font-size: 0.68rem; padding: 5px 11px 5px 9px; }
   .container    { padding: 0 var(--sp-5); }
   .header       { padding: var(--sp-3); }
   .hero__content { padding-top: 80px; }
