@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Portal Indusquim</title>
+  <link rel="stylesheet" href="../assets/css/portal.css" />
+</head>
+<body>
+<div class="portal-wrap">
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar__logo"><img src="../../logo-indusquim-blanco.png" alt="Indusquim" /></div>
+    <nav class="sidebar__nav">
+      <a href="#" class="sidebar__link active">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        Centro de recursos
+      </a>
+    </nav>
+    <div class="sidebar__footer">
+      <div class="sidebar__user">
+        <strong id="clientName">—</strong>
+        <span id="clientCompany">—</span>
+      </div>
+      <button class="btn-logout" id="logoutBtn">Cerrar sesión</button>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <div class="main-content">
+    <div class="topbar">
+      <span class="topbar__title">Centro de recursos</span>
+      <div class="search-bar" style="width:280px;">
+        <svg class="search-bar__icon" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        <input type="text" id="searchInput" placeholder="Buscar documentos o videos…" />
+      </div>
+    </div>
+
+    <div class="page-body">
+      <div style="margin-bottom:28px;">
+        <h2 style="font-family:var(--f-display);font-size:1.5rem;font-weight:800;color:var(--c-heading);">Bienvenido, <span id="welcomeName">—</span></h2>
+        <p style="color:var(--c-muted);font-size:0.9rem;margin-top:4px;">Accede a nuestras capacitaciones y documentos de apoyo.</p>
+      </div>
+
+      <!-- Tabs -->
+      <div class="tabs">
+        <button class="tab-btn active" data-tab="videos">Capacitaciones</button>
+        <button class="tab-btn" data-tab="docs">Documentos</button>
+      </div>
+
+      <!-- Videos generales -->
+      <div class="tab-panel active" id="tab-videos">
+        <div class="video-grid" id="videoGrid">
+          <div style="color:var(--c-muted);font-size:0.875rem;">Cargando…</div>
+        </div>
+      </div>
+
+      <!-- Documentos generales -->
+      <div class="tab-panel" id="tab-docs">
+        <div class="file-list" id="docsList">
+          <div style="color:var(--c-muted);font-size:0.875rem;">Cargando…</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../assets/js/supabase-client.js"></script>
+<script src="../assets/js/auth.js"></script>
+<script>
+  let allDocs = [], allVideos = [];
+
+  (async () => {
+    const user = await requireAuth('../login.html');
+    if (!user) return;
+
+    const profile = await getProfile();
+    if (!profile || profile.role !== 'client' || profile.client_type !== 'small') {
+      window.location.href = '../login.html'; return;
+    }
+
+    document.getElementById('clientName').textContent    = profile.full_name    || '—';
+    document.getElementById('clientCompany').textContent = profile.company_name || '—';
+    document.getElementById('welcomeName').textContent   = profile.full_name?.split(' ')[0] || profile.company_name || 'cliente';
+    document.getElementById('logoutBtn').onclick = () => logout();
+
+    // Solo documentos y videos generales (client_id IS NULL)
+    const { data: docs   } = await sb.from('documents').select('*').is('client_id', null).order('created_at', { ascending: false });
+    const { data: videos } = await sb.from('videos').select('*').is('client_id', null).order('created_at', { ascending: false });
+
+    allDocs   = docs   || [];
+    allVideos = videos || [];
+    renderDocs(allDocs);
+    renderVideos(allVideos);
+  })();
+
+  function renderDocs(docs) {
+    const el = document.getElementById('docsList');
+    if (!docs.length) {
+      el.innerHTML = `<div class="empty-state"><svg width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><p>No hay documentos disponibles aún.</p></div>`;
+      return;
+    }
+    el.innerHTML = docs.map(d => `
+      <div class="file-item">
+        <div class="file-item__icon">📄</div>
+        <div class="file-item__info">
+          <div class="file-item__name">${d.title}</div>
+          <div class="file-item__meta">${new Date(d.created_at).toLocaleDateString('es-CO')}</div>
+        </div>
+        <div class="file-item__actions">
+          <button class="btn btn--primary btn--sm" onclick="downloadFile('${d.file_path}', 'general-files')">↓ Descargar</button>
+        </div>
+      </div>`).join('');
+  }
+
+  function renderVideos(videos) {
+    const grid = document.getElementById('videoGrid');
+    if (!videos.length) {
+      grid.innerHTML = `<div class="empty-state"><svg width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg><p>No hay videos disponibles aún.</p></div>`;
+      return;
+    }
+    Promise.all(videos.map(async v => {
+      const { data } = await sb.storage.from('videos').createSignedUrl(v.file_path, 3600);
+      return { ...v, url: data?.signedUrl };
+    })).then(vids => {
+      grid.innerHTML = vids.map(v => `
+        <div class="video-card">
+          <video controls preload="metadata" ${v.url ? `src="${v.url}"` : ''}>
+            Tu navegador no soporta video HTML5.
+          </video>
+          <div class="video-card__body">
+            <div class="video-card__title">${v.title}</div>
+            ${v.description ? `<div class="video-card__desc">${v.description}</div>` : ''}
+            <div style="margin-top:10px;">
+              <button class="btn btn--primary btn--sm" onclick="downloadFile('${v.file_path}', 'videos')">↓ Descargar video</button>
+            </div>
+          </div>
+        </div>`).join('');
+    });
+  }
+
+  async function downloadFile(path, bucket) {
+    const { data } = await sb.storage.from(bucket).createSignedUrl(path, 60);
+    if (data) {
+      const a = document.createElement('a');
+      a.href = data.signedUrl;
+      a.download = path.split('/').pop();
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }
+  }
+
+  document.getElementById('searchInput').addEventListener('input', (e) => {
+    const q = e.target.value.toLowerCase();
+    renderDocs(allDocs.filter(d => d.title.toLowerCase().includes(q)));
+    renderVideos(allVideos.filter(v => v.title.toLowerCase().includes(q)));
+  });
+
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+    });
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Portal Indusquim — Acceso</title>
+  <link rel="stylesheet" href="assets/css/portal.css" />
+</head>
+<body>
+  <div class="login-page">
+    <div class="login-box">
+
+      <div class="login-box__logo">
+        <img src="../logo-indusquim.png" alt="Indusquim" />
+        <h1 class="login-box__title">Portal de Clientes</h1>
+        <p class="login-box__sub">Ingresa tus credenciales para continuar</p>
+      </div>
+
+      <div class="alert alert--error" id="errorMsg"></div>
+
+      <form id="loginForm">
+        <div class="form-group">
+          <label class="form-label" for="email">Correo electrónico</label>
+          <input type="email" id="email" class="form-input" placeholder="tu@empresa.com" required />
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="password">Contraseña</label>
+          <input type="password" id="password" class="form-input" placeholder="••••••••" required />
+        </div>
+        <button type="submit" class="btn btn--primary" style="width:100%;justify-content:center;margin-top:8px;" id="submitBtn">
+          Ingresar al portal
+        </button>
+      </form>
+
+      <div style="text-align:center;margin-top:20px;">
+        <a href="#" id="forgotLink" style="font-size:0.8rem;color:var(--c-muted);">¿Olvidaste tu contraseña?</a>
+      </div>
+      <div class="alert alert--success" id="resetMsg" style="margin-top:12px;"></div>
+
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="assets/js/supabase-client.js"></script>
+  <script>
+    // Si ya está autenticado, redirigir al router
+    sb.auth.getSession().then(({ data: { session } }) => {
+      if (session) window.location.href = 'index.html';
+    });
+
+    // Login
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById('submitBtn');
+      const errEl = document.getElementById('errorMsg');
+      errEl.classList.remove('show');
+      btn.textContent = 'Ingresando...';
+      btn.disabled = true;
+
+      const email    = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value;
+
+      try {
+        const { error } = await sb.auth.signInWithPassword({ email, password });
+        if (error) throw error;
+        window.location.href = 'index.html';
+      } catch (err) {
+        errEl.textContent = 'Credenciales incorrectas. Verifica tu correo y contraseña.';
+        errEl.classList.add('show');
+        btn.textContent = 'Ingresar al portal';
+        btn.disabled = false;
+      }
+    });
+
+    // Olvidé contraseña
+    document.getElementById('forgotLink').addEventListener('click', async (e) => {
+      e.preventDefault();
+      const email = document.getElementById('email').value.trim();
+      if (!email) {
+        alert('Escribe tu correo electrónico primero.');
+        return;
+      }
+      const { error } = await sb.auth.resetPasswordForEmail(email, {
+        redirectTo: window.location.origin + '/portal/login.html'
+      });
+      const resetEl = document.getElementById('resetMsg');
+      if (error) {
+        resetEl.textContent = 'No se pudo enviar el correo. Intenta de nuevo.';
+        resetEl.className = 'alert alert--error show';
+      } else {
+        resetEl.textContent = 'Correo de recuperación enviado. Revisa tu bandeja.';
+        resetEl.className = 'alert alert--success show';
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Indusquim — Fabricantes colombianos de soluciones de limpieza y desinfección industrial. Más de 33 años en Cali, Colombia." />
+  <title>Indusquim — Soluciones Naturalmente Confiables</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://unpkg.com/aos@2.3.4/dist/aos.css" rel="stylesheet" />
+  <link rel="stylesheet" href="assets/css/styles.css" />
+</head>
+<body>
+
+  <!-- HEADER -->
+  <header id="header" class="header" role="banner">
+    <div class="header__inner">
+      <a href="index.html" class="header__logo" aria-label="Indusquim inicio">
+        <img src="logo-indusquim.png" alt="Indusquim" class="header__logo-img" />
+      </a>
+      <nav class="header__nav" id="mainNav" aria-label="Navegación principal">
+        <ul class="nav__list">
+          <li><a href="nosotros.html"        class="nav__link">Nosotros</a></li>
+          <li><a href="sectores.html"        class="nav__link">Sectores</a></li>
+          <li><a href="productos.html"       class="nav__link">Catálogo</a></li>
+          <li><a href="certificaciones.html" class="nav__link">Certificaciones</a></li>
+          <li><a href="blog.html"            class="nav__link">Blog</a></li>
+          <li><a href="contacto.html"        class="nav__link">Contacto</a></li>
+        </ul>
+      </nav>
+      <div class="header__actions">
+        <a href="portal/login.html" class="btn btn--nav" style="margin-right:6px;">Portal de clientes</a>
+        <a href="contacto.html" class="btn btn--nav">Solicitar asesoría</a>
+        <button class="header__burger" id="burgerBtn" aria-label="Abrir menú" aria-expanded="false">
+          <span></span><span></span><span></span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- MENÚ MÓVIL -->
+  <div class="mobile-menu" id="mobileMenu" role="dialog" aria-modal="true">
+    <div class="mobile-menu__header">
+      <img src="logo-indusquim.png" alt="Indusquim" class="mobile-menu__logo-img" />
+      <button class="mobile-menu__close" id="menuClose" aria-label="Cerrar menú">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <nav class="mobile-menu__links">
+      <a href="nosotros.html"        class="mobile-menu__link">Nosotros</a>
+      <a href="sectores.html"        class="mobile-menu__link">Sectores</a>
+      <a href="productos.html"       class="mobile-menu__link">Catálogo</a>
+      <a href="certificaciones.html" class="mobile-menu__link">Certificaciones</a>
+      <a href="blog.html"            class="mobile-menu__link">Blog</a>
+      <a href="contacto.html"        class="mobile-menu__link">Contacto</a>
+    </nav>
+    <div class="mobile-menu__cta">
+      <a href="portal/login.html" class="btn btn--outline" style="width:100%;justify-content:center;margin-bottom:10px;">Portal de clientes</a>
+      <a href="contacto.html" class="btn btn--primary" style="width:100%;justify-content:center;">Solicitar asesoría</a>
+    </div>
+  </div>
+
+  <main id="inicio">
+
+    <!-- HERO — Slideshow full-screen con islas flotantes -->
+    <section class="hero" id="hero">
+
+      <!-- Galería: slides + overlay + fade — todo DENTRO, solo afectan el fondo -->
+      <div class="hero__slides" id="heroSlides">
+        <!-- Foto 1 -->
+        <div class="hero__slide active"
+          style="background-image: url('https://images.unsplash.com/photo-1581093458791-9d09f827bc45?w=1920&q=85')">
+        </div>
+        <!-- Foto 2 -->
+        <div class="hero__slide"
+          style="background-image: url('https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=1920&q=85')">
+        </div>
+        <!-- Foto 3 -->
+        <div class="hero__slide"
+          style="background-image: url('https://images.unsplash.com/photo-1585776245991-cf89dd7fc73a?w=1920&q=85')">
+        </div>
+        <!-- Video 4 -->
+        <div class="hero__slide hero__slide--video">
+          <video autoplay muted loop playsinline preload="none">
+            <source src="https://videos.pexels.com/video-files/3048539/3048539-hd_1920_1080_25fps.mp4" type="video/mp4">
+          </video>
+        </div>
+        <!-- Overlay oscuro para legibilidad — solo sobre el fondo -->
+        <div class="hero__overlay"></div>
+        <!-- Fade inferior — solo disuelve las fotos, no el texto ni las tarjetas -->
+        <div class="hero__fade"></div>
+      </div>
+
+      <!-- Texto principal -->
+      <div class="container">
+        <div class="hero__content">
+          <div class="hero__label">
+            <span class="hero__label-dot"></span>
+            Cali, Colombia &nbsp;·&nbsp; Desde 1993
+          </div>
+          <h1 class="hero__title">
+            Soluciones en limpieza<br>y desinfección para<br><span class="accent">tu industria</span>
+          </h1>
+          <p class="hero__sub">
+            Fabricantes colombianos de soluciones de desinfección industrial. Certificadas INVIMA, biodegradables y con 33 años de respaldo.
+          </p>
+          <div class="hero__actions">
+            <a href="productos.html" class="btn btn--primary">Ver catálogo</a>
+            <a href="nosotros.html"  class="btn btn--ghost">Conocer Indusquim</a>
+          </div>
+        </div>
+      </div>
+
+
+    </section>
+
+    <!-- SECTORES -->
+    <section class="sectors">
+      <div class="container">
+        <div class="sectors__grid">
+
+          <a href="sectores.html#alimentaria" class="sector-card" data-aos="fade-up" data-aos-delay="0">
+            <img src="https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=800&q=80" alt="Industria Alimentaria" class="sector-card__img" loading="lazy" />
+            <div class="sector-card__overlay"></div>
+            <div class="sector-card__body">
+              <div class="sector-card__num">01</div>
+              <div class="sector-card__name">Industria<br>Alimentaria</div>
+              <div class="sector-card__desc">Limpieza y desinfección para plantas con cumplimiento BPM e INVIMA.</div>
+              <div class="sector-card__cta">Explorar <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>
+            </div>
+          </a>
+
+          <a href="sectores.html#hoteleria" class="sector-card" data-aos="fade-up" data-aos-delay="80">
+            <img src="https://images.unsplash.com/photo-1618773928121-c32242e63f39?w=800&q=80" alt="Hotelería" class="sector-card__img" loading="lazy" />
+            <div class="sector-card__overlay"></div>
+            <div class="sector-card__body">
+              <div class="sector-card__num">02</div>
+              <div class="sector-card__name">Hotelería<br>y Turismo</div>
+              <div class="sector-card__desc">Soluciones para hoteles, restaurantes y centros de alto estándar.</div>
+              <div class="sector-card__cta">Explorar <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>
+            </div>
+          </a>
+
+          <a href="sectores.html#salud" class="sector-card" data-aos="fade-up" data-aos-delay="160">
+            <img src="https://images.unsplash.com/photo-1579684385127-1ef15d508118?w=800&q=80" alt="Salud" class="sector-card__img" loading="lazy" />
+            <div class="sector-card__overlay"></div>
+            <div class="sector-card__body">
+              <div class="sector-card__num">03</div>
+              <div class="sector-card__name">Salud e<br>Institucional</div>
+              <div class="sector-card__desc">Desinfectantes de alto nivel para clínicas y hospitales.</div>
+              <div class="sector-card__cta">Explorar <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>
+            </div>
+          </a>
+
+          <a href="sectores.html#lavanderia" class="sector-card" data-aos="fade-up" data-aos-delay="0">
+            <img src="https://images.unsplash.com/photo-1582735689369-4fe89db7114c?w=800&q=80" alt="Lavandería" class="sector-card__img" loading="lazy" />
+            <div class="sector-card__overlay"></div>
+            <div class="sector-card__body">
+              <div class="sector-card__num">04</div>
+              <div class="sector-card__name">Lavandería<br>Industrial</div>
+              <div class="sector-card__desc">Detergentes y suavizantes para lavanderías de alto volumen.</div>
+              <div class="sector-card__cta">Explorar <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>
+            </div>
+          </a>
+
+          <a href="sectores.html#manufactura" class="sector-card" data-aos="fade-up" data-aos-delay="80">
+            <img src="https://images.unsplash.com/photo-1565008447742-97f6f38c985c?w=800&q=80" alt="Manufactura" class="sector-card__img" loading="lazy" />
+            <div class="sector-card__overlay"></div>
+            <div class="sector-card__body">
+              <div class="sector-card__num">05</div>
+              <div class="sector-card__name">Manufactura<br>e Industria</div>
+              <div class="sector-card__desc">Productos para mantenimiento industrial y pisos de producción.</div>
+              <div class="sector-card__cta">Explorar <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>
+            </div>
+          </a>
+
+          <a href="sectores.html#educacion" class="sector-card" data-aos="fade-up" data-aos-delay="160">
+            <img src="https://images.unsplash.com/photo-1580582932707-520aed937b7b?w=800&q=80" alt="Educación" class="sector-card__img" loading="lazy" />
+            <div class="sector-card__overlay"></div>
+            <div class="sector-card__body">
+              <div class="sector-card__num">06</div>
+              <div class="sector-card__name">Educación<br>y Gobierno</div>
+              <div class="sector-card__desc">Productos para colegios, universidades y licitaciones públicas.</div>
+              <div class="sector-card__cta">Explorar <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>
+            </div>
+          </a>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- PILLARS -->
+    <section class="pillars">
+      <div class="container">
+        <div class="pillars__inner">
+          <div class="pillars__sticky" data-aos="fade-right">
+            <span class="eyebrow">Por qué elegirnos</span>
+            <h2 class="pillars__title">Lo que nos hace diferentes</h2>
+            <p class="pillars__text">No somos solo proveedores. Somos aliados técnicos que garantizan protocolos efectivos, seguros y documentados para cada auditoría.</p>
+            <a href="nosotros.html" class="btn btn--outline">Nuestra propuesta de valor →</a>
+          </div>
+          <div class="pillars__grid">
+            <div class="pillar-card" data-aos="fade-up" data-aos-delay="0">
+              <span class="pillar-card__icon">🏭</span>
+              <div class="pillar-card__title">Fabricantes directos</div>
+              <p class="pillar-card__text">Producimos en Colombia para ofrecer precios competitivos y personalización de fórmulas por cliente.</p>
+            </div>
+            <div class="pillar-card" data-aos="fade-up" data-aos-delay="100">
+              <span class="pillar-card__icon">🌿</span>
+              <div class="pillar-card__title">Biodegradables</div>
+              <p class="pillar-card__text">Formulaciones de mínimo impacto ambiental sin sacrificar eficacia de limpieza y desinfección.</p>
+            </div>
+            <div class="pillar-card" data-aos="fade-up" data-aos-delay="200">
+              <span class="pillar-card__icon">📋</span>
+              <div class="pillar-card__title">Documentación completa</div>
+              <p class="pillar-card__text">Ficha técnica, SGA y certificaciones vigentes por cada producto. Listo para auditorías.</p>
+            </div>
+            <div class="pillar-card" data-aos="fade-up" data-aos-delay="300">
+              <span class="pillar-card__icon">🎓</span>
+              <div class="pillar-card__title">Capacitación técnica</div>
+              <p class="pillar-card__text">Formamos al personal en diluciones, aplicación y protocolos de seguridad incluidos en el servicio.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+
+  </main>
+
+  <!-- FOOTER -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer__grid">
+        <div>
+          <img src="logo-indusquim-blanco.png" alt="Indusquim" class="footer__logo-img" />
+          <p class="footer__tagline">Fabricantes colombianos de soluciones de limpieza y desinfección industrial desde 1993.</p>
+          <div class="footer__social">
+            <a href="#" class="footer__social-link" aria-label="Facebook" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg></a>
+            <a href="#" class="footer__social-link" aria-label="Instagram" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg></a>
+            <a href="https://wa.me/573023169861" class="footer__social-link" aria-label="WhatsApp" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg></a>
+          </div>
+        </div>
+        <div>
+          <h4 class="footer__col-title">Empresa</h4>
+          <ul class="footer__links">
+            <li><a href="nosotros.html">Sobre Indusquim</a></li>
+            <li><a href="nosotros.html#proceso">Cómo trabajamos</a></li>
+            <li><a href="certificaciones.html">Certificaciones</a></li>
+            <li><a href="blog.html">Blog y recursos</a></li>
+            <li><a href="contacto.html">Contacto</a></li>
+          </ul>
+        </div>
+        <div>
+          <h4 class="footer__col-title">Soluciones</h4>
+          <ul class="footer__links">
+            <li><a href="sectores.html#alimentaria">Industria Alimentaria</a></li>
+            <li><a href="sectores.html#hoteleria">Hospitalidad y Hotelería</a></li>
+            <li><a href="sectores.html#salud">Salud e Institucional</a></li>
+            <li><a href="sectores.html#lavanderia">Lavandería Industrial</a></li>
+            <li><a href="sectores.html#manufactura">Manufactura</a></li>
+          </ul>
+        </div>
+        <div>
+          <h4 class="footer__col-title">Contacto</h4>
+          <ul class="footer__contact">
+            <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>Cali, Valle del Cauca, Colombia</li>
+            <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.95 10.8 19.79 19.79 0 01.9 2.18 2 2 0 012.88 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L7.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg>(57)(2) 337 2435 · 302 316 9861</li>
+            <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>ventas@indusquim.co</li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer__bottom">
+        <p>© 2025 Indusquim. Todos los derechos reservados.</p>
+        <p>Fabricantes de productos de limpieza industrial — Cali, Colombia</p>
+      </div>
+    </div>
+  </footer>
+
+  <button class="scroll-top" id="scrollTop" aria-label="Volver arriba">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 15l-6-6-6 6"/></svg>
+  </button>
+
+  <script src="https://unpkg.com/aos@2.3.4/dist/aos.js"></script>
+  <script src="assets/js/main.js"></script>
+</body>
+</html>
