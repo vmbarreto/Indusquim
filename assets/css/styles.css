@@ -276,6 +276,63 @@ section { position: relative; }
   margin-left: var(--sp-6);
 }
 
+/* ── Portal de clientes — acceso discreto top-right ── */
+.portal-access {
+  position: fixed;
+  top: 14px;
+  right: 28px;
+  z-index: 300;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.72rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  color: var(--c-heading);
+  text-decoration: none;
+  background: rgba(248,246,241,0.88);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  padding: 5px 13px 5px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(44,95,38,0.18);
+  transition: background 0.2s, color 0.2s, border-color 0.2s;
+}
+.portal-access svg { opacity: 0.7; transition: opacity 0.2s; }
+.portal-access:hover {
+  background: var(--c-brand);
+  color: #fff;
+  border-color: var(--c-brand);
+}
+.portal-access:hover svg { opacity: 1; }
+
+/* ── WhatsApp flotante ── */
+.whatsapp-float {
+  position: fixed;
+  bottom: 28px;
+  right: 28px;
+  z-index: 1000;
+  width: 58px;
+  height: 58px;
+  background: #25D366;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 18px rgba(37,211,102,0.45);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  animation: wsp-pulse 2.5s ease-in-out infinite;
+}
+.whatsapp-float:hover {
+  transform: scale(1.1);
+  box-shadow: 0 6px 28px rgba(37,211,102,0.6);
+  animation: none;
+}
+@keyframes wsp-pulse {
+  0%, 100% { box-shadow: 0 4px 18px rgba(37,211,102,0.45); }
+  50%       { box-shadow: 0 4px 32px rgba(37,211,102,0.75); }
+}
+
 .header__burger {
   display: none;
   flex-direction: column;
