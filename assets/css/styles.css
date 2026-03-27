@@ -987,8 +987,32 @@ section { position: relative; }
   .pillars__grid  { grid-template-columns: 1fr 1fr; }
 }
 
+/* ── Ícono portal en header (solo móvil) ── */
+.header__portal-icon {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  color: var(--c-heading);
+  transition: background 0.2s, color 0.2s;
+}
+.header__portal-icon:hover { background: var(--c-brand-tint); color: var(--c-brand); }
+
+/* ── Header se oculta cuando el menú móvil está abierto ── */
+body.menu-open .header {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s;
+}
+
+@media (max-width: 1024px) {
+  .header__portal-icon { display: flex; }
+  .portal-access { display: none; }
+}
+
 @media (max-width: 768px) {
-  .portal-access { top: 66px; right: 16px; font-size: 0.68rem; padding: 5px 11px 5px 9px; }
   .container    { padding: 0 var(--sp-5); }
   .header       { padding: var(--sp-3); }
   .hero__content { padding-top: 80px; }
