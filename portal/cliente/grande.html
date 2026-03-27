@@ -28,10 +28,12 @@
   </aside>
 
   <!-- Main -->
+  <div class="sidebar-overlay" id="sidebarOverlay"></div>
   <div class="main-content">
     <div class="topbar">
+      <button class="hamburger" id="hamburger" aria-label="Menú"><span></span><span></span><span></span></button>
       <span class="topbar__title">Portal de cliente</span>
-      <!-- Búsqueda -->
+      <!-- Búsqueda (desktop) -->
       <div class="search-bar" style="width:280px;">
         <svg class="search-bar__icon" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
         <input type="text" id="searchInput" placeholder="Buscar documentos o videos…" />
@@ -39,6 +41,11 @@
     </div>
 
     <div class="page-body">
+      <!-- Búsqueda móvil -->
+      <div class="search-bar search-bar--top">
+        <svg class="search-bar__icon" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        <input type="text" id="searchInputMobile" placeholder="Buscar documentos o videos…" />
+      </div>
       <!-- Bienvenida -->
       <div style="margin-bottom:28px;">
         <h2 style="font-family:var(--f-display);font-size:1.5rem;font-weight:800;color:var(--c-heading);">Bienvenido, <span id="welcomeName">—</span></h2>
@@ -179,13 +186,26 @@
     }
   }
 
-  // Búsqueda en tiempo real
-  document.getElementById('searchInput').addEventListener('input', (e) => {
-    const q = e.target.value.toLowerCase();
+  // Búsqueda en tiempo real (desktop + móvil)
+  function applySearch(q) {
     const filteredDocs   = allItems.docs.filter(d => d.title.toLowerCase().includes(q));
     const filteredVideos = allItems.videos.filter(v => v.title.toLowerCase().includes(q));
     renderAll(filteredDocs, filteredVideos);
-  });
+  }
+  document.getElementById('searchInput').addEventListener('input', e => applySearch(e.target.value.toLowerCase()));
+  document.getElementById('searchInputMobile').addEventListener('input', e => applySearch(e.target.value.toLowerCase()));
+
+  // Hamburger
+  const hbg = document.getElementById('hamburger');
+  const sidebar = document.querySelector('.sidebar');
+  const overlay = document.getElementById('sidebarOverlay');
+  function toggleSidebar() {
+    sidebar.classList.toggle('open');
+    hbg.classList.toggle('open');
+    overlay.classList.toggle('show');
+  }
+  hbg.addEventListener('click', toggleSidebar);
+  overlay.addEventListener('click', toggleSidebar);
 
   // Tabs
   document.querySelectorAll('.tab-btn').forEach(btn => {

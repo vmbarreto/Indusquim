@@ -38,8 +38,10 @@
   </aside>
 
   <!-- Main -->
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
   <div class="main-content">
     <div class="topbar">
+      <button class="hamburger" id="hamburger" aria-label="Menú"><span></span><span></span><span></span></button>
       <span class="topbar__title">Dashboard</span>
     </div>
     <div class="page-body">
@@ -139,6 +141,17 @@
 
     document.getElementById('logoutBtn').onclick = () => logout();
   })();
+  // Hamburger
+  const hbg = document.getElementById('hamburger');
+  const sidebar = document.querySelector('.sidebar');
+  const overlay = document.getElementById('sidebarOverlay');
+  function toggleSidebar() {
+    sidebar.classList.toggle('open');
+    hbg.classList.toggle('open');
+    overlay.classList.toggle('show');
+  }
+  hbg.addEventListener('click', toggleSidebar);
+  overlay.addEventListener('click', toggleSidebar);
 </script>
 </body>
 </html>
