@@ -41,26 +41,23 @@ Deno.serve(async (req) => {
 
     // ── Crear usuario ────────────────────────────────────────────
     if (action === 'create') {
-      const { username, email, password, full_name, company_name, client_type } = body
+      const { email, password, full_name, company_name, client_type } = body
 
-      // Si no hay email real, usar placeholder interno para Supabase Auth
-      const hasRealEmail = !!email && email.trim() !== ''
-      const authEmail    = hasRealEmail ? email.trim() : `${username}@portal.indusquim`
+      if (!email || !email.trim()) throw new Error('El correo es obligatorio')
 
       const { data: authData, error: authErr } = await supabaseAdmin.auth.admin.createUser({
-        email: authEmail,
+        email: email.trim(),
         password,
-        email_confirm: true, // admin crea las cuentas, siempre confirmadas
+        email_confirm: true,
         user_metadata: { full_name, company_name }
       })
       if (authErr) throw authErr
 
       const { error: profileErr } = await supabaseAdmin.from('profiles').insert({
         id: authData.user.id,
-        username,
         full_name,
         company_name,
-        email: hasRealEmail ? email.trim() : null,
+        email: email.trim(),
         role: 'client',
         client_type
       })

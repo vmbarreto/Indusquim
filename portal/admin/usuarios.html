@@ -84,22 +84,17 @@
     </div>
     <form id="createForm">
       <div class="form-group">
-        <label class="form-label">Nombre de usuario <span style="color:var(--c-brand)">*</span></label>
-        <input type="text" class="form-input" id="f_username" placeholder="juangarcia" required autocomplete="off" />
-        <p class="form-hint">Con este nombre ingresará al portal. Sin espacios ni caracteres especiales.</p>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Nombre completo</label>
+        <label class="form-label">Nombre completo <span style="color:var(--c-brand)">*</span></label>
         <input type="text" class="form-input" id="f_name" placeholder="Juan García" required />
       </div>
       <div class="form-group">
-        <label class="form-label">Nombre de empresa</label>
+        <label class="form-label">Nombre de empresa <span style="color:var(--c-brand)">*</span></label>
         <input type="text" class="form-input" id="f_company" placeholder="Empresa S.A.S." required />
       </div>
       <div class="form-group">
-        <label class="form-label">Correo electrónico <span style="font-weight:400;color:var(--c-muted)">(opcional)</span></label>
-        <input type="email" class="form-input" id="f_email" placeholder="cliente@empresa.com" />
-        <p class="form-hint">Si no lo tienes ahora, el cliente puede agregarlo después desde su portal.</p>
+        <label class="form-label">Correo electrónico <span style="color:var(--c-brand)">*</span></label>
+        <input type="email" class="form-input" id="f_email" placeholder="cliente@empresa.com" required />
+        <p class="form-hint">Con este correo el cliente ingresará al portal.</p>
       </div>
       <div class="form-group">
         <label class="form-label">Contraseña inicial</label>
@@ -189,7 +184,6 @@
     btn.textContent = 'Creando…';
     btn.disabled = true;
 
-    const username = document.getElementById('f_username').value.trim().toLowerCase();
     const name     = document.getElementById('f_name').value.trim();
     const company  = document.getElementById('f_company').value.trim();
     const email    = document.getElementById('f_email').value.trim();
@@ -204,7 +198,7 @@
           'Authorization': `Bearer ${session.access_token}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ action: 'create', username, email, password, full_name: name, company_name: company, client_type: type })
+        body: JSON.stringify({ action: 'create', email, password, full_name: name, company_name: company, client_type: type })
       });
       const result = await res.json();
       if (!res.ok) throw new Error(result.error || 'Error desconocido');
