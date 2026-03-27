@@ -97,13 +97,17 @@
     document.getElementById('welcomeName').textContent   = profile.full_name?.split(' ')[0] || profile.company_name || 'cliente';
     document.getElementById('logoutBtn').onclick = () => logout();
 
-    // Cargar documentos del cliente
+    // Cargar documentos: propios + generales
     const { data: docs } = await sb.from('documents')
-      .select('*').eq('client_id', user.id).order('created_at', { ascending: false });
+      .select('*')
+      .or(`client_id.eq.${user.id},client_id.is.null`)
+      .order('created_at', { ascending: false });
 
-    // Cargar videos del cliente
+    // Cargar videos: propios + generales
     const { data: videos } = await sb.from('videos')
-      .select('*').eq('client_id', user.id).order('created_at', { ascending: false });
+      .select('*')
+      .or(`client_id.eq.${user.id},client_id.is.null`)
+      .order('created_at', { ascending: false });
 
     allItems = { docs: docs || [], videos: videos || [] };
     renderAll(allItems.docs, allItems.videos);
