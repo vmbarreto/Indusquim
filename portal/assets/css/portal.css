@@ -157,6 +157,29 @@ tr:hover td { background: var(--c-bg); }
 .file-item__meta { font-size: 0.75rem; color: var(--c-muted); margin-top: 2px; }
 .file-item__actions { display: flex; gap: 8px; flex-shrink: 0; }
 
+/* ─── Password toggle ───────────────────────────────────────── */
+.input-password-wrap { position: relative; }
+.input-password-wrap .form-input { padding-right: 46px; }
+.pwd-toggle {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--c-muted);
+  display: flex;
+  align-items: center;
+  padding: 4px;
+  border-radius: 6px;
+  transition: color 0.2s, transform 0.2s;
+}
+.pwd-toggle:hover { color: var(--c-brand); }
+.pwd-toggle.active { color: var(--c-brand); }
+.pwd-toggle svg { transition: transform 0.3s ease; }
+.pwd-toggle.active svg { transform: rotateY(180deg); }
+
 /* ─── Empty state ────────────────────────────────────────────── */
 .empty-state { text-align: center; padding: 48px 24px; color: var(--c-muted); }
 .empty-state svg { margin: 0 auto 12px; opacity: 0.35; }

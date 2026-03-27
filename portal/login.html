@@ -13,29 +13,74 @@
       <div class="login-box__logo">
         <img src="../logo-indusquim.png" alt="Indusquim" />
         <h1 class="login-box__title">Portal de Clientes</h1>
-        <p class="login-box__sub">Ingresa tus credenciales para continuar</p>
+        <p class="login-box__sub" id="loginSub">Ingresa tus credenciales para continuar</p>
       </div>
 
-      <div class="alert alert--error" id="errorMsg"></div>
+      <div class="alert alert--error"   id="errorMsg"></div>
+      <div class="alert alert--success" id="successMsg"></div>
 
+      <!-- ── Formulario de login ── -->
       <form id="loginForm">
         <div class="form-group">
-          <label class="form-label" for="email">Correo electrónico</label>
-          <input type="email" id="email" class="form-input" placeholder="tu@empresa.com" required />
+          <label class="form-label" for="username">Usuario</label>
+          <input type="text" id="username" class="form-input" placeholder="nombre de usuario" required autocomplete="username" />
         </div>
         <div class="form-group">
           <label class="form-label" for="password">Contraseña</label>
-          <input type="password" id="password" class="form-input" placeholder="••••••••" required />
+          <div class="input-password-wrap">
+            <input type="password" id="password" class="form-input" placeholder="••••••••" required autocomplete="current-password" />
+            <button type="button" class="pwd-toggle" id="pwdToggle" aria-label="Mostrar contraseña">
+              <svg id="eyeIcon" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                <circle cx="12" cy="12" r="3"/>
+              </svg>
+            </button>
+          </div>
         </div>
         <button type="submit" class="btn btn--primary" style="width:100%;justify-content:center;margin-top:8px;" id="submitBtn">
           Ingresar al portal
         </button>
+        <div style="text-align:center;margin-top:16px;">
+          <a href="#" id="forgotLink" style="font-size:0.8rem;color:var(--c-muted);">¿Olvidaste tu contraseña?</a>
+        </div>
       </form>
 
-      <div style="text-align:center;margin-top:20px;">
-        <a href="#" id="forgotLink" style="font-size:0.8rem;color:var(--c-muted);">¿Olvidaste tu contraseña?</a>
-      </div>
-      <div class="alert alert--success" id="resetMsg" style="margin-top:12px;"></div>
+      <!-- ── Formulario de recuperación (email) ── -->
+      <form id="forgotForm" style="display:none;">
+        <div class="form-group">
+          <label class="form-label" for="recoverEmail">Correo electrónico registrado</label>
+          <input type="email" id="recoverEmail" class="form-input" placeholder="tu@empresa.com" required />
+        </div>
+        <button type="submit" class="btn btn--primary" style="width:100%;justify-content:center;" id="recoverBtn">
+          Enviar enlace de recuperación
+        </button>
+        <div style="text-align:center;margin-top:16px;">
+          <a href="#" id="backToLogin" style="font-size:0.8rem;color:var(--c-muted);">← Volver al inicio</a>
+        </div>
+      </form>
+
+      <!-- ── Formulario de nueva contraseña (desde link email) ── -->
+      <form id="resetForm" style="display:none;">
+        <div class="form-group">
+          <label class="form-label" for="newPassword">Nueva contraseña</label>
+          <div class="input-password-wrap">
+            <input type="password" id="newPassword" class="form-input" placeholder="Mínimo 8 caracteres" required minlength="8" autocomplete="new-password" />
+            <button type="button" class="pwd-toggle" id="pwdToggle2" aria-label="Mostrar contraseña">
+              <svg id="eyeIcon2" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                <circle cx="12" cy="12" r="3"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="confirmPassword">Confirmar contraseña</label>
+          <input type="password" id="confirmPassword" class="form-input" placeholder="Repite la contraseña" required minlength="8" autocomplete="new-password" />
+        </div>
+        <button type="submit" class="btn btn--primary" style="width:100%;justify-content:center;" id="resetBtn">
+          Guardar nueva contraseña
+        </button>
+      </form>
 
     </div>
   </div>
@@ -43,53 +88,139 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="assets/js/supabase-client.js"></script>
   <script>
-    // Si ya está autenticado, redirigir al router
-    sb.auth.getSession().then(({ data: { session } }) => {
-      if (session) window.location.href = 'index.html';
+    const SITE_URL = 'https://indusquim.vmbarreto-pro.workers.dev';
+
+    function showForm(formId) {
+      ['loginForm','forgotForm','resetForm'].forEach(id => {
+        document.getElementById(id).style.display = id === formId ? 'block' : 'none';
+      });
+    }
+
+    function showError(msg) {
+      const el = document.getElementById('errorMsg');
+      el.textContent = msg; el.classList.add('show');
+      document.getElementById('successMsg').classList.remove('show');
+    }
+
+    function showSuccess(msg) {
+      const el = document.getElementById('successMsg');
+      el.textContent = msg; el.classList.add('show');
+      document.getElementById('errorMsg').classList.remove('show');
+    }
+
+    // ── Detectar token de recuperación en la URL ──────────────────
+    sb.auth.onAuthStateChange((event) => {
+      if (event === 'PASSWORD_RECOVERY') {
+        document.getElementById('loginSub').textContent = 'Elige tu nueva contraseña';
+        showForm('resetForm');
+      }
     });
 
-    // Login
+    // Si ya está autenticado (y NO es recovery), redirigir al router
+    sb.auth.getSession().then(({ data: { session } }) => {
+      const hash = window.location.hash;
+      if (session && !hash.includes('type=recovery')) {
+        window.location.href = 'index.html';
+      }
+    });
+
+    // ── Toggle mostrar/ocultar contraseña ─────────────────────────
+    function setupToggle(btnId, inputId, iconId) {
+      document.getElementById(btnId).addEventListener('click', () => {
+        const input = document.getElementById(inputId);
+        const icon  = document.getElementById(iconId);
+        const show  = input.type === 'password';
+        input.type  = show ? 'text' : 'password';
+        icon.innerHTML = show
+          ? '<path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/>'
+          : '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
+        document.getElementById(btnId).classList.toggle('active', show);
+      });
+    }
+    setupToggle('pwdToggle',  'password',    'eyeIcon');
+    setupToggle('pwdToggle2', 'newPassword', 'eyeIcon2');
+
+    // ── Login ─────────────────────────────────────────────────────
     document.getElementById('loginForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       const btn = document.getElementById('submitBtn');
-      const errEl = document.getElementById('errorMsg');
-      errEl.classList.remove('show');
-      btn.textContent = 'Ingresando...';
-      btn.disabled = true;
+      btn.textContent = 'Ingresando...'; btn.disabled = true;
+      document.getElementById('errorMsg').classList.remove('show');
 
-      const email    = document.getElementById('email').value.trim();
+      const username = document.getElementById('username').value.trim();
       const password = document.getElementById('password').value;
 
       try {
-        const { error } = await sb.auth.signInWithPassword({ email, password });
+        const { data: emailData, error: rpcErr } = await sb.rpc('get_email_by_username', { p_username: username });
+        if (rpcErr || !emailData) throw new Error('Usuario no encontrado');
+
+        const { error } = await sb.auth.signInWithPassword({ email: emailData, password });
         if (error) throw error;
         window.location.href = 'index.html';
       } catch (err) {
-        errEl.textContent = 'Credenciales incorrectas. Verifica tu correo y contraseña.';
-        errEl.classList.add('show');
-        btn.textContent = 'Ingresar al portal';
-        btn.disabled = false;
+        if (err.message?.includes('Email not confirmed')) {
+          showError('Debes confirmar tu correo antes de ingresar. Revisa tu bandeja de entrada.');
+        } else if (err.message?.includes('Usuario no encontrado')) {
+          showError('Usuario no encontrado. Verifica tu nombre de usuario.');
+        } else {
+          showError('Credenciales incorrectas. Verifica tu usuario y contraseña.');
+        }
+        btn.textContent = 'Ingresar al portal'; btn.disabled = false;
       }
     });
 
-    // Olvidé contraseña
-    document.getElementById('forgotLink').addEventListener('click', async (e) => {
+    // ── Ir a recuperación ─────────────────────────────────────────
+    document.getElementById('forgotLink').addEventListener('click', (e) => {
       e.preventDefault();
-      const email = document.getElementById('email').value.trim();
-      if (!email) {
-        alert('Escribe tu correo electrónico primero.');
-        return;
-      }
+      document.getElementById('loginSub').textContent = 'Te enviaremos un enlace a tu correo';
+      document.getElementById('errorMsg').classList.remove('show');
+      showForm('forgotForm');
+    });
+
+    document.getElementById('backToLogin').addEventListener('click', (e) => {
+      e.preventDefault();
+      document.getElementById('loginSub').textContent = 'Ingresa tus credenciales para continuar';
+      document.getElementById('errorMsg').classList.remove('show');
+      showForm('loginForm');
+    });
+
+    // ── Enviar correo de recuperación ─────────────────────────────
+    document.getElementById('forgotForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn   = document.getElementById('recoverBtn');
+      const email = document.getElementById('recoverEmail').value.trim();
+      btn.textContent = 'Enviando...'; btn.disabled = true;
+
       const { error } = await sb.auth.resetPasswordForEmail(email, {
-        redirectTo: window.location.origin + '/portal/login.html'
+        redirectTo: SITE_URL + '/portal/login.html'
       });
-      const resetEl = document.getElementById('resetMsg');
+
       if (error) {
-        resetEl.textContent = 'No se pudo enviar el correo. Intenta de nuevo.';
-        resetEl.className = 'alert alert--error show';
+        showError('No se pudo enviar el correo. Verifica la dirección e intenta de nuevo.');
       } else {
-        resetEl.textContent = 'Correo de recuperación enviado. Revisa tu bandeja.';
-        resetEl.className = 'alert alert--success show';
+        showSuccess('Correo enviado. Revisa tu bandeja de entrada y sigue el enlace.');
+      }
+      btn.textContent = 'Enviar enlace de recuperación'; btn.disabled = false;
+    });
+
+    // ── Guardar nueva contraseña ──────────────────────────────────
+    document.getElementById('resetForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn      = document.getElementById('resetBtn');
+      const newPwd   = document.getElementById('newPassword').value;
+      const confirm  = document.getElementById('confirmPassword').value;
+
+      if (newPwd !== confirm) { showError('Las contraseñas no coinciden.'); return; }
+
+      btn.textContent = 'Guardando...'; btn.disabled = true;
+
+      const { error } = await sb.auth.updateUser({ password: newPwd });
+      if (error) {
+        showError('Error al actualizar la contraseña: ' + error.message);
+        btn.textContent = 'Guardar nueva contraseña'; btn.disabled = false;
+      } else {
+        showSuccess('¡Contraseña actualizada! Redirigiendo...');
+        setTimeout(() => { window.location.href = 'index.html'; }, 1500);
       }
     });
   </script>

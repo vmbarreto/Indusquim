@@ -41,18 +41,19 @@ Deno.serve(async (req) => {
 
     // ── Crear usuario ────────────────────────────────────────────
     if (action === 'create') {
-      const { email, password, full_name, company_name, client_type } = body
+      const { username, email, password, full_name, company_name, client_type } = body
 
       const { data: authData, error: authErr } = await supabaseAdmin.auth.admin.createUser({
         email,
         password,
-        email_confirm: true,
+        email_confirm: false,
         user_metadata: { full_name, company_name }
       })
       if (authErr) throw authErr
 
       const { error: profileErr } = await supabaseAdmin.from('profiles').insert({
         id: authData.user.id,
+        username,
         full_name,
         company_name,
         email,
