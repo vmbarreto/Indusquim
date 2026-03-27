@@ -43,10 +43,14 @@ Deno.serve(async (req) => {
     if (action === 'create') {
       const { username, email, password, full_name, company_name, client_type } = body
 
+      // Si no hay email real, usar placeholder interno para Supabase Auth
+      const hasRealEmail = !!email && email.trim() !== ''
+      const authEmail    = hasRealEmail ? email.trim() : `${username}@portal.indusquim`
+
       const { data: authData, error: authErr } = await supabaseAdmin.auth.admin.createUser({
-        email,
+        email: authEmail,
         password,
-        email_confirm: false,
+        email_confirm: !hasRealEmail, // si es placeholder, confirmar automáticamente
         user_metadata: { full_name, company_name }
       })
       if (authErr) throw authErr
@@ -56,7 +60,7 @@ Deno.serve(async (req) => {
         username,
         full_name,
         company_name,
-        email,
+        email: hasRealEmail ? email.trim() : null,
         role: 'client',
         client_type
       })

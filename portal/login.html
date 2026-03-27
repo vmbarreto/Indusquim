@@ -22,8 +22,8 @@
       <!-- ── Formulario de login ── -->
       <form id="loginForm">
         <div class="form-group">
-          <label class="form-label" for="username">Usuario</label>
-          <input type="text" id="username" class="form-input" placeholder="nombre de usuario" required autocomplete="username" />
+          <label class="form-label" for="username">Usuario o correo electrónico</label>
+          <input type="text" id="username" class="form-input" placeholder="usuario o correo" required autocomplete="username" />
         </div>
         <div class="form-group">
           <label class="form-label" for="password">Contraseña</label>
@@ -151,10 +151,16 @@
       const password = document.getElementById('password').value;
 
       try {
-        const { data: emailData, error: rpcErr } = await sb.rpc('get_email_by_username', { p_username: username });
-        if (rpcErr || !emailData) throw new Error('Usuario no encontrado');
+        let emailToUse = username;
 
-        const { error } = await sb.auth.signInWithPassword({ email: emailData, password });
+        // Si no tiene @, buscar email por username
+        if (!username.includes('@')) {
+          const { data: emailData, error: rpcErr } = await sb.rpc('get_email_by_username', { p_username: username.toLowerCase() });
+          if (rpcErr || !emailData) throw new Error('Usuario no encontrado');
+          emailToUse = emailData;
+        }
+
+        const { error } = await sb.auth.signInWithPassword({ email: emailToUse, password });
         if (error) throw error;
         window.location.href = 'index.html';
       } catch (err) {
