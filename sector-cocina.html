@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Indusquim para industria alimentaria y cocinas industriales: desengrasantes, desinfectantes, CIP y protocolos de limpieza bajo normas INVIMA y BPM. Fabricantes colombianos desde 1993." />
+  <title>Industria Alimentaria y Cocinas — Indusquim</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://unpkg.com/aos@2.3.4/dist/aos.css" rel="stylesheet" />
+  <link rel="stylesheet" href="assets/css/styles.css" />
+  <style>
+    .header__search-wrap { position: relative; margin: 0 var(--sp-4); }
+    .header__search-input {
+      background: var(--c-bg-alt); border: 1.5px solid var(--c-border);
+      border-radius: var(--r-full); padding: 7px 16px 7px 38px;
+      font-size: var(--fs-sm); font-family: var(--f-body);
+      color: var(--c-heading); width: 220px; outline: none;
+      transition: border-color .2s, width .3s, box-shadow .2s;
+    }
+    .header__search-input:focus { border-color: var(--c-brand); width: 280px; box-shadow: 0 0 0 3px rgba(44,95,38,.1); }
+    .header__search-input::placeholder { color: var(--c-muted); }
+    .header__search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--c-muted); pointer-events: none; }
+    .header__search-results { display: none; position: absolute; top: calc(100% + 8px); left: 0; width: 320px; background: #fff; border: 1px solid var(--c-border); border-radius: var(--r-md); box-shadow: var(--sh-lg); z-index: 500; max-height: 360px; overflow-y: auto; padding: 6px 0; }
+    .header__search-results.visible { display: block; }
+    .search-result-item { display: flex; align-items: center; gap: 10px; padding: 10px 16px; cursor: pointer; transition: background .15s; text-decoration: none; color: var(--c-heading); }
+    .search-result-item:hover { background: var(--c-bg-alt); }
+    .search-result-item__icon { width: 32px; height: 32px; border-radius: var(--r-sm); background: var(--c-brand-tint); display: grid; place-items: center; flex-shrink: 0; color: var(--c-brand); }
+    .search-result-item__title { font-size: 13px; font-weight: 600; line-height: 1.3; }
+    .search-result-item__section { font-size: 11px; color: var(--c-muted); }
+    .search-no-results { padding: 16px; text-align: center; font-size: 13px; color: var(--c-muted); }
+    .header { display: flex; align-items: center; justify-content: center; }
+    .header__logo-pill { display: flex; align-items: center; text-decoration: none; flex-shrink: 0; margin-right: var(--sp-4); }
+    .header__logo-pill img { height: 36px; width: auto; transition: opacity .2s; }
+    .header__logo-pill:hover img { opacity: .82; }
+    .header__logo-pill::after { content: ''; display: block; width: 1px; height: 22px; background: var(--c-border); margin-left: var(--sp-4); }
+    @media (max-width: 1024px) { .btn-portal { display: none; } .header__search-wrap { display: none; } }
+
+    /* ── Cocina page styles ── */
+    .cocina-why {
+      padding: var(--sp-20) 0;
+      background: var(--c-bg);
+    }
+    .cocina-why__grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: var(--sp-6);
+      margin-top: var(--sp-14);
+    }
+    .cocina-why__card {
+      background: var(--c-bg-alt);
+      border: 1px solid var(--c-border);
+      border-radius: var(--r-lg);
+      padding: var(--sp-7);
+      text-align: center;
+      transition: box-shadow .25s, transform .25s;
+    }
+    .cocina-why__card:hover { box-shadow: var(--sh-md); transform: translateY(-3px); }
+    .cocina-why__icon {
+      width: 56px; height: 56px;
+      border-radius: var(--r-md);
+      background: var(--c-brand-tint);
+      display: grid; place-items: center;
+      margin: 0 auto var(--sp-4);
+      color: var(--c-brand);
+    }
+    .cocina-why__title {
+      font-size: var(--fs-base);
+      font-weight: 700;
+      color: var(--c-heading);
+      margin-bottom: var(--sp-2);
+    }
+    .cocina-why__desc { font-size: var(--fs-sm); color: var(--c-muted); line-height: 1.6; }
+
+    /* Products section */
+    .cocina-products {
+      padding: var(--sp-20) 0;
+      background: var(--c-bg-alt);
+    }
+    .cocina-products__grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: var(--sp-8);
+      margin-top: var(--sp-14);
+    }
+    .cocina-prod-card {
+      background: #fff;
+      border-radius: var(--r-lg);
+      overflow: hidden;
+      border: 1px solid var(--c-border);
+      transition: box-shadow .25s, transform .2s;
+    }
+    .cocina-prod-card:hover { box-shadow: var(--sh-lg); transform: translateY(-4px); }
+    .cocina-prod-card__img {
+      width: 100%; height: 200px;
+      object-fit: cover;
+      display: block;
+    }
+    .cocina-prod-card__body { padding: var(--sp-6); }
+    .cocina-prod-card__tag {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      color: var(--c-brand);
+      margin-bottom: var(--sp-2);
+    }
+    .cocina-prod-card__title {
+      font-size: var(--fs-lg);
+      font-weight: 700;
+      color: var(--c-heading);
+      margin-bottom: var(--sp-3);
+    }
+    .cocina-prod-card__desc {
+      font-size: var(--fs-sm);
+      color: var(--c-muted);
+      line-height: 1.6;
+      margin-bottom: var(--sp-5);
+    }
+    .cocina-prod-card__list {
+      list-style: none; padding: 0; margin: 0 0 var(--sp-5);
+      display: flex; flex-direction: column; gap: var(--sp-1);
+    }
+    .cocina-prod-card__list li {
+      display: flex; align-items: flex-start; gap: 8px;
+      font-size: 12.5px; color: var(--c-muted);
+    }
+    .cocina-prod-card__list li::before {
+      content: ''; display: block;
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--c-brand); margin-top: 5px; flex-shrink: 0;
+    }
+
+    /* Protocol steps */
+    .cocina-protocol {
+      padding: var(--sp-20) 0;
+      background: var(--c-bg);
+    }
+    .cocina-protocol__steps {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: var(--sp-6);
+      margin-top: var(--sp-14);
+      position: relative;
+    }
+    .cocina-protocol__steps::before {
+      content: '';
+      position: absolute;
+      top: 36px; left: 12.5%; right: 12.5%;
+      height: 2px;
+      background: linear-gradient(90deg, var(--c-brand) 0%, var(--c-brand-light, #7fd46a) 100%);
+      z-index: 0;
+    }
+    .protocol-step {
+      text-align: center;
+      position: relative;
+      z-index: 1;
+    }
+    .protocol-step__num {
+      width: 72px; height: 72px;
+      border-radius: 50%;
+      background: var(--c-brand);
+      color: #fff;
+      font-size: var(--fs-2xl);
+      font-weight: 800;
+      display: grid; place-items: center;
+      margin: 0 auto var(--sp-5);
+      box-shadow: 0 4px 16px rgba(44,95,38,.3);
+    }
+    .protocol-step__title {
+      font-size: var(--fs-base);
+      font-weight: 700;
+      color: var(--c-heading);
+      margin-bottom: var(--sp-2);
+    }
+    .protocol-step__desc { font-size: var(--fs-sm); color: var(--c-muted); line-height: 1.6; }
+
+    /* Certifications */
+    .cocina-certs {
+      padding: var(--sp-20) 0;
+      background: var(--c-bg-alt);
+    }
+    .cocina-certs__grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: var(--sp-6);
+      margin-top: var(--sp-14);
+    }
+    .cert-badge {
+      background: #fff;
+      border: 1px solid var(--c-border);
+      border-radius: var(--r-lg);
+      padding: var(--sp-7) var(--sp-6);
+      text-align: center;
+      transition: box-shadow .2s;
+    }
+    .cert-badge:hover { box-shadow: var(--sh-md); }
+    .cert-badge__icon {
+      width: 52px; height: 52px;
+      border-radius: var(--r-md);
+      background: var(--c-brand-tint);
+      display: grid; place-items: center;
+      margin: 0 auto var(--sp-4);
+      color: var(--c-brand);
+    }
+    .cert-badge__name {
+      font-size: var(--fs-base);
+      font-weight: 800;
+      color: var(--c-heading);
+      margin-bottom: var(--sp-2);
+    }
+    .cert-badge__desc { font-size: var(--fs-sm); color: var(--c-muted); }
+
+    /* Final CTA */
+    .cocina-cta {
+      background: var(--c-brand);
+      padding: var(--sp-20) 0;
+      text-align: center;
+    }
+    .cocina-cta__title {
+      font-size: clamp(1.6rem, 3vw, 2.6rem);
+      font-weight: 800;
+      color: #fff;
+      margin-bottom: var(--sp-4);
+    }
+    .cocina-cta__sub {
+      font-size: var(--fs-lg);
+      color: rgba(255,255,255,.82);
+      margin-bottom: var(--sp-10);
+      max-width: 560px;
+      margin-left: auto; margin-right: auto;
+    }
+
+    @media (max-width: 1024px) {
+      .cocina-why__grid { grid-template-columns: 1fr 1fr; }
+      .cocina-certs__grid { grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 768px) {
+      .cocina-products__grid { grid-template-columns: 1fr; }
+      .cocina-protocol__steps { grid-template-columns: 1fr 1fr; }
+      .cocina-protocol__steps::before { display: none; }
+    }
+    @media (max-width: 640px) {
+      .cocina-why__grid { grid-template-columns: 1fr; }
+      .cocina-protocol__steps { grid-template-columns: 1fr; }
+      .cocina-certs__grid { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- WhatsApp flotante -->
+  <a href="https://wa.me/573023169861" class="whatsapp-float" target="_blank" rel="noopener" aria-label="Contactar por WhatsApp">
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.117.549 4.107 1.51 5.84L.057 23.486a.5.5 0 00.614.634l5.796-1.519A11.954 11.954 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.938a9.932 9.932 0 01-5.036-1.362l-.361-.214-3.741.981.999-3.648-.235-.374A9.938 9.938 0 012.062 12C2.062 6.534 6.534 2.062 12 2.062S21.938 6.534 21.938 12 17.466 21.938 12 21.938z"/></svg>
+  </a>
+
+  <header id="header" class="header header--page" role="banner">
+    <div class="header__inner">
+      <a href="index.html" class="header__logo-pill" aria-label="Indusquim inicio">
+        <img src="logo-indusquim.png" alt="Indusquim" />
+      </a>
+      <nav class="header__nav" id="mainNav" aria-label="Navegación principal">
+        <ul class="nav__list">
+          <li><a href="nosotros.html" class="nav__link">Nosotros</a></li>
+          <li class="nav__item--drop is-active-page">
+            <button class="nav__link nav__link--has-drop" aria-expanded="false" aria-haspopup="true">Sectores <span class="drop-chevron">▾</span></button>
+            <div class="nav__drop">
+              <a class="nav__drop-link" href="sector-cocina.html"><span class="nav__drop-link__icon"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 11l19-9-9 19-2-8-8-2z"/></svg></span>Industria Alimentaria</a>
+              <a class="nav__drop-link" href="sectores.html#hoteleria"><span class="nav__drop-link__icon"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></span>Hotelería y Turismo</a>
+              <a class="nav__drop-link" href="sectores.html#salud"><span class="nav__drop-link__icon"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></span>Salud e Institucional</a>
+              <a class="nav__drop-link" href="sectores.html#lavanderia"><span class="nav__drop-link__icon"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M4 6h16M4 6a2 2 0 012-2h12a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6z"/></svg></span>Lavandería Industrial</a>
+              <a class="nav__drop-link" href="sectores.html#manufactura"><span class="nav__drop-link__icon"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg></span>Manufactura e Industria</a>
+              <a class="nav__drop-link" href="sectores.html#educacion"><span class="nav__drop-link__icon"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg></span>Educación y Oficinas</a>
+            </div>
+          </li>
+          <li><a href="soluciones.html" class="nav__link">Soluciones</a></li>
+          <li class="nav__item--drop">
+            <button class="nav__link nav__link--has-drop" aria-expanded="false" aria-haspopup="true">Catálogo <span class="drop-chevron">▾</span></button>
+            <div class="nav__drop">
+              <a class="nav__drop-link" href="https://wa.me/573023169861?text=Hola%2C%20me%20interesa%20informaci%C3%B3n%20sobre%20desengrasantes%20industriales" target="_blank" rel="noopener"><span class="nav__drop-link__icon"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></span>Desengrasantes Industriales</a>
+              <a class="nav__drop-link" href="https://wa.me/573023169861?text=Hola%2C%20me%20interesa%20informaci%C3%B3n%20sobre%20desinfectantes%20de%20alto%20nivel" target="_blank" rel="noopener"><span class="nav__drop-link__icon"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></span>Desinfectantes de Alto Nivel</a>
+              <a class="nav__drop-link" href="https://wa.me/573023169861?text=Hola%2C%20me%20interesa%20informaci%C3%B3n%20sobre%20detergentes%20para%20lavander%C3%ADa%20industrial" target="_blank" rel="noopener"><span class="nav__drop-link__icon"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M4 6h16M4 6a2 2 0 012-2h12a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6z"/></svg></span>Detergentes para Lavandería</a>
+              <div class="nav__drop-sep"></div>
+              <a class="nav__drop-link" href="https://wa.me/573023169861?text=Hola%2C%20me%20interesa%20informaci%C3%B3n%20sobre%20la%20l%C3%ADnea%20institucional" target="_blank" rel="noopener"><span class="nav__drop-link__icon"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h6M9 13h6M9 17h4"/></svg></span>Limpiadores Institucionales</a>
+              <a class="nav__drop-link" href="https://wa.me/573023169861?text=Hola%2C%20me%20interesa%20informaci%C3%B3n%20sobre%20sanitizantes%20y%20bactericidas" target="_blank" rel="noopener"><span class="nav__drop-link__icon"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></span>Sanitizantes y Bactericidas</a>
+              <a class="nav__drop-link" href="https://wa.me/573023169861?text=Hola%2C%20necesito%20las%20fichas%20t%C3%A9cnicas%20%28FDS%2FSGA%29%20de%20sus%20productos" target="_blank" rel="noopener"><span class="nav__drop-link__icon"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></span>Fichas Técnicas (FDS)</a>
+            </div>
+          </li>
+          <li><a href="blog.html" class="nav__link">Blog</a></li>
+        </ul>
+      </nav>
+      <div class="header__search-wrap" id="searchWrap">
+        <svg class="header__search-icon" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+        <input type="text" class="header__search-input" id="searchInput" placeholder="Buscar…" autocomplete="off" aria-label="Buscar" />
+        <div class="header__search-results" id="searchResults" role="listbox"></div>
+      </div>
+      <div class="header__actions">
+        <button class="header__burger" id="burgerBtn" aria-label="Abrir menú" aria-expanded="false">
+          <span></span><span></span><span></span>
+        </button>
+      </div>
+    </div>
+    <a href="portal/login.html" class="btn-portal" aria-label="Portal de clientes">
+      Portal de clientes
+      <svg viewBox="0 0 16 19" xmlns="http://www.w3.org/2000/svg"><path d="M7 18C7 18.5523 7.44772 19 8 19C8.55228 19 9 18.5523 9 18H7ZM8.70711 0.292893C8.31658-0.0976311 7.68342-0.0976311 7.29289 0.292893L0.928932 6.65685C0.538408 7.04738 0.538408 7.68054 0.928932 8.07107C1.31946 8.46159 1.95262 8.46159 2.34315 8.07107L8 2.41421L13.6569 8.07107C14.0474 8.46159 14.6805 8.46159 15.0711 8.07107C15.4616 7.68054 15.4616 7.04738 15.0711 6.65685L8.70711 0.292893ZM9 18L9 1H7L7 18H9Z" fill="currentColor"/></svg>
+    </a>
+  </header>
+
+  <!-- MENÚ MÓVIL -->
+  <div class="mobile-menu" id="mobileMenu" role="dialog" aria-modal="true">
+    <div class="mobile-menu__header">
+      <img src="logo-indusquim.png" alt="Indusquim" class="mobile-menu__logo-img" />
+      <button class="mobile-menu__close" id="menuClose" aria-label="Cerrar menú">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <nav class="mobile-menu__links">
+      <a href="nosotros.html" class="mobile-menu__link">Nosotros</a>
+      <button class="mobile-menu__link mobile-menu__link--drop" data-target="mobileSectores">Sectores <span class="drop-arrow">▾</span></button>
+      <div class="mobile-drop" id="mobileSectores">
+        <a href="sector-cocina.html"       class="mobile-drop-link">Industria Alimentaria</a>
+        <a href="sectores.html#hoteleria"  class="mobile-drop-link">Hotelería y Turismo</a>
+        <a href="sectores.html#salud"      class="mobile-drop-link">Salud e Institucional</a>
+        <a href="sectores.html#lavanderia" class="mobile-drop-link">Lavandería Industrial</a>
+        <a href="sectores.html#manufactura" class="mobile-drop-link">Manufactura e Industria</a>
+        <a href="sectores.html#educacion"  class="mobile-drop-link">Educación y Oficinas</a>
+      </div>
+      <a href="soluciones.html" class="mobile-menu__link">Soluciones</a>
+      <button class="mobile-menu__link mobile-menu__link--drop" data-target="mobileCatalogo">Catálogo <span class="drop-arrow">▾</span></button>
+      <div class="mobile-drop" id="mobileCatalogo">
+        <a href="https://wa.me/573023169861?text=Hola%2C%20me%20interesa%20informaci%C3%B3n%20sobre%20desengrasantes%20industriales" class="mobile-drop-link" target="_blank" rel="noopener">Desengrasantes Industriales</a>
+        <a href="https://wa.me/573023169861?text=Hola%2C%20me%20interesa%20informaci%C3%B3n%20sobre%20desinfectantes%20de%20alto%20nivel" class="mobile-drop-link" target="_blank" rel="noopener">Desinfectantes de Alto Nivel</a>
+        <a href="https://wa.me/573023169861?text=Hola%2C%20me%20interesa%20informaci%C3%B3n%20sobre%20detergentes%20para%20lavander%C3%ADa%20industrial" class="mobile-drop-link" target="_blank" rel="noopener">Detergentes para Lavandería</a>
+        <a href="https://wa.me/573023169861?text=Hola%2C%20me%20interesa%20informaci%C3%B3n%20sobre%20la%20l%C3%ADnea%20institucional" class="mobile-drop-link" target="_blank" rel="noopener">Limpiadores Institucionales</a>
+        <a href="https://wa.me/573023169861?text=Hola%2C%20me%20interesa%20informaci%C3%B3n%20sobre%20sanitizantes%20y%20bactericidas" class="mobile-drop-link" target="_blank" rel="noopener">Sanitizantes y Bactericidas</a>
+        <a href="https://wa.me/573023169861?text=Hola%2C%20necesito%20las%20fichas%20t%C3%A9cnicas%20%28FDS%2FSGA%29%20de%20sus%20productos" class="mobile-drop-link" target="_blank" rel="noopener">Fichas Técnicas (FDS)</a>
+      </div>
+      <a href="blog.html" class="mobile-menu__link">Blog</a>
+    </nav>
+    <div class="mobile-menu__cta">
+      <a href="portal/login.html" class="btn btn--outline" style="width:100%;justify-content:center;margin-bottom:10px;">Portal de clientes</a>
+      <a href="nosotros.html#contacto" class="btn btn--primary" style="width:100%;justify-content:center;">Solicitar asesoría</a>
+    </div>
+  </div>
+
+  <main>
+
+    <!-- HERO -->
+    <section class="page-hero">
+      <div class="page-hero__bg" aria-hidden="true">
+        <img src="https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=1600&q=80" alt="" loading="eager" />
+        <div class="page-hero__overlay"></div>
+      </div>
+      <div class="container page-hero__content" data-aos="fade-up">
+        <span class="section-tag section-tag--light">Sector — Industria Alimentaria</span>
+        <h1 class="page-hero__title">Limpieza profesional para cocinas industriales y plantas de alimentos</h1>
+        <p class="page-hero__sub">Productos formulados para cumplir BPM, INVIMA y protocolos CIP. Más de 30 años acompañando a empresas del sector alimentario en Colombia.</p>
+        <div class="page-hero__actions" style="display:flex; gap: 1rem; flex-wrap: wrap; margin-top: 2rem;">
+          <a href="https://wa.me/573023169861?text=Hola%2C%20necesito%20informaci%C3%B3n%20sobre%20productos%20para%20cocina%20industrial%20y%20planta%20de%20alimentos" class="btn btn--primary" target="_blank" rel="noopener">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" style="flex-shrink:0;"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+            Solicitar asesoría gratuita
+          </a>
+          <a href="#productos" class="btn btn--outline-light" style="color:#fff; border-color:rgba(255,255,255,0.55);">Ver productos</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- POR QUÉ INDUSQUIM EN TU COCINA -->
+    <section class="cocina-why">
+      <div class="container">
+        <div class="section-header" data-aos="fade-up">
+          <span class="section-tag">Diferenciadores</span>
+          <h2 class="section-title">¿Por qué Indusquim en tu cocina industrial?</h2>
+          <p class="section-subtitle">La higiene en cocinas y plantas de alimentos no admite improvisación. Nuestros productos y protocolos están diseñados específicamente para este sector.</p>
+        </div>
+
+        <div class="cocina-why__grid">
+          <div class="cocina-why__card" data-aos="fade-up" data-aos-delay="0">
+            <div class="cocina-why__icon">
+              <svg width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+            </div>
+            <h3 class="cocina-why__title">Cumplimiento INVIMA</h3>
+            <p class="cocina-why__desc">Todos nuestros productos para el sector alimentario cuentan con registro sanitario INVIMA vigente y fichas técnicas actualizadas para auditorías.</p>
+          </div>
+          <div class="cocina-why__card" data-aos="fade-up" data-aos-delay="60">
+            <div class="cocina-why__icon">
+              <svg width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            </div>
+            <h3 class="cocina-why__title">Compatibilidad BPM</h3>
+            <p class="cocina-why__desc">Formulaciones compatibles con Buenas Prácticas de Manufactura. No contaminan los alimentos ni dejan residuos tóxicos en superficies de contacto.</p>
+          </div>
+          <div class="cocina-why__card" data-aos="fade-up" data-aos-delay="120">
+            <div class="cocina-why__icon">
+              <svg width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+            </div>
+            <h3 class="cocina-why__title">Protocolos CIP</h3>
+            <p class="cocina-why__desc">Soluciones para limpieza en sitio (CIP) de equipos, tuberías y tanques. Dosificaciones optimizadas para reducir tiempos de paro y consumo de agua.</p>
+          </div>
+          <div class="cocina-why__card" data-aos="fade-up" data-aos-delay="180">
+            <div class="cocina-why__icon">
+              <svg width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+            </div>
+            <h3 class="cocina-why__title">Soporte Técnico Dedicado</h3>
+            <p class="cocina-why__desc">Asesor especializado en industria alimentaria asignado a su cuenta. Capacitación del personal y seguimiento mensual de resultados.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- PRODUCTOS PARA COCINAS -->
+    <section class="cocina-products" id="productos">
+      <div class="container">
+        <div class="section-header" data-aos="fade-up">
+          <span class="section-tag">Línea Cocinas y Alimentos</span>
+          <h2 class="section-title">Productos formulados para su operación</h2>
+          <p class="section-subtitle">Cada producto incluye ficha técnica (FDS/SGA), dosificación recomendada y hoja de seguridad. Disponible en presentaciones para restaurantes, cafeterías y plantas industriales.</p>
+        </div>
+
+        <div class="cocina-products__grid">
+
+          <div class="cocina-prod-card" data-aos="fade-up" data-aos-delay="0">
+            <img class="cocina-prod-card__img" src="https://images.unsplash.com/photo-1587854692152-cbe660dbde88?w=600&q=80" alt="Desengrasante industrial para cocinas" loading="lazy" />
+            <div class="cocina-prod-card__body">
+              <span class="cocina-prod-card__tag">Limpieza Profunda</span>
+              <h3 class="cocina-prod-card__title">Desengrasante Industrial IQ-Grill</h3>
+              <p class="cocina-prod-card__desc">Formulación alcalina de alta concentración para la remoción de grasa carbonizada en parrillas, freidoras, campanas y superficies de cocción.</p>
+              <ul class="cocina-prod-card__list">
+                <li>Acción rápida — resultados en 3 minutos</li>
+                <li>Libre de fosfatos — apto para plantas BPM</li>
+                <li>Dilución 1:20 en uso normal / 1:5 en limpieza profunda</li>
+                <li>Presentaciones: 1L, 4L, 20L, 200L</li>
+              </ul>
+              <a href="https://wa.me/573023169861?text=Hola%2C%20quisiera%20informaci%C3%B3n%20sobre%20el%20Desengrasante%20Industrial%20IQ-Grill%20para%20cocina" class="btn btn--primary" target="_blank" rel="noopener" style="width:100%; justify-content:center;">Consultar precio</a>
+            </div>
+          </div>
+
+          <div class="cocina-prod-card" data-aos="fade-up" data-aos-delay="80">
+            <img class="cocina-prod-card__img" src="https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=600&q=80" alt="Desinfectante para superficies de contacto alimentario" loading="lazy" />
+            <div class="cocina-prod-card__body">
+              <span class="cocina-prod-card__tag">Desinfección</span>
+              <h3 class="cocina-prod-card__title">Sanitizante IQ-Safe Food</h3>
+              <p class="cocina-prod-card__desc">Desinfectante de amplio espectro para superficies de contacto con alimentos. Sin enjuague requerido a la dilución de uso, aprobado bajo NSF y INVIMA.</p>
+              <ul class="cocina-prod-card__list">
+                <li>Basado en amonio cuaternario de 4ª generación</li>
+                <li>Elimina Salmonella, E. coli, Listeria y Staph</li>
+                <li>Sin necesidad de enjuague a 200 ppm</li>
+                <li>Presentaciones: 1L, 4L, 20L</li>
+              </ul>
+              <a href="https://wa.me/573023169861?text=Hola%2C%20quisiera%20informaci%C3%B3n%20sobre%20el%20Sanitizante%20IQ-Safe%20Food" class="btn btn--primary" target="_blank" rel="noopener" style="width:100%; justify-content:center;">Consultar precio</a>
+            </div>
+          </div>
+
+          <div class="cocina-prod-card" data-aos="fade-up" data-aos-delay="160">
+            <img class="cocina-prod-card__img" src="https://images.unsplash.com/photo-1579684385127-1ef15d508118?w=600&q=80" alt="Desincrustante ácido para equipos de cocina" loading="lazy" />
+            <div class="cocina-prod-card__body">
+              <span class="cocina-prod-card__tag">Desincrustación</span>
+              <h3 class="cocina-prod-card__title">Desincrustante IQ-Scale</h3>
+              <p class="cocina-prod-card__desc">Formulación ácida para la remoción de sarro, incrustaciones de cal y minerales en marmitas, freidoras, lavaplatos industriales y equipos CIP.</p>
+              <ul class="cocina-prod-card__list">
+                <li>Compatible con acero inoxidable y plásticos alimentarios</li>
+                <li>pH 1.5–2.0 en uso directo</li>
+                <li>Ideal para ciclos CIP de limpieza ácida</li>
+                <li>Presentaciones: 4L, 20L, 200L</li>
+              </ul>
+              <a href="https://wa.me/573023169861?text=Hola%2C%20quisiera%20informaci%C3%B3n%20sobre%20el%20Desincrustante%20IQ-Scale" class="btn btn--primary" target="_blank" rel="noopener" style="width:100%; justify-content:center;">Consultar precio</a>
+            </div>
+          </div>
+
+          <div class="cocina-prod-card" data-aos="fade-up" data-aos-delay="0">
+            <img class="cocina-prod-card__img" src="https://images.unsplash.com/photo-1565008447742-97f6f38c985c?w=600&q=80" alt="Detergente alcalino CIP para planta de alimentos" loading="lazy" />
+            <div class="cocina-prod-card__body">
+              <span class="cocina-prod-card__tag">CIP / Planta Industrial</span>
+              <h3 class="cocina-prod-card__title">Detergente Alcalino IQ-CIP</h3>
+              <p class="cocina-prod-card__desc">Limpiador alcalino clorado de alta concentración para sistemas CIP en plantas de lácteos, cárnicos y bebidas. Remueve proteínas, grasas y biofilm.</p>
+              <ul class="cocina-prod-card__list">
+                <li>Concentración de uso: 1–3% según suciedad</li>
+                <li>Temperatura óptima: 60–80°C</li>
+                <li>Con cloroactivo 2% para mayor eficiencia</li>
+                <li>Presentaciones: 20L, 200L, granel</li>
+              </ul>
+              <a href="https://wa.me/573023169861?text=Hola%2C%20quisiera%20informaci%C3%B3n%20sobre%20el%20Detergente%20Alcalino%20IQ-CIP" class="btn btn--primary" target="_blank" rel="noopener" style="width:100%; justify-content:center;">Consultar precio</a>
+            </div>
+          </div>
+
+          <div class="cocina-prod-card" data-aos="fade-up" data-aos-delay="80">
+            <img class="cocina-prod-card__img" src="https://images.unsplash.com/photo-1580582932707-520aed937b7b?w=600&q=80" alt="Jabón espumoso para manos en industria alimentaria" loading="lazy" />
+            <div class="cocina-prod-card__body">
+              <span class="cocina-prod-card__tag">Higiene Personal</span>
+              <h3 class="cocina-prod-card__title">Jabón Antibacterial IQ-Hands</h3>
+              <p class="cocina-prod-card__desc">Jabón espumoso antibacterial formulado para dispensadores de cocinas industriales. Elimina el 99.9% de bacterias con una sola aplicación, sin resecar la piel.</p>
+              <ul class="cocina-prod-card__list">
+                <li>Con triclosan 0.3% o clorexidina 0.5%</li>
+                <li>Compatible con dispensadores de cartuchos o galones</li>
+                <li>Aprobado BPM para manipuladores de alimentos</li>
+                <li>Presentaciones: 1L, 4L, 20L</li>
+              </ul>
+              <a href="https://wa.me/573023169861?text=Hola%2C%20quisiera%20informaci%C3%B3n%20sobre%20el%20Jab%C3%B3n%20Antibacterial%20IQ-Hands" class="btn btn--primary" target="_blank" rel="noopener" style="width:100%; justify-content:center;">Consultar precio</a>
+            </div>
+          </div>
+
+          <div class="cocina-prod-card" data-aos="fade-up" data-aos-delay="160">
+            <img class="cocina-prod-card__img" src="https://images.unsplash.com/photo-1618773928121-c32242e63f39?w=600&q=80" alt="Detergente neutro multiusos para cocina" loading="lazy" />
+            <div class="cocina-prod-card__body">
+              <span class="cocina-prod-card__tag">Uso Diario</span>
+              <h3 class="cocina-prod-card__title">Detergente Neutro IQ-Clean</h3>
+              <p class="cocina-prod-card__desc">Detergente multiusos de pH neutro para el lavado diario de utensilios, equipos de cocina y superficies de trabajo. Alta espuma, fácil enjuague.</p>
+              <ul class="cocina-prod-card__list">
+                <li>pH neutro — seguro en acero, aluminio y plástico</li>
+                <li>Biodegradable al 98%</li>
+                <li>Sin olor fuerte — ideal para áreas de preparación</li>
+                <li>Presentaciones: 1L, 4L, 20L</li>
+              </ul>
+              <a href="https://wa.me/573023169861?text=Hola%2C%20quisiera%20informaci%C3%B3n%20sobre%20el%20Detergente%20Neutro%20IQ-Clean" class="btn btn--primary" target="_blank" rel="noopener" style="width:100%; justify-content:center;">Consultar precio</a>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- PROTOCOLO DE LIMPIEZA -->
+    <section class="cocina-protocol">
+      <div class="container">
+        <div class="section-header" data-aos="fade-up">
+          <span class="section-tag">Metodología</span>
+          <h2 class="section-title">Protocolo de limpieza y desinfección</h2>
+          <p class="section-subtitle">El proceso correcto es tan importante como los productos. Seguimos la secuencia validada por BPM para garantizar resultados efectivos y seguros.</p>
+        </div>
+
+        <div class="cocina-protocol__steps">
+          <div class="protocol-step" data-aos="fade-up" data-aos-delay="0">
+            <div class="protocol-step__num">1</div>
+            <h3 class="protocol-step__title">Pre-lavado</h3>
+            <p class="protocol-step__desc">Remoción mecánica de residuos gruesos con agua tibia (40–50°C). Se retiran sólidos y residuos visibles antes de aplicar el detergente.</p>
+          </div>
+          <div class="protocol-step" data-aos="fade-up" data-aos-delay="80">
+            <div class="protocol-step__num">2</div>
+            <h3 class="protocol-step__title">Lavado</h3>
+            <p class="protocol-step__desc">Aplicación del detergente alcalino o neutro según la superficie. Acción mecánica con cepillo o esponja durante el tiempo de contacto recomendado.</p>
+          </div>
+          <div class="protocol-step" data-aos="fade-up" data-aos-delay="160">
+            <div class="protocol-step__num">3</div>
+            <h3 class="protocol-step__title">Enjuague</h3>
+            <p class="protocol-step__desc">Lavado con agua potable para eliminar completamente los residuos del detergente. En sistemas CIP se usa agua a temperatura controlada.</p>
+          </div>
+          <div class="protocol-step" data-aos="fade-up" data-aos-delay="240">
+            <div class="protocol-step__num">4</div>
+            <h3 class="protocol-step__title">Desinfección</h3>
+            <p class="protocol-step__desc">Aplicación del sanitizante a la concentración indicada. Tiempo de contacto mínimo 2 minutos. En superficies de contacto directo, no requiere enjuague final.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CERTIFICACIONES -->
+    <section class="cocina-certs">
+      <div class="container">
+        <div class="section-header" data-aos="fade-up">
+          <span class="section-tag">Respaldo técnico</span>
+          <h2 class="section-title">Nuestros productos cumplen las más exigentes normativas</h2>
+          <p class="section-subtitle">Trabajamos bajo estándares nacionales e internacionales para que su empresa siempre esté preparada para cualquier auditoría.</p>
+        </div>
+
+        <div class="cocina-certs__grid">
+          <div class="cert-badge" data-aos="fade-up" data-aos-delay="0">
+            <div class="cert-badge__icon">
+              <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+            </div>
+            <div class="cert-badge__name">INVIMA</div>
+            <p class="cert-badge__desc">Registro sanitario vigente para todos los productos del sector alimentario.</p>
+          </div>
+          <div class="cert-badge" data-aos="fade-up" data-aos-delay="60">
+            <div class="cert-badge__icon">
+              <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            </div>
+            <div class="cert-badge__name">BPM</div>
+            <p class="cert-badge__desc">Formulaciones compatibles con Buenas Prácticas de Manufactura — Decreto 3075.</p>
+          </div>
+          <div class="cert-badge" data-aos="fade-up" data-aos-delay="120">
+            <div class="cert-badge__icon">
+              <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+            </div>
+            <div class="cert-badge__name">FDS / SGA</div>
+            <p class="cert-badge__desc">Fichas de datos de seguridad actualizadas bajo el Sistema Globalmente Armonizado.</p>
+          </div>
+          <div class="cert-badge" data-aos="fade-up" data-aos-delay="180">
+            <div class="cert-badge__icon">
+              <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+            </div>
+            <div class="cert-badge__name">HACCP</div>
+            <p class="cert-badge__desc">Protocolos y registros alineados con los principios del sistema HACCP para inocuidad alimentaria.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CTA FINAL -->
+    <section class="cocina-cta">
+      <div class="container" data-aos="fade-up">
+        <h2 class="cocina-cta__title">Solicita una asesoría gratuita para tu operación</h2>
+        <p class="cocina-cta__sub">Un asesor especializado en industria alimentaria analizará tu operación y te recomendará el protocolo y los productos exactos que necesitas.</p>
+        <div style="display:flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+          <a href="https://wa.me/573023169861?text=Hola%2C%20necesito%20una%20asesor%C3%ADa%20para%20mi%20cocina%20industrial%20%2F%20planta%20de%20alimentos" class="btn btn--outline-dark" style="background:#fff; color: var(--c-brand); border-color:#fff;" target="_blank" rel="noopener">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" style="flex-shrink:0;"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+            Hablar con un asesor ahora
+          </a>
+          <a href="soluciones.html" class="btn btn--outline-dark" style="color:#fff; border-color:rgba(255,255,255,0.5);">Ver todas las soluciones</a>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- FOOTER -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer__grid">
+        <div>
+          <img src="logo-indusquim-blanco.png" alt="Indusquim" class="footer__logo-img" />
+          <p class="footer__tagline">Fabricantes colombianos de soluciones de limpieza y desinfección industrial desde 1993.</p>
+          <div class="footer__social">
+            <a href="#" class="footer__social-link" aria-label="Facebook" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg></a>
+            <a href="#" class="footer__social-link" aria-label="Instagram" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg></a>
+            <a href="https://wa.me/573023169861" class="footer__social-link" aria-label="WhatsApp" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.117.549 4.107 1.51 5.84L.057 23.486a.5.5 0 00.614.634l5.796-1.519A11.954 11.954 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.938a9.932 9.932 0 01-5.036-1.362l-.361-.214-3.741.981.999-3.648-.235-.374A9.938 9.938 0 012.062 12C2.062 6.534 6.534 2.062 12 2.062S21.938 6.534 21.938 12 17.466 21.938 12 21.938z"/></svg></a>
+          </div>
+        </div>
+        <div>
+          <h4 class="footer__col-title">Empresa</h4>
+          <ul class="footer__links">
+            <li><a href="nosotros.html">Sobre Indusquim</a></li>
+            <li><a href="nosotros.html#proceso">Cómo trabajamos</a></li>
+            <li><a href="certificaciones.html">Certificaciones</a></li>
+            <li><a href="blog.html">Blog y recursos</a></li>
+            <li><a href="nosotros.html#contacto">Contacto</a></li>
+          </ul>
+        </div>
+        <div>
+          <h4 class="footer__col-title">Sectores</h4>
+          <ul class="footer__links">
+            <li><a href="sector-cocina.html">Industria Alimentaria</a></li>
+            <li><a href="sectores.html#hoteleria">Hospitalidad y Hotelería</a></li>
+            <li><a href="sectores.html#salud">Salud e Institucional</a></li>
+            <li><a href="sectores.html#lavanderia">Lavandería Industrial</a></li>
+            <li><a href="sectores.html#manufactura">Manufactura</a></li>
+          </ul>
+        </div>
+        <div>
+          <h4 class="footer__col-title">Contacto</h4>
+          <ul class="footer__contact">
+            <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>Cali, Valle del Cauca, Colombia</li>
+            <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.95 10.8 19.79 19.79 0 01.9 2.18 2 2 0 012.88 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L7.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg>(57)(2) 337 2435 · 302 316 9861</li>
+            <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>ventas@indusquim.co</li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer__bottom">
+        <p>© 2025 Indusquim. Todos los derechos reservados.</p>
+        <p>Fabricantes de productos de limpieza industrial — Cali, Colombia</p>
+      </div>
+    </div>
+  </footer>
+
+  <button class="scroll-top" id="scrollTop" aria-label="Volver arriba">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 15l-6-6-6 6"/></svg>
+  </button>
+
+  <script src="https://unpkg.com/aos@2.3.4/dist/aos.js"></script>
+  <script src="assets/js/main.js"></script>
+</body>
+</html>

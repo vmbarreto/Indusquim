@@ -38,7 +38,13 @@ input, select, textarea { font-family: inherit; }
 .portal-wrap   { display: flex; min-height: 100vh; }
 .sidebar       { width: 260px; flex-shrink: 0; background: var(--c-dark); display: flex; flex-direction: column; padding: 0; }
 .sidebar__logo { padding: 28px 24px 20px; border-bottom: 1px solid rgba(255,255,255,0.08); }
-.sidebar__logo img { height: 36px; }
+.sidebar__logo img { height: 36px; display: block; }
+.sidebar__logo a { display: block; opacity: 0.9; transition: opacity .2s; }
+.sidebar__logo a:hover { opacity: 1; }
+
+/* Login logo link */
+.login-box__logo a { display: inline-block; }
+.login-box__logo a:hover { opacity: 0.85; }
 .sidebar__nav  { flex: 1; padding: 16px 0; }
 .sidebar__link {
   display: flex; align-items: center; gap: 12px;
@@ -192,7 +198,48 @@ tr:hover td { background: var(--c-bg); }
 .alert--success { background: #DCFCE7; color: #15803D; border: 1px solid #BBF7D0; }
 
 /* ─── Login page ─────────────────────────────────────────────── */
-.login-page { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: var(--c-bg); padding: 24px; }
+.login-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  position: relative;
+  overflow: hidden;
+  background: var(--c-dark);
+}
+
+/* Fondo: dos imágenes con crossfade, opacidad 70% */
+.login-page::before,
+.login-page::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  z-index: 0;
+}
+.login-page::before {
+  /* Ruta desde portal/assets/css/ → subir 3 niveles al root */
+  background-image: url('../../../assets/images/Portal%20clientes.jpg');
+  opacity: 0.70;
+  animation: loginBgSwitch 14s ease-in-out infinite alternate;
+}
+.login-page::after {
+  background-image: url('../../../assets/images/Portal%20clientes%202.jpg');
+  opacity: 0;
+  animation: loginBgSwitch2 14s ease-in-out infinite alternate;
+}
+@keyframes loginBgSwitch  {
+  0%,45%  { opacity: 0.70; }
+  55%,100%{ opacity: 0;    }
+}
+@keyframes loginBgSwitch2 {
+  0%,45%  { opacity: 0;    }
+  55%,100%{ opacity: 0.70; }
+}
+
+.login-box { position: relative; z-index: 1; }
 .login-box { background: var(--c-white); border-radius: var(--r-lg); box-shadow: var(--sh-md); padding: 40px; width: 100%; max-width: 400px; }
 .login-box__logo { text-align: center; margin-bottom: 28px; }
 .login-box__logo img { height: 40px; margin: 0 auto 12px; }

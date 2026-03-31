@@ -10,46 +10,623 @@
   <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
   <link href="https://unpkg.com/aos@2.3.4/dist/aos.css" rel="stylesheet" />
   <link rel="stylesheet" href="assets/css/styles.css" />
+  <style>
+    /* ── Barra de búsqueda header ── */
+    .header__search-wrap {
+      position: relative;
+      margin: 0 var(--sp-4);
+    }
+    .header__search-input {
+      background: var(--c-bg-alt);
+      border: 1.5px solid var(--c-border);
+      border-radius: var(--r-full);
+      padding: 7px 16px 7px 38px;
+      font-size: var(--fs-sm);
+      font-family: var(--f-body);
+      color: var(--c-heading);
+      width: 220px;
+      outline: none;
+      transition: border-color .2s, width .3s, box-shadow .2s;
+    }
+    .header__search-input:focus {
+      border-color: var(--c-brand);
+      width: 280px;
+      box-shadow: 0 0 0 3px rgba(44,95,38,.1);
+    }
+    .header__search-input::placeholder { color: var(--c-muted); }
+    .header__search-icon {
+      position: absolute;
+      left: 12px; top: 50%;
+      transform: translateY(-50%);
+      color: var(--c-muted);
+      pointer-events: none;
+    }
+    .header__search-results {
+      display: none;
+      position: absolute;
+      top: calc(100% + 8px);
+      left: 0;
+      width: 320px;
+      background: #fff;
+      border: 1px solid var(--c-border);
+      border-radius: var(--r-md);
+      box-shadow: var(--sh-lg);
+      z-index: 500;
+      max-height: 360px;
+      overflow-y: auto;
+      padding: 6px 0;
+    }
+    .header__search-results.visible { display: block; }
+    .search-result-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 16px;
+      cursor: pointer;
+      transition: background .15s;
+      text-decoration: none;
+      color: var(--c-heading);
+    }
+    .search-result-item:hover { background: var(--c-bg-alt); }
+    .search-result-item__icon {
+      width: 32px; height: 32px;
+      border-radius: var(--r-sm);
+      background: var(--c-brand-tint);
+      display: grid; place-items: center;
+      flex-shrink: 0;
+      color: var(--c-brand);
+    }
+    .search-result-item__title {
+      font-size: 13px;
+      font-weight: 600;
+      line-height: 1.3;
+    }
+    .search-result-item__section {
+      font-size: 11px;
+      color: var(--c-muted);
+    }
+    .search-no-results {
+      padding: 16px;
+      text-align: center;
+      font-size: 13px;
+      color: var(--c-muted);
+    }
+
+    /* ── Header: flex centrado + contenedor para absolutos ── */
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* ── Logo dentro del pill ── */
+    .header__logo-pill {
+      display: flex;
+      align-items: center;
+      text-decoration: none;
+      flex-shrink: 0;
+      margin-right: var(--sp-4);
+    }
+    .header__logo-pill img {
+      height: 36px;
+      width: auto;
+      transition: opacity .2s;
+    }
+    .header__logo-pill:hover img { opacity: .82; }
+
+    /* Separador visual logo / nav */
+    .header__logo-pill::after {
+      content: '';
+      display: block;
+      width: 1px;
+      height: 22px;
+      background: var(--c-border);
+      margin-left: var(--sp-4);
+    }
+
+    /* ── Navbar pill: ajustado a su contenido, centrado ── */
+    .header__inner {
+      flex: 0 0 auto !important;
+      width: auto !important;
+      max-width: none !important;
+      margin: 0 !important;
+    }
+/* Responsive */
+    @media (max-width: 1024px) {
+      .btn-portal          { display: none; }
+      .header__search-wrap { display: none; }
+    }
+    @media (max-width: 768px) {
+}
+
+
+    /* ══════════════════════════════════════════
+       RULETA DE SOLUCIONES — Rueda giratoria completa
+    ══════════════════════════════════════════ */
+    .roulette-section {
+      padding: var(--sp-20) 0;
+      background: var(--c-bg);
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* Fila: rueda izquierda + contenido derecha */
+    .roulette-wrap {
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      gap: 64px;
+      min-height: 560px;
+      max-width: 1300px;
+      margin: 0 auto;
+      padding: 0 var(--sp-8) 0 12%;   /* 12% empuja la rueda hacia la derecha */
+    }
+
+    /* ── Rueda: círculo completo ── */
+    .roulette-wheel {
+      position: relative;
+      flex-shrink: 0;
+      width: 620px;
+      height: 620px;
+      margin-left: 0;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    .roulette-svg {
+      width: 100%;
+      height: 100%;
+      display: block;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    /* Grupo giratorio */
+    #wheelSpinner {
+      /* Desaceleración natural: arranca rápido, frena suave como rueda física */
+      transition: transform 1.1s cubic-bezier(0.15, 0.85, 0.30, 1.0);
+      transform-origin: 0px 0px; /* origin en centro del viewBox (0,0) */
+    }
+
+    /* Paths de segmento */
+    .r-seg-path {
+      stroke: var(--c-bg);
+      stroke-width: 0.014;
+      cursor: pointer;
+      transition: filter .25s;
+    }
+    .r-seg-path:hover { filter: brightness(1.15); }
+    .r-seg-path.is-active { filter: brightness(1.28) drop-shadow(0 0 0.04px rgba(255,255,255,.6)); }
+
+    /* Grupo de segmento (para escala activa) */
+    .r-seg {
+      cursor: pointer;
+    }
+    .r-seg.is-active .r-seg-path {
+      filter: brightness(1.28);
+    }
+
+    /* Textos de segmento — horizontales via JS counter-rotation */
+    .r-seg-text {
+      font-family: var(--f-body);
+      font-weight: 700;
+      fill: #fff;
+      pointer-events: none;
+      font-size: 0.082px; /* override por atributo en JS */
+    }
+
+    /* Hub central */
+    .roulette-center {
+      position: absolute;
+      left: 50%; top: 50%;
+      transform: translate(-50%, -50%);
+      width: 190px; height: 190px;
+      border-radius: 50%;
+      background: var(--c-bg);
+      box-shadow: 0 0 0 6px var(--c-border), 0 4px 28px rgba(0,0,0,.12);
+      display: flex;
+      flex-direction: column;
+      align-items: center; justify-content: center;
+      pointer-events: none; z-index: 10;
+    }
+
+    .roulette-center__label {
+      font-family: var(--f-body);
+      font-size: 10px; font-weight: 700;
+      color: var(--c-brand);
+      letter-spacing: .08em; text-transform: uppercase;
+    }
+    .roulette-center__num {
+      font-family: var(--f-display);
+      font-size: 28px; font-weight: 900;
+      color: var(--c-heading); line-height: 1;
+    }
+
+        /* Marcador de posición activa — triángulo fijo en borde derecho */
+    .roulette-active-marker {
+      position: absolute;
+      right: -4px; top: 50%;
+      transform: translateY(-50%);
+      width: 0; height: 0;
+      border-top: 14px solid transparent;
+      border-bottom: 14px solid transparent;
+      border-right: 18px solid var(--c-bg);
+      filter: drop-shadow(-3px 0 6px rgba(44,95,38,.35));
+      z-index: 20;
+      pointer-events: none;
+    }
+
+    /* ── Área de contenido (derecha) ── */
+    .roulette-content {
+      flex: 1; min-width: 0; max-width: 560px;
+      padding: 0 var(--sp-10) 0 var(--sp-4);
+    }
+    .roulette-section__header { margin-bottom: var(--sp-10); }
+    .roulette-section__title {
+      font-family: var(--f-display); font-size: var(--fs-4xl);
+      color: var(--c-heading); line-height: 1.15;
+      margin: var(--sp-3) 0 var(--sp-4);
+    }
+    .roulette-section__title em { font-style: italic; color: var(--c-brand); }
+    .roulette-section__sub {
+      font-size: var(--fs-base); color: var(--c-muted); line-height: 1.65;
+    }
+
+    /* ── Panel de texto ── */
+    .roulette-panel__inner {
+      opacity: 0; transform: translateY(10px);
+      transition: opacity .4s, transform .4s;
+    }
+    .roulette-panel__inner.is-visible { opacity: 1; transform: translateY(0); }
+    .roulette-panel__brand {
+      display: block; font-size: 12px; font-weight: 800;
+      letter-spacing: .14em; text-transform: uppercase;
+      color: #1a56a0; margin-bottom: var(--sp-2);
+    }
+    .roulette-panel__title {
+      font-family: var(--f-display);
+      font-size: clamp(2rem, 4vw, 3rem);
+      font-weight: 900; color: var(--c-heading);
+      line-height: 1.05; margin: 0 0 var(--sp-4);
+    }
+    .roulette-panel__divider {
+      width: 48px; height: 4px;
+      background: #1a56a0; border-radius: 2px;
+      margin-bottom: var(--sp-5);
+    }
+    .roulette-panel__desc {
+      font-size: var(--fs-base); color: var(--c-body);
+      line-height: 1.7; margin: 0 0 var(--sp-5);
+    }
+    .roulette-panel__list {
+      list-style: none; padding: 0; margin: 0 0 var(--sp-6);
+      display: flex; flex-direction: column; gap: var(--sp-2);
+    }
+    .roulette-panel__list li {
+      display: flex; align-items: center; gap: 10px;
+      font-size: var(--fs-sm); color: var(--c-body); font-weight: 500;
+    }
+    .roulette-panel__list li::before {
+      content: ''; display: block;
+      width: 7px; height: 7px; border-radius: 50%;
+      background: var(--c-brand-light); flex-shrink: 0;
+    }
+    .roulette-panel__cta {
+      display: inline-flex; align-items: center; gap: 8px;
+      font-size: var(--fs-sm); font-weight: 700;
+      color: #fff; background: #e87a10;
+      text-decoration: none; padding: 12px 28px;
+      border-radius: var(--r-full);
+      box-shadow: 0 4px 14px rgba(232,122,16,.35);
+      transition: background .2s, transform .2s, box-shadow .2s;
+    }
+    .roulette-panel__cta:hover {
+      background: #c05e00; transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(232,122,16,.45);
+    }
+
+
+    /* ── Animación idle: rotación lenta cuando nadie interactúa ── */
+    @keyframes wheelIdle {
+      from { transform: rotate(0deg); }
+      to   { transform: rotate(360deg); }
+    }
+    #wheelSpinner.is-idle {
+      animation: wheelIdle 28s linear infinite;
+      transition: none !important;
+    }
+
+    /* Responsive */
+    @media (max-width: 1200px) {
+      .roulette-wheel { width: 540px; height: 540px; }
+      .roulette-center { width: 175px; height: 175px; }
+    }
+    @media (max-width: 1000px) {
+      .roulette-wheel { width: 460px; height: 460px; }
+      .roulette-center { width: 150px; height: 150px; }
+    }
+    @media (max-width: 900px) {
+      .roulette-wrap { flex-direction: column; min-height: auto; }
+      .roulette-wheel { margin-left: 0; width: 360px; height: 360px; }
+      .roulette-center { width: 116px; height: 116px; }
+      .roulette-content { max-width: 100%; padding: var(--sp-8) var(--sp-6); }
+      .roulette-panel__inner { opacity: 1; transform: none; }
+      .roulette-active-marker { display: none; }
+    }
+    @media (max-width: 480px) {
+      .roulette-wheel { width: 290px; height: 290px; }
+      .roulette-center { width: 92px; height: 92px; }
+    }
+
+    /* ── Fade de entrada CTA (solo index) ── */
+        /* ── Fade de entrada CTA (solo index) ── */
+        /* ── Fade de entrada CTA (solo index) ── */
+    .cta-band::after {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 60%;
+      background: linear-gradient(to bottom, var(--c-bg) 0%, transparent 100%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ── CERT CAROUSEL (hero bottom-right) ──────────────────── */
+    .hero-cert {
+      position: absolute;
+      right: 5%;
+      bottom: 140px;
+      width: 310px;
+      z-index: 5;
+    }
+    .hero-cert__glass {
+      background: rgba(10,22,10,0.48);
+      backdrop-filter: blur(22px) saturate(1.6);
+      -webkit-backdrop-filter: blur(22px) saturate(1.6);
+      border: 1px solid rgba(255,255,255,0.13);
+      border-radius: 20px;
+      padding: 22px 24px 20px;
+      position: relative;
+    }
+    .hero-cert__header {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      margin-bottom: 16px;
+    }
+    .hero-cert__header svg {
+      flex-shrink: 0;
+      color: var(--c-brand-light);
+      opacity: 0.8;
+    }
+    .hero-cert__header-label {
+      font-family: var(--f-body);
+      font-size: 0.6rem;
+      font-weight: 600;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.38);
+    }
+    .hero-cert__cards {
+      position: relative;
+      height: 128px;
+      overflow: hidden;
+    }
+    .hero-cert__card {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      opacity: 0;
+      transform: translateY(14px);
+      transition: opacity 0.45s ease, transform 0.45s ease;
+      pointer-events: none;
+    }
+    .hero-cert__card.is-active {
+      opacity: 1;
+      transform: translateY(0);
+      pointer-events: auto;
+    }
+    .hero-cert__card.is-leaving {
+      opacity: 0;
+      transform: translateY(-14px);
+    }
+    .hero-cert__badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      width: fit-content;
+    }
+    .hero-cert__badge-pill {
+      background: var(--c-brand);
+      color: #fff;
+      font-family: var(--f-display);
+      font-size: 0.6rem;
+      font-weight: 800;
+      letter-spacing: 0.07em;
+      padding: 3px 9px;
+      border-radius: 6px;
+      text-transform: uppercase;
+    }
+    .hero-cert__status {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 0.58rem;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    .hero-cert__status--active { color: #8bc34a; }
+    .hero-cert__status--pending { color: rgba(255,255,255,0.35); }
+    .hero-cert__title {
+      font-family: var(--f-display);
+      font-size: 0.92rem;
+      font-weight: 700;
+      color: rgba(255,255,255,0.92);
+      line-height: 1.25;
+    }
+    .hero-cert__org {
+      font-family: var(--f-body);
+      font-size: 0.67rem;
+      color: rgba(255,255,255,0.42);
+      line-height: 1.45;
+    }
+    /* Dots */
+    /* Footer: dots + botón next en la misma fila */
+    .hero-cert__footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 16px;
+    }
+    .hero-cert__dots {
+      display: flex;
+      gap: 5px;
+      align-items: center;
+    }
+    .hero-cert__dot {
+      height: 4px;
+      border-radius: 2px;
+      background: rgba(255,255,255,0.2);
+      border: none;
+      padding: 0;
+      cursor: pointer;
+      transition: background 0.3s, width 0.35s cubic-bezier(0.4,0,0.2,1);
+      width: 16px;
+    }
+    .hero-cert__dot.is-active {
+      background: var(--c-brand-light);
+      width: 28px;
+    }
+    /* Botón siguiente */
+    .hero-cert__btn-next {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 30px; height: 30px;
+      border-radius: 50%;
+      border: 1px solid rgba(255,255,255,0.2);
+      background: rgba(255,255,255,0.08);
+      color: rgba(255,255,255,0.7);
+      cursor: pointer;
+      transition: background 0.2s, border-color 0.2s, color 0.2s, transform 0.15s;
+      flex-shrink: 0;
+    }
+    .hero-cert__btn-next:hover {
+      background: var(--c-brand);
+      border-color: var(--c-brand);
+      color: #fff;
+      transform: translateX(2px);
+    }
+    .hero-cert__btn-next:active {
+      transform: translateX(4px) scale(0.93);
+    }
+    @media (max-width: 1100px) {
+      .hero-cert { right: 3%; width: 270px; }
+    }
+    @media (max-width: 860px) {
+      .hero-cert { display: none; }
+    }
+  </style>
 </head>
 <body>
-
-  <!-- HEADER -->
-  <!-- Acceso portal — fuera del navbar principal -->
-  <a href="portal/login.html" class="portal-access">
-    <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-    Portal de clientes
-  </a>
-
   <!-- WhatsApp flotante -->
-  <a href="https://wa.me/TUNUMEROAQUI" class="whatsapp-float" target="_blank" rel="noopener" aria-label="Contactar por WhatsApp">
+  <a href="https://wa.me/573023169861" class="whatsapp-float" target="_blank" rel="noopener" aria-label="Contactar por WhatsApp">
     <svg width="28" height="28" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.117.549 4.107 1.51 5.84L.057 23.486a.5.5 0 00.614.634l5.796-1.519A11.954 11.954 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.938a9.932 9.932 0 01-5.036-1.362l-.361-.214-3.741.981.999-3.648-.235-.374A9.938 9.938 0 012.062 12C2.062 6.534 6.534 2.062 12 2.062S21.938 6.534 21.938 12 17.466 21.938 12 21.938z"/></svg>
   </a>
 
-  <header id="header" class="header" role="banner">
+<header id="header" class="header" role="banner">
+
     <div class="header__inner">
-      <a href="index.html" class="header__logo" aria-label="Indusquim inicio">
-        <img src="logo-indusquim.png" alt="Indusquim" class="header__logo-img" />
+
+      <!-- Logo dentro del pill -->
+      <a href="index.html" class="header__logo-pill" aria-label="Indusquim inicio">
+        <img src="logo-indusquim.png" alt="Indusquim" />
       </a>
+
+      <!-- Navegación -->
       <nav class="header__nav" id="mainNav" aria-label="Navegación principal">
         <ul class="nav__list">
-          <li><a href="nosotros.html"        class="nav__link">Nosotros</a></li>
-          <li><a href="sectores.html"        class="nav__link">Sectores</a></li>
-          <li><a href="productos.html"       class="nav__link">Catálogo</a></li>
-          <li><a href="certificaciones.html" class="nav__link">Certificaciones</a></li>
-          <li><a href="blog.html"            class="nav__link">Blog</a></li>
-          <li><a href="contacto.html"        class="nav__link">Contacto</a></li>
+          <li><a href="nosotros.html" class="nav__link">Nosotros</a></li>
+
+          <li class="nav__item--drop">
+            <button class="nav__link nav__link--has-drop" aria-expanded="false" aria-haspopup="true">Sectores <span class="drop-chevron">▾</span></button>
+            <div class="nav__drop">
+              <a class="nav__drop-link" href="sector-cocina.html">
+                <span class="nav__drop-link__icon"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 11l19-9-9 19-2-8-8-2z"/></svg></span>Industria Alimentaria
+              </a>
+              <a class="nav__drop-link" href="sectores.html#hoteleria">
+                <span class="nav__drop-link__icon"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></span>Hotelería y Turismo
+              </a>
+              <a class="nav__drop-link" href="sectores.html#salud">
+                <span class="nav__drop-link__icon"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></span>Salud e Institucional
+              </a>
+              <a class="nav__drop-link" href="sectores.html#lavanderia">
+                <span class="nav__drop-link__icon"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M4 6h16M4 6a2 2 0 012-2h12a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6z"/></svg></span>Lavandería Industrial
+              </a>
+              <a class="nav__drop-link" href="sectores.html#manufactura">
+                <span class="nav__drop-link__icon"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg></span>Manufactura e Industria
+              </a>
+              <a class="nav__drop-link" href="sectores.html#educacion">
+                <span class="nav__drop-link__icon"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg></span>Educación y Oficinas
+              </a>
+            </div>
+          </li>
+
+          <li><a href="soluciones.html" class="nav__link">Soluciones</a></li>
+
+          <li class="nav__item--drop">
+            <button class="nav__link nav__link--has-drop" aria-expanded="false" aria-haspopup="true">Catálogo <span class="drop-chevron">▾</span></button>
+            <div class="nav__drop">
+              <a class="nav__drop-link" href="https://wa.me/573023169861?text=Hola%2C%20me%20interesa%20informaci%C3%B3n%20sobre%20desengrasantes%20industriales" target="_blank" rel="noopener">
+                <span class="nav__drop-link__icon"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></span>Desengrasantes Industriales
+              </a>
+              <a class="nav__drop-link" href="https://wa.me/573023169861?text=Hola%2C%20me%20interesa%20informaci%C3%B3n%20sobre%20desinfectantes%20de%20alto%20nivel" target="_blank" rel="noopener">
+                <span class="nav__drop-link__icon"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></span>Desinfectantes de Alto Nivel
+              </a>
+              <a class="nav__drop-link" href="https://wa.me/573023169861?text=Hola%2C%20me%20interesa%20informaci%C3%B3n%20sobre%20detergentes%20para%20lavander%C3%ADa%20industrial" target="_blank" rel="noopener">
+                <span class="nav__drop-link__icon"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M4 6h16M4 6a2 2 0 012-2h12a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6z"/></svg></span>Detergentes para Lavandería
+              </a>
+              <div class="nav__drop-sep"></div>
+              <a class="nav__drop-link" href="https://wa.me/573023169861?text=Hola%2C%20me%20interesa%20informaci%C3%B3n%20sobre%20la%20l%C3%ADnea%20institucional" target="_blank" rel="noopener">
+                <span class="nav__drop-link__icon"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h6M9 13h6M9 17h4"/></svg></span>Limpiadores Institucionales
+              </a>
+              <a class="nav__drop-link" href="https://wa.me/573023169861?text=Hola%2C%20me%20interesa%20informaci%C3%B3n%20sobre%20sanitizantes%20y%20bactericidas" target="_blank" rel="noopener">
+                <span class="nav__drop-link__icon"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></span>Sanitizantes y Bactericidas
+              </a>
+              <a class="nav__drop-link" href="https://wa.me/573023169861?text=Hola%2C%20necesito%20las%20fichas%20t%C3%A9cnicas%20%28FDS%2FSGA%29%20de%20sus%20productos" target="_blank" rel="noopener">
+                <span class="nav__drop-link__icon"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></span>Fichas Técnicas (FDS)
+              </a>
+            </div>
+          </li>
+
+          <li><a href="blog.html" class="nav__link">Blog</a></li>
         </ul>
       </nav>
+
+      <!-- Barra de búsqueda -->
+      <div class="header__search-wrap" id="searchWrap">
+        <svg class="header__search-icon" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+        <input type="text" class="header__search-input" id="searchInput" placeholder="Buscar…" autocomplete="off" aria-label="Buscar" />
+        <div class="header__search-results" id="searchResults" role="listbox"></div>
+      </div>
+
       <div class="header__actions">
-        <a href="contacto.html" class="btn btn--nav">Solicitar asesoría</a>
-        <a href="portal/login.html" class="header__portal-icon" aria-label="Portal de clientes">
-          <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-        </a>
         <button class="header__burger" id="burgerBtn" aria-label="Abrir menú" aria-expanded="false">
           <span></span><span></span><span></span>
         </button>
       </div>
     </div>
+
+    <!-- Portal — absoluto derecha -->
+    <a href="portal/login.html" class="btn-portal" aria-label="Portal de clientes">
+      Portal de clientes
+      <svg viewBox="0 0 16 19" xmlns="http://www.w3.org/2000/svg">
+        <path d="M7 18C7 18.5523 7.44772 19 8 19C8.55228 19 9 18.5523 9 18H7ZM8.70711 0.292893C8.31658-0.0976311 7.68342-0.0976311 7.29289 0.292893L0.928932 6.65685C0.538408 7.04738 0.538408 7.68054 0.928932 8.07107C1.31946 8.46159 1.95262 8.46159 2.34315 8.07107L8 2.41421L13.6569 8.07107C14.0474 8.46159 14.6805 8.46159 15.0711 8.07107C15.4616 7.68054 15.4616 7.04738 15.0711 6.65685L8.70711 0.292893ZM9 18L9 1H7L7 18H9Z" fill="currentColor"/>
+      </svg>
+    </a>
+
   </header>
 
   <!-- MENÚ MÓVIL -->
@@ -61,16 +638,35 @@
       </button>
     </div>
     <nav class="mobile-menu__links">
-      <a href="nosotros.html"        class="mobile-menu__link">Nosotros</a>
-      <a href="sectores.html"        class="mobile-menu__link">Sectores</a>
-      <a href="productos.html"       class="mobile-menu__link">Catálogo</a>
-      <a href="certificaciones.html" class="mobile-menu__link">Certificaciones</a>
-      <a href="blog.html"            class="mobile-menu__link">Blog</a>
-      <a href="contacto.html"        class="mobile-menu__link">Contacto</a>
+      <a href="nosotros.html" class="mobile-menu__link">Nosotros</a>
+
+      <button class="mobile-menu__link mobile-menu__link--drop" data-target="mobileSectores">Sectores <span class="drop-arrow">▾</span></button>
+      <div class="mobile-drop" id="mobileSectores">
+        <a href="sector-cocina.html"      class="mobile-drop-link">Industria Alimentaria</a>
+        <a href="sectores.html#hoteleria" class="mobile-drop-link">Hotelería y Turismo</a>
+        <a href="sectores.html#salud"     class="mobile-drop-link">Salud e Institucional</a>
+        <a href="sectores.html#lavanderia" class="mobile-drop-link">Lavandería Industrial</a>
+        <a href="sectores.html#manufactura" class="mobile-drop-link">Manufactura e Industria</a>
+        <a href="sectores.html#educacion"  class="mobile-drop-link">Educación y Oficinas</a>
+      </div>
+
+      <a href="soluciones.html" class="mobile-menu__link">Soluciones</a>
+
+      <button class="mobile-menu__link mobile-menu__link--drop" data-target="mobileCatalogo">Catálogo <span class="drop-arrow">▾</span></button>
+      <div class="mobile-drop" id="mobileCatalogo">
+        <a href="https://wa.me/573023169861?text=Hola%2C%20me%20interesa%20informaci%C3%B3n%20sobre%20desengrasantes%20industriales" class="mobile-drop-link" target="_blank" rel="noopener">Desengrasantes Industriales</a>
+        <a href="https://wa.me/573023169861?text=Hola%2C%20me%20interesa%20informaci%C3%B3n%20sobre%20desinfectantes%20de%20alto%20nivel" class="mobile-drop-link" target="_blank" rel="noopener">Desinfectantes de Alto Nivel</a>
+        <a href="https://wa.me/573023169861?text=Hola%2C%20me%20interesa%20informaci%C3%B3n%20sobre%20detergentes%20para%20lavander%C3%ADa%20industrial" class="mobile-drop-link" target="_blank" rel="noopener">Detergentes para Lavandería</a>
+        <a href="https://wa.me/573023169861?text=Hola%2C%20me%20interesa%20informaci%C3%B3n%20sobre%20la%20l%C3%ADnea%20institucional" class="mobile-drop-link" target="_blank" rel="noopener">Limpiadores Institucionales</a>
+        <a href="https://wa.me/573023169861?text=Hola%2C%20me%20interesa%20informaci%C3%B3n%20sobre%20sanitizantes%20y%20bactericidas" class="mobile-drop-link" target="_blank" rel="noopener">Sanitizantes y Bactericidas</a>
+        <a href="https://wa.me/573023169861?text=Hola%2C%20necesito%20las%20fichas%20t%C3%A9cnicas%20%28FDS%2FSGA%29%20de%20sus%20productos" class="mobile-drop-link" target="_blank" rel="noopener">Fichas Técnicas (FDS)</a>
+      </div>
+
+      <a href="blog.html" class="mobile-menu__link">Blog</a>
     </nav>
     <div class="mobile-menu__cta">
       <a href="portal/login.html" class="btn btn--outline" style="width:100%;justify-content:center;margin-bottom:10px;">Portal de clientes</a>
-      <a href="contacto.html" class="btn btn--primary" style="width:100%;justify-content:center;">Solicitar asesoría</a>
+      <a href="nosotros.html#contacto" class="btn btn--primary" style="width:100%;justify-content:center;">Solicitar asesoría</a>
     </div>
   </div>
 
@@ -83,7 +679,7 @@
       <div class="hero__slides" id="heroSlides">
         <!-- Foto 1 -->
         <div class="hero__slide active"
-          style="background-image: url('assets/images/hero/hero-1.jpg')">
+          style="background-image: url('assets/images/hero/GettyImages-1594019553.jpg')">
         </div>
         <!-- Foto 2 -->
         <div class="hero__slide"
@@ -91,7 +687,7 @@
         </div>
         <!-- Foto 3 -->
         <div class="hero__slide"
-          style="background-image: url('assets/images/hero/hero-3.webp')">
+          style="background-image: url('assets/images/hero/waitress-cleaning-tables-with-disinfectant-wearing-protective-face-mask-cafe_copia.webp')">
         </div>
         <!-- Video 4 -->
         <div class="hero__slide hero__slide--video">
@@ -125,8 +721,29 @@
         </div>
       </div>
 
+      <!-- CERT CAROUSEL — glassmorphism bottom-right -->
+      <div class="hero-cert" id="heroCert" aria-label="Certificaciones Indusquim">
+        <div class="hero-cert__glass">
+          <div class="hero-cert__header">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+              <path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+            </svg>
+            <span class="hero-cert__header-label">Certificaciones</span>
+          </div>
+          <div class="hero-cert__cards" id="certCards"></div>
+          <div class="hero-cert__footer">
+            <div class="hero-cert__dots" id="certDots"></div>
+            <button class="hero-cert__btn-next" id="certNext" aria-label="Siguiente certificación">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <path d="M5 12h14M12 5l7 7-7 7"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
 
     </section>
+
 
     <!-- SECTORES -->
     <section class="sectors">
@@ -203,12 +820,46 @@
       </div>
     </section>
 
+
+    <!-- RULETA DE SOLUCIONES -->
+    <section class="roulette-section" id="soluciones-ruleta">
+      <div class="roulette-wrap">
+
+        <!-- IZQUIERDA: Rueda completa giratoria -->
+        <div class="roulette-wheel" id="rouletteWheel" aria-label="Ruleta de soluciones por sector">
+          <svg class="roulette-svg" viewBox="-1 -1 2 2" xmlns="http://www.w3.org/2000/svg"
+               onmousedown="return false" onselectstart="return false">
+            <g id="wheelSpinner"><!-- segmentos generados por JS --></g>
+          </svg>
+          <div class="roulette-center">
+
+          </div>
+          <div class="roulette-active-marker" aria-hidden="true"></div>
+        </div>
+
+        <!-- DERECHA: Encabezado + Panel -->
+        <div class="roulette-content">
+          <div id="roulettePanel">
+            <div class="roulette-panel__inner" id="roulettePanelInner">
+              <h3 class="roulette-panel__title" id="roulettePanelTitle">—</h3>
+              <div class="roulette-panel__divider"></div>
+              <p class="roulette-panel__desc" id="roulettePanelDesc"></p>
+              <ul class="roulette-panel__list" id="roulettePanelList"></ul>
+              <a href="sectores.html" class="roulette-panel__cta" id="roulettePanelCta">Ver más →</a>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+
     <!-- INTRO -->
     <section class="intro">
       <div class="container">
         <div class="intro__inner">
           <div class="intro__visual" data-aos="fade-right">
-            <img src="assets/images/hero/hero-1.jpg" alt="Planta de producción Indusquim" class="intro__img" loading="lazy" />
+            <img src="assets/images/hero/GettyImages-1594019553.jpg" alt="Planta de producción Indusquim" class="intro__img" loading="lazy" />
             <div class="intro__badge">
               <div class="intro__badge-icon">
                 <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
@@ -235,41 +886,7 @@
       </div>
     </section>
 
-    <!-- PILLARS -->
-    <section class="pillars">
-      <div class="container">
-        <div class="pillars__inner">
-          <div class="pillars__sticky" data-aos="fade-right">
-            <span class="eyebrow">Por qué elegirnos</span>
-            <h2 class="pillars__title">Lo que nos hace diferentes</h2>
-            <p class="pillars__text">No somos solo proveedores. Somos aliados técnicos que garantizan protocolos efectivos, seguros y documentados para cada auditoría.</p>
-            <a href="nosotros.html" class="btn btn--outline">Nuestra propuesta de valor →</a>
-          </div>
-          <div class="pillars__grid">
-            <div class="pillar-card" data-aos="fade-up" data-aos-delay="0">
-              <span class="pillar-card__icon">🏭</span>
-              <div class="pillar-card__title">Fabricantes directos</div>
-              <p class="pillar-card__text">Producimos en Colombia para ofrecer precios competitivos y personalización de fórmulas por cliente.</p>
-            </div>
-            <div class="pillar-card" data-aos="fade-up" data-aos-delay="100">
-              <span class="pillar-card__icon">🌿</span>
-              <div class="pillar-card__title">Biodegradables</div>
-              <p class="pillar-card__text">Formulaciones de mínimo impacto ambiental sin sacrificar eficacia de limpieza y desinfección.</p>
-            </div>
-            <div class="pillar-card" data-aos="fade-up" data-aos-delay="200">
-              <span class="pillar-card__icon">📋</span>
-              <div class="pillar-card__title">Documentación completa</div>
-              <p class="pillar-card__text">Ficha técnica, SGA y certificaciones vigentes por cada producto. Listo para auditorías.</p>
-            </div>
-            <div class="pillar-card" data-aos="fade-up" data-aos-delay="300">
-              <span class="pillar-card__icon">🎓</span>
-              <div class="pillar-card__title">Capacitación técnica</div>
-              <p class="pillar-card__text">Formamos al personal en diluciones, aplicación y protocolos de seguridad incluidos en el servicio.</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
+
 
     <!-- CTA BAND -->
     <section class="cta-band">
@@ -342,5 +959,512 @@
 
   <script src="https://unpkg.com/aos@2.3.4/dist/aos.js"></script>
   <script src="assets/js/main.js"></script>
+  <script>
+  // ── BÚSQUEDA EN PÁGINA PRINCIPAL ────────────────────────────
+  (function () {
+    const INDEX = [
+      // Navegación
+      { title: 'Nosotros',        section: 'Empresa',    href: 'nosotros.html',        keywords: 'empresa historia quienes somos fundacion 1993 cali' },
+      { title: 'Sectores',        section: 'Servicios',  href: 'sectores.html',        keywords: 'sectores industrias clientes hoteleria salud manufactura' },
+      { title: 'Catálogo',        section: 'Productos',  href: 'productos.html',       keywords: 'catalogo productos lineas limpieza desinfeccion' },
+      { title: 'Certificaciones', section: 'Empresa',    href: 'certificaciones.html', keywords: 'certificaciones invima bpm sga iso calidad' },
+      { title: 'Blog',            section: 'Recursos',   href: 'blog.html',            keywords: 'blog articulos recursos tecnicos noticias' },
+      { title: 'Contacto',        section: 'Contacto',   href: 'contacto.html',        keywords: 'contacto telefono email direccion cali colombia' },
+      { title: 'Portal de clientes', section: 'Acceso', href: 'portal/login.html',    keywords: 'portal clientes login acceso cuenta' },
+      // Sectores
+      { title: 'Industria Alimentaria',  section: 'Sectores', href: 'sectores.html#alimentaria',  keywords: 'alimentos plantas bpm higiene cocinas cip' },
+      { title: 'Hotelería y Turismo',    section: 'Sectores', href: 'sectores.html#hoteleria',    keywords: 'hoteles restaurantes turismo habitaciones' },
+      { title: 'Salud e Institucional',  section: 'Sectores', href: 'sectores.html#salud',        keywords: 'hospitales clinicas salud desinfeccion alto nivel' },
+      { title: 'Lavandería Industrial',  section: 'Sectores', href: 'sectores.html#lavanderia',   keywords: 'lavanderia detergente suavizante textil' },
+      { title: 'Manufactura e Industria',section: 'Sectores', href: 'sectores.html#manufactura',  keywords: 'manufactura industria pisos maquinaria' },
+      { title: 'Educación y Gobierno',   section: 'Sectores', href: 'sectores.html#educacion',    keywords: 'colegios universidades gobierno licitaciones' },
+      // Productos
+      { title: 'Línea Cocinas y Alimentos', section: 'Catálogo', href: 'productos.html#cocinas',   keywords: 'cocinas alimentos cip desengrasante acido alcalino' },
+      { title: 'Línea Institucional',       section: 'Catálogo', href: 'productos.html#institucional', keywords: 'institucional pisos superficies desinfectante' },
+      { title: 'Línea Lavandería',          section: 'Catálogo', href: 'productos.html#lavanderia',keywords: 'lavanderia detergente suavizante blanqueador' },
+      { title: 'Fichas Técnicas (FDS)',     section: 'Catálogo', href: 'productos.html#fds',       keywords: 'fichas tecnicas fds sga documentacion seguridad' },
+      // Home sections (scroll)
+      { title: 'Fabricantes desde 1993',   section: 'Inicio',   href: '#intro',  keywords: 'fabricantes colombia cali valle cauca biodegradable' },
+      { title: 'Solicitar asesoría gratuita', section: 'Inicio', href: 'contacto.html', keywords: 'asesoria gratis soporte tecnico ayuda' },
+      { title: '¿Por qué elegirnos?',      section: 'Inicio',   href: '#pillars', keywords: 'diferencial ventaja valor capacitacion documentacion' },
+    ];
+
+    const ICONS = {
+      'Empresa':   '<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>',
+      'Servicios': '<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>',
+      'Productos': '<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg>',
+      'Recursos':  '<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>',
+      'Contacto':  '<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 01-2.18 2A19.79 19.79 0 013.07 4.18 2 2 0 015.07 2h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L9.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 14.92z"/></svg>',
+      'Acceso':    '<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>',
+      'Sectores':  '<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>',
+      'Catálogo':  '<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg>',
+      'Inicio':    '<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>',
+    };
+
+    const input   = document.getElementById('searchInput');
+    const results = document.getElementById('searchResults');
+    if (!input || !results) return;
+
+    function search(q) {
+      q = q.trim().toLowerCase();
+      if (q.length < 2) return [];
+      return INDEX.filter(item =>
+        item.title.toLowerCase().includes(q) ||
+        item.keywords.toLowerCase().includes(q) ||
+        item.section.toLowerCase().includes(q)
+      ).slice(0, 8);
+    }
+
+    function render(items, q) {
+      if (items.length === 0) {
+        results.innerHTML = '<div class="search-no-results">Sin resultados para "' + q + '"</div>';
+      } else {
+        results.innerHTML = items.map(item => `
+          <a class="search-result-item" href="${item.href}" role="option">
+            <div class="search-result-item__icon">${ICONS[item.section] || ICONS['Inicio']}</div>
+            <div>
+              <div class="search-result-item__title">${item.title}</div>
+              <div class="search-result-item__section">${item.section}</div>
+            </div>
+          </a>`).join('');
+      }
+      results.classList.add('visible');
+    }
+
+    input.addEventListener('input', function () {
+      const q = this.value;
+      if (q.trim().length < 2) { results.classList.remove('visible'); return; }
+      render(search(q), q);
+    });
+
+    // Cerrar al click fuera
+    document.addEventListener('click', function (e) {
+      if (!e.target.closest('#searchWrap')) results.classList.remove('visible');
+    });
+
+    // Navegación por teclado (↑↓ Enter)
+    input.addEventListener('keydown', function (e) {
+      const items = results.querySelectorAll('.search-result-item');
+      let focused = results.querySelector('.search-result-item:focus');
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        (focused ? focused.nextElementSibling || items[0] : items[0])?.focus();
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        (focused ? focused.previousElementSibling || items[items.length - 1] : items[items.length - 1])?.focus();
+      } else if (e.key === 'Escape') {
+        results.classList.remove('visible');
+        input.blur();
+      }
+    });
+  })();
+  </script>
+
+  <!-- Portal button: detecta fondo claro/oscuro -->
+  <script>
+  (function () {
+    const header = document.getElementById('header');
+    const hero   = document.getElementById('hero');
+    if (!header || !hero) return;
+    function update() {
+      const heroBottom = hero.getBoundingClientRect().bottom;
+      /* Cuando el hero ya no cubre el header → fondo claro */
+      header.classList.toggle('header--light', heroBottom <= header.offsetHeight);
+    }
+    window.addEventListener('scroll', update, { passive: true });
+    update();
+  })();
+  </script>
+
+  <!-- RULETA INTERACTIVA — Rueda giratoria completa -->
+  <script>
+  (function () {
+    /* ── Sectores ── */
+    const SECTORS = [
+      {
+        id: 'alimentaria', label: 'Alimentaria', lines: ['INDUSTRIA', 'ALIMENTARIA'],
+        color: '#c0392b', colorLight: '#e74c3c',
+        desc: 'Formulaciones específicas para plantas de alimentos y bebidas que cumplen con la normativa INVIMA y estándares BPM.',
+        items: ['Desengrasantes para cocinas industriales','Detergentes aptos para contacto con alimentos','Desinfectantes de superficies y equipos','Programas CIP para líneas de producción'],
+        href: 'sectores.html#alimentaria'
+      },
+      {
+        id: 'hoteleria', label: 'Hotelería', lines: ['HOTELERÍA &', 'GASTRONOMÍA'],
+        color: '#d35400', colorLight: '#e87a10',
+        desc: 'Soluciones de limpieza y aromatización para hoteles, restaurantes y espacios de hospedaje que elevan la percepción de calidad.',
+        items: ['Limpieza profunda de habitaciones','Tratamiento de ropa de cama y toallas','Limpieza de áreas comunes y lobbies','Desinfección de cocinas y comedores'],
+        href: 'sectores.html#hoteleria'
+      },
+      {
+        id: 'salud', label: 'Salud', lines: ['SECTOR', 'SALUD'],
+        color: '#c8960a', colorLight: '#e6b012',
+        desc: 'Productos hospitalarios con eficacia microbicida comprobada para clínicas y centros de salud bajo normas sanitarias colombianas.',
+        items: ['Desinfectantes hospitalarios de amplio espectro','Limpieza de áreas críticas y UCI','Higienización de instrumental médico','Protocolos de bioseguridad documentados'],
+        href: 'sectores.html#salud'
+      },
+      {
+        id: 'lavanderia', label: 'Lavandería', lines: ['LAVANDERÍA', 'INDUSTRIAL'],
+        color: '#27ae60', colorLight: '#2ecc71',
+        desc: 'Línea completa para lavanderías industriales con detergentes de alto rendimiento, suavizantes y blanqueadores dosificables.',
+        items: ['Detergentes alcalinos y neutros','Suavizantes y antiestáticos','Blanqueadores oxigenados y clorados','Sistemas de dosificación automática'],
+        href: 'sectores.html#lavanderia'
+      },
+      {
+        id: 'manufactura', label: 'Manufactura', lines: ['PLANTA', 'MANUFACTURA'],
+        color: '#1a7a4a', colorLight: '#22a060',
+        desc: 'Químicos industriales de alto poder para plantas de manufactura que requieren desengrase, limpieza de maquinaria y control ambiental.',
+        items: ['Desengrasantes industriales concentrados','Limpieza de maquinaria pesada','Tratamiento de pisos industriales','Control de olores en planta'],
+        href: 'sectores.html#manufactura'
+      },
+      {
+        id: 'educacion', label: 'Educación', lines: ['CENTROS', 'EDUCATIVOS'],
+        color: '#2C5F26', colorLight: '#3d8036',
+        desc: 'Programas de limpieza seguros y eficientes para colegios, universidades y centros de formación con productos de baja toxicidad.',
+        items: ['Limpieza de aulas y laboratorios','Desinfección de baños y vestuarios','Tratamiento de zonas de alimentación','Productos seguros de baja toxicidad'],
+        href: 'sectores.html#educacion'
+      }
+    ];
+
+    const N      = SECTORS.length;
+    const SVG_NS = 'http://www.w3.org/2000/svg';
+
+    const spinner    = document.getElementById('wheelSpinner');
+    const panelInner = document.getElementById('roulettePanelInner');
+    const elTitle    = document.getElementById('roulettePanelTitle');
+    const elDesc     = document.getElementById('roulettePanelDesc');
+    const elList     = document.getElementById('roulettePanelList');
+    const elCta      = document.getElementById('roulettePanelCta');
+
+    if (!spinner) return;
+
+    /* ── Geometría ── */
+    function toRad(d) { return d * Math.PI / 180; }
+    function pToXY(deg, r) {
+      return { x: r * Math.cos(toRad(deg)), y: r * Math.sin(toRad(deg)) };
+    }
+    function arcPath(s, e, rO, rI) {
+      const p1 = pToXY(s, rO), p2 = pToXY(e, rO);
+      const q1 = pToXY(s, rI), q2 = pToXY(e, rI);
+      const lg = (e - s) > 180 ? 1 : 0;
+      return `M${p1.x} ${p1.y} A${rO} ${rO} 0 ${lg} 1 ${p2.x} ${p2.y} L${q2.x} ${q2.y} A${rI} ${rI} 0 ${lg} 0 ${q1.x} ${q1.y}Z`;
+    }
+
+    const R_OUT  = 0.90;
+    const R_IN   = 0.32;
+    const R_TEXT = 0.64;
+    const GAP    = 1.8;   /* grados de separación entre segmentos */
+    const SLICE  = 360 / N;
+
+    /* Estado de rotación acumulativo (no se resetea — evita giros largos) */
+    let currentAngle = 0;
+    let activeIdx    = -1;
+    let spinning     = false;
+
+    /* Guardamos referencia a cada texto para actualizarlos al girar */
+    const textEls = [];  /* { el, cx, cy } */
+    /* Guardamos referencia a cada path para la clase is-active */
+    const pathEls = [];
+    /* Guardamos referencia a cada grupo de segmento */
+    const segGroups = [];
+
+    /* ── Generar segmentos ── */
+    SECTORS.forEach((sec, i) => {
+      const startDeg = i * SLICE + GAP / 2;
+      const endDeg   = (i + 1) * SLICE - GAP / 2;
+      const midDeg   = i * SLICE + SLICE / 2;
+      const tXY      = pToXY(midDeg, R_TEXT);
+
+      /* Grupo */
+      const g = document.createElementNS(SVG_NS, 'g');
+      g.setAttribute('class', 'r-seg');
+      g.setAttribute('role', 'button');
+      g.setAttribute('tabindex', '0');
+      g.setAttribute('aria-label', sec.label);
+
+      /* Path coloreado */
+      const path = document.createElementNS(SVG_NS, 'path');
+      path.setAttribute('class', 'r-seg-path');
+      path.setAttribute('d', arcPath(startDeg, endDeg, R_OUT, R_IN));
+      path.setAttribute('fill', sec.color);
+      path.dataset.idx = i;
+
+      /* Texto horizontal (transform se actualiza en applyRotation) */
+      const txt = document.createElementNS(SVG_NS, 'text');
+      txt.setAttribute('text-anchor', 'middle');
+      txt.setAttribute('dominant-baseline', 'middle');
+      txt.setAttribute('fill', '#fff');
+      txt.setAttribute('font-size', '0.075');
+      txt.setAttribute('font-family', 'Inter, sans-serif');
+      txt.setAttribute('font-weight', '700');
+      txt.setAttribute('letter-spacing', '0.004');
+      txt.setAttribute('pointer-events', 'none');
+      /* La posición del texto está en coordenadas del viewBox rotante.
+         transform inicial: translate a posición + rotate(0) para counter-rotación */
+      txt.setAttribute('transform', `translate(${tXY.x.toFixed(4)},${tXY.y.toFixed(4)}) rotate(0)`);
+
+      /* Líneas de texto (multiline) */
+      sec.lines.forEach((line, li) => {
+        const ts = document.createElementNS(SVG_NS, 'tspan');
+        ts.setAttribute('x', '0');
+        ts.setAttribute('dy', li === 0 ? `${-(sec.lines.length - 1) * 0.05}` : '0.11');
+        ts.textContent = line;
+        txt.appendChild(ts);
+      });
+
+      g.append(path, txt);
+      spinner.appendChild(g);
+
+      pathEls.push(path);
+      segGroups.push(g);
+      textEls.push({ el: txt, cx: tXY.x, cy: tXY.y, midDeg });
+
+      /* ── Eventos ── */
+      /* mousedown: evitar selección de texto en el SVG */
+      g.addEventListener('mousedown', e => e.preventDefault());
+      g.addEventListener('click', () => rotateTo(i));
+      path.addEventListener('click', () => rotateTo(i));
+      g.addEventListener('keydown', e => {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); rotateTo(i); }
+      });
+    });
+
+    /* ── Rotación ── */
+    function shortestDelta(from, to) {
+      /* Normaliza y elige el múltiplo más cercano */
+      let d = ((to - from) % 360 + 360) % 360;
+      if (d > 180) d -= 360;
+      return d;
+    }
+
+    function applyRotation(R) {
+      /* Girar el grupo completo */
+      spinner.style.transform = `rotate(${R}deg)`;
+      /* Counter-rotar cada texto para que quede horizontal */
+      textEls.forEach(({ el, cx, cy }) => {
+        el.setAttribute('transform',
+          `translate(${cx.toFixed(4)},${cy.toFixed(4)}) rotate(${(-R).toFixed(3)})`
+        );
+      });
+    }
+
+    function markActive(idx) {
+      pathEls.forEach((p, i) => p.classList.toggle('is-active', i === idx));
+      segGroups.forEach((g, i) => g.classList.toggle('is-active', i === idx));
+    }
+
+    function updatePanel(idx, instant) {
+      const s = SECTORS[idx];
+      elTitle.textContent = s.label;
+      elDesc.textContent  = s.desc;
+      elList.innerHTML    = s.items.map(t => `<li>${t}</li>`).join('');
+      elCta.href          = s.href;
+
+      if (instant) {
+        panelInner.style.transition = 'none';
+        panelInner.classList.add('is-visible');
+        requestAnimationFrame(() => { panelInner.style.transition = ''; });
+      } else {
+        /* Fade out → update → fade in */
+        panelInner.classList.remove('is-visible');
+        setTimeout(() => panelInner.classList.add('is-visible'), 200);
+      }
+    }
+
+    function rotateTo(idx) {
+      if (idx === activeIdx) return;
+      activeIdx = idx;
+
+      /* Destino natural: llevar el centro del segmento idx a 0° (3 en punto) */
+      const naturalTarget = -(idx * SLICE + SLICE / 2);
+      let delta = shortestDelta(currentAngle, naturalTarget);
+
+      /* Garantizar giro mínimo de 1 vuelta completa + destino
+         (se ve como que el usuario empuja la rueda con fuerza) */
+      if (Math.abs(delta) < SLICE) {
+        /* Si el segmento está muy cerca, igual da una vuelta completa */
+        delta += delta >= 0 ? 360 : -360;
+      }
+
+      currentAngle += delta;
+
+      applyRotation(currentAngle);
+      markActive(idx);
+      updatePanel(idx, false);
+    }
+
+    /* ── Carga inicial: sector 0 en posición activa sin animación ── */
+    spinner.style.transition = 'none';
+    const initTarget = -(0 * SLICE + SLICE / 2);
+    currentAngle = initTarget;
+    applyRotation(currentAngle);
+    markActive(0);
+    updatePanel(0, true);
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        spinner.style.transition = '';
+      });
+    });
+
+    /* ── Animación idle: gira lentamente hasta que el usuario interactúe ── */
+    const wheelEl = document.getElementById('rouletteWheel');
+    let idleTimer = null;
+
+    function startIdle() {
+      spinner.classList.add('is-idle');
+    }
+
+    function stopIdle() {
+      if (!spinner.classList.contains('is-idle')) return;
+      /* Congela el ángulo visual antes de quitar la animación */
+      const matrix = window.getComputedStyle(spinner).transform;
+      if (matrix && matrix !== 'none') {
+        const vals = matrix.match(/matrix\(([^)]+)\)/);
+        if (vals) {
+          const [a, b] = vals[1].split(',').map(Number);
+          const angleDeg = Math.round(Math.atan2(b, a) * 180 / Math.PI);
+          currentAngle = angleDeg; /* sincronizar estado */
+        }
+      }
+      spinner.classList.remove('is-idle');
+      applyRotation(currentAngle);
+    }
+
+    function scheduleIdle() {
+      clearTimeout(idleTimer);
+      idleTimer = setTimeout(startIdle, 4000); /* idle tras 4s sin interacción */
+    }
+
+    /* Arrancar idle al cargar */
+    scheduleIdle();
+
+    /* Pausar idle al interactuar con la rueda o el panel */
+    wheelEl.addEventListener('click',      () => { stopIdle(); scheduleIdle(); });
+    wheelEl.addEventListener('mouseenter', () => { stopIdle(); });
+    wheelEl.addEventListener('mouseleave', () => { scheduleIdle(); });
+    const panelEl = document.getElementById('roulettePanel');
+    if (panelEl) {
+      panelEl.addEventListener('mouseenter', () => { stopIdle(); });
+      panelEl.addEventListener('mouseleave', () => { scheduleIdle(); });
+    }
+
+  })();
+  </script>
+
+  <!-- CERT CAROUSEL -->
+  <script>
+  (function () {
+    const CERTS = [
+      {
+        badge: 'INVIMA NTF',
+        title: 'Notificación Sanitaria',
+        org: 'Instituto Nacional de Vigilancia de Medicamentos y Alimentos',
+        active: true
+      },
+      {
+        badge: 'BPM INVIMA',
+        title: 'Buenas Prácticas de Manufactura',
+        org: 'Resolución 1160 de 2016 — INVIMA',
+        active: true
+      },
+      {
+        badge: 'FDS SGA',
+        title: 'Sistema Globalmente Armonizado',
+        org: 'Decreto 1496 de 2018 — Min. de Trabajo',
+        active: true
+      },
+      {
+        badge: 'ANLA',
+        title: 'Permiso Ambiental ANLA',
+        org: 'Autoridad Nacional de Licencias Ambientales',
+        active: true
+      },
+      {
+        badge: 'ISO 9001',
+        title: 'Gestión de Calidad',
+        org: 'Organización Internacional de Normalización',
+        active: false
+      },
+      {
+        badge: 'SAC NTC',
+        title: 'Sello Ambiental Colombiano',
+        org: 'NTC 5131 — ICONTEC / MADS',
+        active: false
+      }
+    ];
+
+    const cardsEl = document.getElementById('certCards');
+    const dotsEl  = document.getElementById('certDots');
+    if (!cardsEl || !dotsEl) return;
+
+    // Construir tarjetas y dots
+    CERTS.forEach((c, i) => {
+      const card = document.createElement('div');
+      card.className = 'hero-cert__card' + (i === 0 ? ' is-active' : '');
+      const statusClass = c.active ? 'hero-cert__status--active' : 'hero-cert__status--pending';
+      const statusText  = c.active ? 'Vigente' : 'En proceso';
+      card.innerHTML =
+        '<div class="hero-cert__badge">' +
+          '<span class="hero-cert__badge-pill">' + c.badge + '</span>' +
+          '<span class="hero-cert__status ' + statusClass + '">' +
+            '<svg width="6" height="6" viewBox="0 0 6 6"><circle cx="3" cy="3" r="3" fill="currentColor"/></svg>' +
+            statusText +
+          '</span>' +
+        '</div>' +
+        '<div class="hero-cert__title">' + c.title + '</div>' +
+        '<div class="hero-cert__org">' + c.org + '</div>';
+      cardsEl.appendChild(card);
+
+      const dot = document.createElement('button');
+      dot.className = 'hero-cert__dot' + (i === 0 ? ' is-active' : '');
+      dot.setAttribute('aria-label', 'Certificación ' + (i + 1));
+      dot.addEventListener('click', function () { goTo(i); });
+      dotsEl.appendChild(dot);
+    });
+
+    const cards = cardsEl.querySelectorAll('.hero-cert__card');
+    const dots  = dotsEl.querySelectorAll('.hero-cert__dot');
+    let current = 0;
+    let timer;
+
+    function goTo(idx) {
+      cards[current].classList.remove('is-active');
+      cards[current].classList.add('is-leaving');
+      dots[current].classList.remove('is-active');
+
+      const prev = current;
+      current = idx;
+
+      setTimeout(function () {
+        cards[prev].classList.remove('is-leaving');
+      }, 450);
+
+      cards[current].classList.add('is-active');
+      dots[current].classList.add('is-active');
+      resetTimer();
+    }
+
+    function next() { goTo((current + 1) % CERTS.length); }
+
+    function resetTimer() {
+      clearInterval(timer);
+      timer = setInterval(next, 3800);
+    }
+
+    // Botón siguiente
+    const nextBtn = document.getElementById('certNext');
+    if (nextBtn) {
+      nextBtn.addEventListener('click', function () { next(); });
+    }
+
+    // Pausar al pasar el mouse
+    const certBox = document.getElementById('heroCert');
+    if (certBox) {
+      certBox.addEventListener('mouseenter', function () { clearInterval(timer); });
+      certBox.addEventListener('mouseleave', function () { resetTimer(); });
+    }
+
+    resetTimer();
+  })();
+  </script>
 </body>
 </html>

@@ -10,45 +10,248 @@
   <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
   <link href="https://unpkg.com/aos@2.3.4/dist/aos.css" rel="stylesheet" />
   <link rel="stylesheet" href="assets/css/styles.css" />
+  <style>
+    /* ── Barra de búsqueda header ── */
+    .header__search-wrap {
+      position: relative;
+      margin: 0 var(--sp-4);
+    }
+    .header__search-input {
+      background: var(--c-bg-alt);
+      border: 1.5px solid var(--c-border);
+      border-radius: var(--r-full);
+      padding: 7px 16px 7px 38px;
+      font-size: var(--fs-sm);
+      font-family: var(--f-body);
+      color: var(--c-heading);
+      width: 220px;
+      outline: none;
+      transition: border-color .2s, width .3s, box-shadow .2s;
+    }
+    .header__search-input:focus {
+      border-color: var(--c-brand);
+      width: 280px;
+      box-shadow: 0 0 0 3px rgba(44,95,38,.1);
+    }
+    .header__search-input::placeholder { color: var(--c-muted); }
+    .header__search-icon {
+      position: absolute;
+      left: 12px; top: 50%;
+      transform: translateY(-50%);
+      color: var(--c-muted);
+      pointer-events: none;
+    }
+    .header__search-results {
+      display: none;
+      position: absolute;
+      top: calc(100% + 8px);
+      left: 0;
+      width: 320px;
+      background: #fff;
+      border: 1px solid var(--c-border);
+      border-radius: var(--r-md);
+      box-shadow: var(--sh-lg);
+      z-index: 500;
+      max-height: 360px;
+      overflow-y: auto;
+      padding: 6px 0;
+    }
+    .header__search-results.visible { display: block; }
+    .search-result-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 16px;
+      cursor: pointer;
+      transition: background .15s;
+      text-decoration: none;
+      color: var(--c-heading);
+    }
+    .search-result-item:hover { background: var(--c-bg-alt); }
+    .search-result-item__icon {
+      width: 32px; height: 32px;
+      border-radius: var(--r-sm);
+      background: var(--c-brand-tint);
+      display: grid; place-items: center;
+      flex-shrink: 0;
+      color: var(--c-brand);
+    }
+    .search-result-item__title { font-size: 13px; font-weight: 600; line-height: 1.3; }
+    .search-result-item__section { font-size: 11px; color: var(--c-muted); }
+    .search-no-results { padding: 16px; text-align: center; font-size: 13px; color: var(--c-muted); }
+
+    /* ── Botón Portal Clientes — Glassmorphism ── */
+    .btn-portal {
+      display: inline-flex;
+      justify-content: center;
+      align-items: center;
+      gap: 8px;
+      position: absolute;
+      right: var(--sp-6);
+      top: 50%;
+      transform: translateY(-50%);
+      z-index: 1101;
+
+      /* Glassmorphism */
+      background: rgba(255, 255, 255, 0.22);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border: 1px solid rgba(44, 95, 38, 0.28);
+      box-shadow: 0 4px 18px rgba(0,0,0,0.07), inset 0 1px 0 rgba(255,255,255,0.6);
+
+      /* Tipografía */
+      font-size: 13px;
+      font-family: var(--f-body);
+      font-weight: 600;
+      color: #fff;
+      text-decoration: none;
+      white-space: nowrap;
+      letter-spacing: 0.01em;
+
+      /* Forma */
+      padding: 9px 18px;
+      border-radius: var(--r-full);
+      overflow: hidden;
+      cursor: pointer;
+      isolation: isolate;
+      transition: color .35s, border-color .35s, box-shadow .35s;
+    }
+    .btn-portal::before {
+      content: '';
+      position: absolute;
+      width: 105%;
+      transition: left .7s, transform .7s;
+      left: -105%;
+      border-radius: var(--r-full);
+      background: rgba(44, 95, 38, 0.9);
+      z-index: -1;
+      aspect-ratio: 1 / 1;
+      transform: scale(0);
+    }
+    .btn-portal:hover::before { left: 0; transform: scale(1.7); }
+    .btn-portal:hover {
+      color: #fff;
+      border-color: rgba(44, 95, 38, 0.5);
+      box-shadow: 0 8px 28px rgba(44, 95, 38, 0.22), inset 0 1px 0 rgba(255,255,255,0.18);
+    }
+    .btn-portal svg {
+      width: 26px; height: 26px;
+      padding: 5px;
+      border-radius: 50%;
+      border: 1.5px solid rgba(255, 255, 255, 0.55);
+      transform: rotate(45deg);
+      transition: transform .35s ease, background .35s, border-color .35s;
+      flex-shrink: 0;
+      color: #fff;
+    }
+    .btn-portal:hover svg {
+      transform: rotate(90deg);
+      background: rgba(255,255,255,0.9);
+      border-color: transparent;
+      color: var(--c-brand);
+    }
+
+    /* ── Header ── */
+    .header { display: flex; align-items: center; justify-content: center; }
+
+    /* ── Logo dentro del pill ── */
+    .header__logo-pill {
+      display: flex; align-items: center;
+      text-decoration: none; flex-shrink: 0;
+      margin-right: var(--sp-4);
+    }
+    .header__logo-pill img { height: 36px; width: auto; transition: opacity .2s; }
+    .header__logo-pill:hover img { opacity: .82; }
+    .header__logo-pill::after {
+      content: ''; display: block;
+      width: 1px; height: 22px;
+      background: var(--c-border);
+      margin-left: var(--sp-4);
+    }
+
+    /* ── Navbar pill ── */
+
+@media (max-width: 1024px) {
+      .btn-portal { display: none; }
+      .header__search-wrap { display: none; }
+    }
+    @media (max-width: 768px) {
+}
+  </style>
 </head>
 <body>
-
-  <!-- Portal access -->
-  <a href="portal/login.html" class="portal-access">
-    <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-    Portal de clientes
-  </a>
-
   <!-- WhatsApp flotante -->
   <a href="https://wa.me/573023169861" class="whatsapp-float" target="_blank" rel="noopener" aria-label="Contactar por WhatsApp">
     <svg width="28" height="28" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.117.549 4.107 1.51 5.84L.057 23.486a.5.5 0 00.614.634l5.796-1.519A11.954 11.954 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.938a9.932 9.932 0 01-5.036-1.362l-.361-.214-3.741.981.999-3.648-.235-.374A9.938 9.938 0 012.062 12C2.062 6.534 6.534 2.062 12 2.062S21.938 6.534 21.938 12 17.466 21.938 12 21.938z"/></svg>
   </a>
 
-  <header id="header" class="header" role="banner">
+<header id="header" class="header header--page" role="banner">
+
     <div class="header__inner">
-      <a href="index.html" class="header__logo" aria-label="Indusquim inicio">
-        <img src="logo-indusquim.png" alt="Indusquim" class="header__logo-img" />
+
+      <!-- Logo dentro del pill -->
+      <a href="index.html" class="header__logo-pill" aria-label="Indusquim inicio">
+        <img src="logo-indusquim.png" alt="Indusquim" />
       </a>
+
+      <!-- Navegación -->
       <nav class="header__nav" id="mainNav" aria-label="Navegación principal">
         <ul class="nav__list">
-          <li><a href="nosotros.html"        class="nav__link">Nosotros</a></li>
-          <li><a href="sectores.html"        class="nav__link">Sectores</a></li>
-          <li><a href="productos.html"       class="nav__link">Catálogo</a></li>
-          <li><a href="certificaciones.html" class="nav__link">Certificaciones</a></li>
-          <li><a href="blog.html"            class="nav__link">Blog</a></li>
-          <li><a href="contacto.html"        class="nav__link active">Contacto</a></li>
+          <li><a href="nosotros.html" class="nav__link">Nosotros</a></li>
+
+          <li class="nav__item--drop">
+            <button class="nav__link nav__link--has-drop" aria-expanded="false" aria-haspopup="true">Sectores <span class="drop-chevron">▾</span></button>
+            <div class="nav__drop">
+              <a class="nav__drop-link" href="sector-cocina.html"><span class="nav__drop-link__icon"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 11l19-9-9 19-2-8-8-2z"/></svg></span>Industria Alimentaria</a>
+              <a class="nav__drop-link" href="sectores.html#hoteleria"><span class="nav__drop-link__icon"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></span>Hotelería y Turismo</a>
+              <a class="nav__drop-link" href="sectores.html#salud"><span class="nav__drop-link__icon"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></span>Salud e Institucional</a>
+              <a class="nav__drop-link" href="sectores.html#lavanderia"><span class="nav__drop-link__icon"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M4 6h16M4 6a2 2 0 012-2h12a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6z"/></svg></span>Lavandería Industrial</a>
+              <a class="nav__drop-link" href="sectores.html#manufactura"><span class="nav__drop-link__icon"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg></span>Manufactura e Industria</a>
+              <a class="nav__drop-link" href="sectores.html#educacion"><span class="nav__drop-link__icon"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg></span>Educación y Oficinas</a>
+            </div>
+          </li>
+
+          <li><a href="soluciones.html" class="nav__link">Soluciones</a></li>
+
+          <li class="nav__item--drop">
+            <button class="nav__link nav__link--has-drop" aria-expanded="false" aria-haspopup="true">Catálogo <span class="drop-chevron">▾</span></button>
+            <div class="nav__drop">
+              <a class="nav__drop-link" href="https://wa.me/573023169861?text=Hola%2C%20me%20interesa%20informaci%C3%B3n%20sobre%20desengrasantes%20industriales" target="_blank" rel="noopener"><span class="nav__drop-link__icon"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></span>Desengrasantes Industriales</a>
+              <a class="nav__drop-link" href="https://wa.me/573023169861?text=Hola%2C%20me%20interesa%20informaci%C3%B3n%20sobre%20desinfectantes%20de%20alto%20nivel" target="_blank" rel="noopener"><span class="nav__drop-link__icon"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></span>Desinfectantes de Alto Nivel</a>
+              <a class="nav__drop-link" href="https://wa.me/573023169861?text=Hola%2C%20me%20interesa%20informaci%C3%B3n%20sobre%20detergentes%20para%20lavander%C3%ADa%20industrial" target="_blank" rel="noopener"><span class="nav__drop-link__icon"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M4 6h16M4 6a2 2 0 012-2h12a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6z"/></svg></span>Detergentes para Lavandería</a>
+              <div class="nav__drop-sep"></div>
+              <a class="nav__drop-link" href="https://wa.me/573023169861?text=Hola%2C%20me%20interesa%20informaci%C3%B3n%20sobre%20la%20l%C3%ADnea%20institucional" target="_blank" rel="noopener"><span class="nav__drop-link__icon"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h6M9 13h6M9 17h4"/></svg></span>Limpiadores Institucionales</a>
+              <a class="nav__drop-link" href="https://wa.me/573023169861?text=Hola%2C%20me%20interesa%20informaci%C3%B3n%20sobre%20sanitizantes%20y%20bactericidas" target="_blank" rel="noopener"><span class="nav__drop-link__icon"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></span>Sanitizantes y Bactericidas</a>
+              <a class="nav__drop-link" href="https://wa.me/573023169861?text=Hola%2C%20necesito%20las%20fichas%20t%C3%A9cnicas%20%28FDS%2FSGA%29%20de%20sus%20productos" target="_blank" rel="noopener"><span class="nav__drop-link__icon"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></span>Fichas Técnicas (FDS)</a>
+            </div>
+          </li>
+
+          <li><a href="blog.html" class="nav__link">Blog</a></li>
         </ul>
       </nav>
+
+      <!-- Barra de búsqueda -->
+      <div class="header__search-wrap" id="searchWrap">
+        <svg class="header__search-icon" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+        <input type="text" class="header__search-input" id="searchInput" placeholder="Buscar…" autocomplete="off" aria-label="Buscar" />
+        <div class="header__search-results" id="searchResults" role="listbox"></div>
+      </div>
+
       <div class="header__actions">
-        <a href="contacto.html" class="btn btn--nav">Solicitar asesoría</a>
-        <a href="portal/login.html" class="header__portal-icon" aria-label="Portal de clientes">
-          <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-        </a>
         <button class="header__burger" id="burgerBtn" aria-label="Abrir menú" aria-expanded="false">
           <span></span><span></span><span></span>
         </button>
       </div>
     </div>
+
+    <!-- Portal — absoluto derecha -->
+    <a href="portal/login.html" class="btn-portal" aria-label="Portal de clientes">
+      Portal de clientes
+      <svg viewBox="0 0 16 19" xmlns="http://www.w3.org/2000/svg">
+        <path d="M7 18C7 18.5523 7.44772 19 8 19C8.55228 19 9 18.5523 9 18H7ZM8.70711 0.292893C8.31658-0.0976311 7.68342-0.0976311 7.29289 0.292893L0.928932 6.65685C0.538408 7.04738 0.538408 7.68054 0.928932 8.07107C1.31946 8.46159 1.95262 8.46159 2.34315 8.07107L8 2.41421L13.6569 8.07107C14.0474 8.46159 14.6805 8.46159 15.0711 8.07107C15.4616 7.68054 15.4616 7.04738 15.0711 6.65685L8.70711 0.292893ZM9 18L9 1H7L7 18H9Z" fill="currentColor"/>
+      </svg>
+    </a>
+
   </header>
 
   <!-- MENÚ MÓVIL -->
@@ -60,16 +263,31 @@
       </button>
     </div>
     <nav class="mobile-menu__links">
-      <a href="nosotros.html"        class="mobile-menu__link">Nosotros</a>
-      <a href="sectores.html"        class="mobile-menu__link">Sectores</a>
-      <a href="productos.html"       class="mobile-menu__link">Catálogo</a>
-      <a href="certificaciones.html" class="mobile-menu__link">Certificaciones</a>
-      <a href="blog.html"            class="mobile-menu__link">Blog</a>
-      <a href="contacto.html"        class="mobile-menu__link">Contacto</a>
+      <a href="nosotros.html" class="mobile-menu__link">Nosotros</a>
+      <button class="mobile-menu__link mobile-menu__link--drop" data-target="mobileSectores">Sectores <span class="drop-arrow">▾</span></button>
+      <div class="mobile-drop" id="mobileSectores">
+        <a href="sector-cocina.html"       class="mobile-drop-link">Industria Alimentaria</a>
+        <a href="sectores.html#hoteleria"  class="mobile-drop-link">Hotelería y Turismo</a>
+        <a href="sectores.html#salud"      class="mobile-drop-link">Salud e Institucional</a>
+        <a href="sectores.html#lavanderia" class="mobile-drop-link">Lavandería Industrial</a>
+        <a href="sectores.html#manufactura" class="mobile-drop-link">Manufactura e Industria</a>
+        <a href="sectores.html#educacion"  class="mobile-drop-link">Educación y Oficinas</a>
+      </div>
+      <a href="soluciones.html" class="mobile-menu__link">Soluciones</a>
+      <button class="mobile-menu__link mobile-menu__link--drop" data-target="mobileCatalogo">Catálogo <span class="drop-arrow">▾</span></button>
+      <div class="mobile-drop" id="mobileCatalogo">
+        <a href="https://wa.me/573023169861?text=Hola%2C%20me%20interesa%20informaci%C3%B3n%20sobre%20desengrasantes%20industriales" class="mobile-drop-link" target="_blank" rel="noopener">Desengrasantes Industriales</a>
+        <a href="https://wa.me/573023169861?text=Hola%2C%20me%20interesa%20informaci%C3%B3n%20sobre%20desinfectantes%20de%20alto%20nivel" class="mobile-drop-link" target="_blank" rel="noopener">Desinfectantes de Alto Nivel</a>
+        <a href="https://wa.me/573023169861?text=Hola%2C%20me%20interesa%20informaci%C3%B3n%20sobre%20detergentes%20para%20lavander%C3%ADa%20industrial" class="mobile-drop-link" target="_blank" rel="noopener">Detergentes para Lavandería</a>
+        <a href="https://wa.me/573023169861?text=Hola%2C%20me%20interesa%20informaci%C3%B3n%20sobre%20la%20l%C3%ADnea%20institucional" class="mobile-drop-link" target="_blank" rel="noopener">Limpiadores Institucionales</a>
+        <a href="https://wa.me/573023169861?text=Hola%2C%20me%20interesa%20informaci%C3%B3n%20sobre%20sanitizantes%20y%20bactericidas" class="mobile-drop-link" target="_blank" rel="noopener">Sanitizantes y Bactericidas</a>
+        <a href="https://wa.me/573023169861?text=Hola%2C%20necesito%20las%20fichas%20t%C3%A9cnicas%20%28FDS%2FSGA%29%20de%20sus%20productos" class="mobile-drop-link" target="_blank" rel="noopener">Fichas Técnicas (FDS)</a>
+      </div>
+      <a href="blog.html" class="mobile-menu__link">Blog</a>
     </nav>
     <div class="mobile-menu__cta">
       <a href="portal/login.html" class="btn btn--outline" style="width:100%;justify-content:center;margin-bottom:10px;">Portal de clientes</a>
-      <a href="contacto.html" class="btn btn--primary" style="width:100%;justify-content:center;">Solicitar asesoría</a>
+      <a href="nosotros.html#contacto" class="btn btn--primary" style="width:100%;justify-content:center;">Solicitar asesoría</a>
     </div>
   </div>
 
@@ -78,7 +296,7 @@
     <!-- PAGE HERO -->
     <section class="page-hero">
       <div class="page-hero__bg" aria-hidden="true">
-        <img src="https://images.unsplash.com/photo-1600880292203-757bb62b4baf?auto=format&fit=crop&w=1920&q=80" alt="" loading="eager" />
+        <img src="assets/images/hero/GettyImages-1594019553.jpg" alt="" loading="eager" />
         <div class="page-hero__overlay"></div>
       </div>
       <div class="container page-hero__content" data-aos="fade-up">
@@ -107,7 +325,7 @@
                 </div>
                 <div class="contact-info__item-text">
                   <strong>Sede principal</strong>
-                  <span>Cali, Valle del Cauca, Colombia<br><!-- REEMPLAZAR: agregar dirección exacta --></span>
+                  <span>Cali, Valle del Cauca, Colombia</span>
                 </div>
               </div>
               <div class="contact-info__item">
@@ -116,7 +334,7 @@
                 </div>
                 <div class="contact-info__item-text">
                   <strong>Teléfono</strong>
-                  <span>(+57) 300 000 0000<br><!-- REEMPLAZAR: número real --></span>
+                  <span>(+57) 2 337 2435 &nbsp;·&nbsp; 302 316 9861</span>
                 </div>
               </div>
               <div class="contact-info__item">
@@ -125,7 +343,7 @@
                 </div>
                 <div class="contact-info__item-text">
                   <strong>Correo electrónico</strong>
-                  <span>contacto@indusquim.co</span>
+                  <span>ventas@indusquim.co</span>
                 </div>
               </div>
               <div class="contact-info__item">
@@ -148,7 +366,7 @@
                 <strong>La forma más rápida: WhatsApp</strong>
                 <span>Respuesta garantizada en menos de 2 horas hábiles</span>
               </div>
-              <a href="https://wa.me/573000000000?text=Hola%2C%20quisiera%20información%20sobre%20sus%20productos%20y%20servicios" class="btn btn--whatsapp" target="_blank" rel="noopener" style="flex-shrink: 0;">
+              <a href="https://wa.me/573023169861?text=Hola%2C%20quisiera%20información%20sobre%20sus%20productos%20y%20servicios" class="btn btn--whatsapp" target="_blank" rel="noopener" style="flex-shrink: 0;">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
                 Escribir ahora
               </a>
@@ -219,13 +437,17 @@
           <h2 class="section-title">Sede en Cali, cobertura nacional</h2>
           <p class="section-subtitle">Fabricamos y distribuimos desde Cali con entregas a todo Colombia.</p>
         </div>
-        <!-- Mapa placeholder — REEMPLAZAR con iframe de Google Maps -->
-        <div style="width: 100%; height: 360px; background: var(--color-brand-pale); border-radius: var(--radius-xl); display: flex; align-items: center; justify-content: center; border: 2px dashed rgba(92,186,60,0.3);" data-aos="fade-up">
-          <div style="text-align: center; display: flex; flex-direction: column; align-items: center; gap: var(--space-3);">
-            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--color-brand)" stroke-width="1.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
-            <p style="font-size: var(--text-base); font-weight: var(--font-weight-medium); color: var(--color-brand-dark);">Cali, Valle del Cauca, Colombia</p>
-            <p style="font-size: var(--text-sm); color: var(--color-muted);"><!-- REEMPLAZAR: agregar iframe de Google Maps con la dirección real --></p>
-          </div>
+        <div style="width: 100%; height: 360px; border-radius: var(--r-lg); overflow: hidden; box-shadow: var(--sh-md);" data-aos="fade-up">
+          <iframe
+            src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d254508.32286068768!2d-76.61841!3d3.4516!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x8e30a6f0b3e3ab7f%3A0x1a2f5e7e3e3ab7f!2sCali%2C%20Valle%20del%20Cauca%2C%20Colombia!5e0!3m2!1ses!2sco!4v1700000000000"
+            width="100%"
+            height="360"
+            style="border:0; display:block;"
+            allowfullscreen=""
+            loading="lazy"
+            referrerpolicy="no-referrer-when-downgrade"
+            title="Ubicación Indusquim — Cali, Valle del Cauca"
+          ></iframe>
         </div>
       </div>
     </section>
@@ -287,5 +509,91 @@
 
   <script src="https://unpkg.com/aos@2.3.4/dist/aos.js"></script>
   <script src="assets/js/main.js"></script>
+  <script>
+  (function () {
+    const form = document.querySelector('.contact-form');
+    if (!form) return;
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      const name    = (form.querySelector('#name')?.value    || '').trim();
+      const company = (form.querySelector('#company')?.value || '').trim();
+      const phone   = (form.querySelector('#phone')?.value   || '').trim();
+      const email   = (form.querySelector('#email')?.value   || '').trim();
+      const sector  = (form.querySelector('#sector')?.value  || '').trim();
+      const message = (form.querySelector('#message')?.value || '').trim();
+
+      if (!name || !company || !phone) {
+        alert('Por favor completa los campos obligatorios: nombre, empresa y teléfono.');
+        return;
+      }
+
+      let text = `Hola, me contacto desde el sitio web de Indusquim.\n\n`;
+      text += `*Nombre:* ${name}\n`;
+      text += `*Empresa:* ${company}\n`;
+      text += `*Teléfono:* ${phone}\n`;
+      if (email)   text += `*Correo:* ${email}\n`;
+      if (sector)  text += `*Sector:* ${sector}\n`;
+      if (message) text += `\n*Mensaje:*\n${message}`;
+
+      const url = `https://wa.me/573023169861?text=${encodeURIComponent(text)}`;
+      window.open(url, '_blank', 'noopener');
+    });
+  })();
+  </script>
+  <script>
+  (function () {
+    const INDEX = [
+      { title: 'Nosotros',        section: 'Empresa',    href: 'nosotros.html',        keywords: 'empresa historia quienes somos fundacion 1993 cali' },
+      { title: 'Sectores',        section: 'Servicios',  href: 'sectores.html',        keywords: 'sectores industrias clientes hoteleria salud manufactura' },
+      { title: 'Catálogo',        section: 'Productos',  href: 'productos.html',       keywords: 'catalogo productos lineas limpieza desinfeccion' },
+      { title: 'Certificaciones', section: 'Empresa',    href: 'certificaciones.html', keywords: 'certificaciones invima bpm sga iso calidad' },
+      { title: 'Blog',            section: 'Recursos',   href: 'blog.html',            keywords: 'blog articulos recursos tecnicos noticias' },
+      { title: 'Contacto',        section: 'Contacto',   href: 'contacto.html',        keywords: 'contacto telefono email direccion cali colombia' },
+      { title: 'Portal de clientes', section: 'Acceso', href: 'portal/login.html',    keywords: 'portal clientes login acceso cuenta' },
+      { title: 'Industria Alimentaria',  section: 'Sectores', href: 'sectores.html#alimentaria',  keywords: 'alimentos plantas bpm higiene cocinas cip' },
+      { title: 'Hotelería y Turismo',    section: 'Sectores', href: 'sectores.html#hoteleria',    keywords: 'hoteles restaurantes turismo habitaciones' },
+      { title: 'Salud e Institucional',  section: 'Sectores', href: 'sectores.html#salud',        keywords: 'hospitales clinicas salud desinfeccion alto nivel' },
+      { title: 'Lavandería Industrial',  section: 'Sectores', href: 'sectores.html#lavanderia',   keywords: 'lavanderia detergente suavizante textil' },
+      { title: 'Manufactura e Industria',section: 'Sectores', href: 'sectores.html#manufactura',  keywords: 'manufactura industria pisos maquinaria' },
+      { title: 'Educación y Gobierno',   section: 'Sectores', href: 'sectores.html#educacion',    keywords: 'colegios universidades gobierno licitaciones' },
+      { title: 'Línea Cocinas y Alimentos', section: 'Catálogo', href: 'productos.html#cocinas',  keywords: 'cocinas alimentos cip desengrasante acido alcalino' },
+      { title: 'Línea Institucional',    section: 'Catálogo', href: 'productos.html#institucional', keywords: 'institucional pisos superficies desinfectante' },
+      { title: 'Línea Lavandería',       section: 'Catálogo', href: 'productos.html#lavanderia',  keywords: 'lavanderia detergente suavizante blanqueador' },
+      { title: 'Fichas Técnicas (FDS)',  section: 'Catálogo', href: 'productos.html#fds',         keywords: 'fichas tecnicas fds sga documentacion seguridad' },
+      { title: 'Solicitar asesoría gratuita', section: 'Contacto', href: 'contacto.html',         keywords: 'asesoria gratis soporte tecnico ayuda' },
+    ];
+    const ICONS = {
+      'Empresa':   '<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>',
+      'Servicios': '<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>',
+      'Productos': '<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg>',
+      'Recursos':  '<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>',
+      'Contacto':  '<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 01-2.18 2A19.79 19.79 0 013.07 4.18 2 2 0 015.07 2h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L9.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 14.92z"/></svg>',
+      'Acceso':    '<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>',
+      'Sectores':  '<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>',
+      'Catálogo':  '<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg>',
+    };
+    const input = document.getElementById('searchInput');
+    const results = document.getElementById('searchResults');
+    if (!input || !results) return;
+    function search(q) {
+      q = q.trim().toLowerCase();
+      if (q.length < 2) return [];
+      return INDEX.filter(i => i.title.toLowerCase().includes(q) || i.keywords.toLowerCase().includes(q) || i.section.toLowerCase().includes(q)).slice(0, 8);
+    }
+    function render(items, q) {
+      if (!items.length) { results.innerHTML = '<div class="search-no-results">Sin resultados para "' + q + '"</div>'; }
+      else { results.innerHTML = items.map(i => `<a class="search-result-item" href="${i.href}" role="option"><div class="search-result-item__icon">${ICONS[i.section]||''}</div><div><div class="search-result-item__title">${i.title}</div><div class="search-result-item__section">${i.section}</div></div></a>`).join(''); }
+      results.classList.add('visible');
+    }
+    input.addEventListener('input', function() { const q=this.value; if(q.trim().length<2){results.classList.remove('visible');return;} render(search(q),q); });
+    document.addEventListener('click', function(e) { if(!e.target.closest('#searchWrap')) results.classList.remove('visible'); });
+    input.addEventListener('keydown', function(e) {
+      const items=results.querySelectorAll('.search-result-item'); let focused=results.querySelector('.search-result-item:focus');
+      if(e.key==='ArrowDown'){e.preventDefault();(focused?focused.nextElementSibling||items[0]:items[0])?.focus();}
+      else if(e.key==='ArrowUp'){e.preventDefault();(focused?focused.previousElementSibling||items[items.length-1]:items[items.length-1])?.focus();}
+      else if(e.key==='Escape'){results.classList.remove('visible');input.blur();}
+    });
+  })();
+  </script>
 </body>
 </html>
