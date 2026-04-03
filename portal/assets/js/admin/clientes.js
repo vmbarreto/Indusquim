@@ -104,7 +104,7 @@ async function loadClients() {
   // Pedimos: nombre, empresa, correo, teléfono, tipo de cliente y fecha de registro
   const { data, error } = await sb
     .from('profiles')
-    .select('id, full_name, company_name, email, phone, client_type, assigned_commercial_id, created_at')
+    .select('id, full_name, company_name, email, client_type, assigned_commercial_id, created_at')
     .eq('role', 'client')
     .order('company_name', { ascending: true });
 
@@ -176,7 +176,6 @@ function renderTable(clients) {
     const contacto =
       '<span style="font-size:0.82rem; color:var(--c-muted);">'
       + (c.email || '—')
-      + (c.phone ? '<br>📱 ' + c.phone : '') // agregamos teléfono si el cliente lo tiene
       + '</span>';
 
     // Badge del tipo de cliente: colores diferentes para grande vs pequeño
