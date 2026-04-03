@@ -76,9 +76,9 @@ async function loadClients() {
     .eq('role', 'client')                        // Solo clientes (no admins, no comerciales)
     .order('company_name', { ascending: true });  // Ordenados alfabéticamente por empresa
 
-  // Si hubo un error en la consulta, mostramos un mensaje y detenemos la ejecución
+  // Si hubo un error en la consulta, mostramos el detalle para poder diagnosticarlo
   if (error) {
-    showError('Error al cargar los clientes. Intenta recargar la página.');
+    showError('Error al cargar los clientes: ' + (error.message || JSON.stringify(error)));
     return;
   }
 
