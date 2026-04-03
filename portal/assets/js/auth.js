@@ -25,6 +25,16 @@ async function requireAdmin() {
   return profile;
 }
 
+// Redirige si no es admin ni comercial
+async function requireAdminOrCommercial() {
+  const profile = await getProfile();
+  if (!profile || (profile.role !== 'admin' && profile.role !== 'commercial')) {
+    window.location.href = '../login.html';
+    return null;
+  }
+  return profile;
+}
+
 // Login con email y contraseña
 async function login(email, password) {
   const { data, error } = await sb.auth.signInWithPassword({ email, password });
