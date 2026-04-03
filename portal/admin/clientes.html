@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Clientes — Indusquim Portal</title>
+
+  <!-- Hoja de estilos del portal (colores, botones, sidebar, tablas, etc.) -->
+  <link rel="stylesheet" href="../assets/css/portal.css" />
+</head>
+<body>
+<div class="portal-wrap">
+
+  <!-- ====================================================================
+       SIDEBAR (Barra lateral de navegación)
+       Aparece en todas las páginas del panel. Los enlaces restringidos
+       (Usuarios, Catálogo) se ocultan vía JavaScript para los Comerciales.
+  ==================================================================== -->
+  <aside class="sidebar">
+
+    <!-- Logo: al hacer clic, lleva al sitio público principal -->
+    <div class="sidebar__logo">
+      <a href="../../index.html" title="Volver al sitio principal" style="display:block;">
+        <img src="../../logo-indusquim-blanco.png" alt="Indusquim" />
+      </a>
+    </div>
+
+    <!-- Menú de navegación principal -->
+    <nav class="sidebar__nav">
+
+      <!-- Dashboard -->
+      <a href="index.html" class="sidebar__link">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+          <rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/>
+        </svg>
+        Dashboard
+      </a>
+
+      <!-- Clientes: activo en esta página (clase "active" resalta este enlace) -->
+      <a href="clientes.html" class="sidebar__link active">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
+          <circle cx="9" cy="7" r="4"/>
+          <path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/>
+        </svg>
+        Clientes
+      </a>
+
+      <!-- Usuarios: solo Admin puede ver/usar. Se oculta para Comerciales vía JS -->
+      <a href="usuarios.html" class="sidebar__link">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/>
+          <circle cx="12" cy="7" r="4"/>
+        </svg>
+        Usuarios
+      </a>
+
+      <!-- Archivos y Videos: visible para todos -->
+      <a href="archivos.html" class="sidebar__link">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+          <polyline points="14 2 14 8 20 8"/>
+        </svg>
+        Archivos y Videos
+      </a>
+
+      <!-- Catálogo: solo Admin puede ver/usar. Se oculta para Comerciales vía JS -->
+      <a href="catalogo.html" class="sidebar__link">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path d="M4 6h16M4 12h16M4 18h7"/>
+        </svg>
+        Catálogo
+      </a>
+
+    </nav>
+
+    <!-- Pie del sidebar: muestra el nombre y rol del usuario logueado -->
+    <div class="sidebar__footer">
+      <div class="sidebar__user">
+        <!-- El nombre se rellena dinámicamente con JavaScript -->
+        <strong id="adminName">Cargando...</strong>
+        <!-- El rol se actualiza vía JS: "Administrador" o "Comercial" -->
+        <span id="userRole" style="font-size:0.7rem;opacity:0.7;text-transform:uppercase;letter-spacing:0.05em;">Indusquim</span>
+      </div>
+      <button class="btn-logout" id="logoutBtn">Cerrar sesión</button>
+    </div>
+
+  </aside>
+
+  <!-- Overlay oscuro que aparece detrás del sidebar en móvil -->
+  <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+  <!-- ====================================================================
+       CONTENIDO PRINCIPAL
+  ==================================================================== -->
+  <div class="main-content">
+
+    <!-- Barra superior con el título de la sección y el botón hamburguesa (móvil) -->
+    <div class="topbar">
+      <button class="hamburger" id="hamburger" aria-label="Menú">
+        <span></span><span></span><span></span>
+      </button>
+      <span class="topbar__title">Clientes</span>
+    </div>
+
+    <!-- Cuerpo de la página -->
+    <div class="page-body">
+
+      <!-- Mensajes de alerta: éxito o error (se muestran/ocultan con JS) -->
+      <div class="alert alert--success" id="successMsg"></div>
+      <div class="alert alert--error"   id="errorMsg"></div>
+
+      <!-- ================================================================
+           TARJETAS DE RESUMEN (Stats)
+      ================================================================ -->
+      <div class="stats-row" style="margin-bottom:24px;">
+
+        <!-- Total de clientes -->
+        <div class="card stat-card">
+          <div class="stat-card__num" id="statTotal">—</div>
+          <div class="stat-card__label">Total de clientes</div>
+        </div>
+
+        <!-- Clientes grandes -->
+        <div class="card stat-card">
+          <div class="stat-card__num" id="statLarge">—</div>
+          <div class="stat-card__label">Clientes grandes</div>
+        </div>
+
+        <!-- Clientes pequeños -->
+        <div class="card stat-card">
+          <div class="stat-card__num" id="statSmall">—</div>
+          <div class="stat-card__label">Clientes pequeños</div>
+        </div>
+
+      </div>
+
+      <!-- ================================================================
+           TABLA DE CLIENTES
+      ================================================================ -->
+      <div class="card">
+
+        <!-- Encabezado de la tarjeta: título + controles de búsqueda y filtro -->
+        <div class="card__title" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px;">
+          <span>Directorio de Clientes</span>
+
+          <!-- Controles: barra de búsqueda y filtro por tipo -->
+          <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
+
+            <!-- Búsqueda en tiempo real por nombre de empresa o contacto -->
+            <div class="search-bar">
+              <svg class="search-bar__icon" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
+              </svg>
+              <input type="text" id="searchInput" placeholder="Buscar empresa o nombre…" autocomplete="off" />
+            </div>
+
+            <!-- Filtro por tipo de cliente -->
+            <select id="filterSelect" class="form-select" style="width:auto; padding:8px 32px 8px 12px; font-size:0.85rem;">
+              <option value="all">Todos los tipos</option>
+              <option value="large">Grandes</option>
+              <option value="small">Pequeños</option>
+            </select>
+
+          </div>
+        </div>
+
+        <!-- Tabla de datos -->
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <!-- Columnas de la tabla -->
+                <th>Empresa</th>
+                <th>Nombre del contacto</th>
+                <th>Correo / Teléfono</th>
+                <th>Tipo</th>
+                <th>Registrado</th>
+              </tr>
+            </thead>
+            <!-- El tbody se rellena dinámicamente con JavaScript -->
+            <tbody id="clientsTable">
+              <tr>
+                <td colspan="5" style="text-align:center; color:var(--c-muted); padding:32px;">
+                  Cargando clientes…
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Paginación: los botones de página se generan con JavaScript -->
+        <div id="paginationWrap" class="pagination" style="display:flex; justify-content:center; gap:8px; margin-top:24px;"></div>
+
+      </div>
+      <!-- fin .card tabla -->
+
+    </div>
+    <!-- fin .page-body -->
+
+  </div>
+  <!-- fin .main-content -->
+
+</div>
+<!-- fin .portal-wrap -->
+
+<!-- ======================================================================
+     SCRIPTS
+     Siempre al final del body para no bloquear la carga visual
+====================================================================== -->
+
+<!-- Librería oficial de Supabase para conectarse a la base de datos -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<!-- Configuración de la conexión a Supabase (URL y clave pública) -->
+<script src="../assets/js/supabase-client.js"></script>
+
+<!-- Funciones de autenticación: requireAdminOrCommercial, logout, getProfile -->
+<script src="../assets/js/auth.js"></script>
+
+<!-- Lógica específica de esta página -->
+<script src="../assets/js/admin/clientes.js"></script>
+
+</body>
+</html>

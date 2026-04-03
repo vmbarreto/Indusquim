@@ -144,6 +144,8 @@ tr:hover td { background: var(--c-bg); }
 .search-bar input { width: 100%; padding: 10px 14px 10px 40px; border-radius: var(--r-full); border: 1.5px solid var(--c-border); background: var(--c-white); font-size: 0.9rem; transition: border-color 0.2s; }
 .search-bar input:focus { outline: none; border-color: var(--c-brand); }
 .search-bar__icon { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--c-muted); pointer-events: none; }
+.search-bar.animated-search input { width: 220px; transition: width 0.35s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.2s; }
+.search-bar.animated-search input:focus { width: 320px; }
 
 /* ─── Tabs ───────────────────────────────────────────────────── */
 .tabs { display: flex; gap: 4px; border-bottom: 2px solid var(--c-border); margin-bottom: 24px; }

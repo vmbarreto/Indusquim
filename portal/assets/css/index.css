@@ -1,0 +1,29 @@
+/* 
+  ==============================================================
+  HOJA DE ESTILO PARA LA PÁGINA PRINCIPAL (index.css)
+  Objetivo: Dar estilo únicamente a la pantalla "Redirigiendo..."
+  ==============================================================
+*/
+
+body {
+  /* Usamos Flexbox para poder centrar elementos fácil y rápido */
+  display: flex;
+  
+  /* Alineación vertical (arriba-abajo) en el centro de la pantalla */
+  align-items: center;
+  
+  /* Alineación horizontal (izquierda-derecha) en el centro */
+  justify-content: center;
+  
+  /* Hacemos que la pantalla ocupe, como mínimo, el 100% del alto visible del navegador */
+  min-height: 100vh;
+  
+  /* Usamos una tipografía estándar del sistema operativo para que cargue rápido */
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  
+  /* Color del texto (Verde muy oscuro) */
+  color: #3C4A39;
+  
+  /* Color de fondo (Beige muy suave) */
+  background: #F8F6F1;
+}

@@ -22,13 +22,17 @@
       <div class="alert alert--success" id="successMsg"></div>
 
       <!-- ── Formulario de login ── -->
+      <!-- 'id' sirve para que JavaScript pueda encontrar este formulario y decir "cuando me envíen, haz X" -->
       <form id="loginForm">
+        
+        <!-- Cada campo se envuelve en un 'form-group' para mantener separación visual (CSS) -->
         <div class="form-group">
-          <label class="form-label" for="username">Correo electrónico</label>
-          <input type="email" id="username" class="form-input" placeholder="tu@empresa.com" required autocomplete="email" />
+          <!-- 'for' debe ser igual al 'id' del input para que al hacer clic en el texto, se active el cuadro (Accesibilidad y UX) -->
+          <label class="form-label" for="username">Correo electrónico o Celular</label>
+          <input type="text" id="username" class="form-input" placeholder="tu@empresa.com o 3001234567" required autocomplete="username" />
         </div>
         <div class="form-group">
-          <label class="form-label" for="password">Contraseña</label>
+          <label class="form-label" for="password">Contraseña o PIN (Comerciales)</label>
           <div class="input-password-wrap">
             <input type="password" id="password" class="form-input" placeholder="••••••••" required autocomplete="current-password" />
             <button type="button" class="pwd-toggle" id="pwdToggle" aria-label="Mostrar contraseña">
@@ -87,141 +91,16 @@
     </div>
   </div>
 
+  <!-- 
+    ZONA DE SCRIPTS (AL FINAL DEL BODY):
+    Siempre colocamos las librerías externas hasta el final del '<body>'.
+    Esto hace que las librerías pesadas no bloqueen la carga visual de la página.
+    El usuario primero "ve" la página visualmente, y luego se le añade la "funcionalidad" por detrás.
+  -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="assets/js/supabase-client.js"></script>
-  <script>
-    const SITE_URL = 'https://indusquim.vmbarreto-pro.workers.dev';
-
-    function showForm(formId) {
-      ['loginForm','forgotForm','resetForm'].forEach(id => {
-        document.getElementById(id).style.display = id === formId ? 'block' : 'none';
-      });
-    }
-
-    function showError(msg) {
-      const el = document.getElementById('errorMsg');
-      el.textContent = msg; el.classList.add('show');
-      document.getElementById('successMsg').classList.remove('show');
-    }
-
-    function showSuccess(msg) {
-      const el = document.getElementById('successMsg');
-      el.textContent = msg; el.classList.add('show');
-      document.getElementById('errorMsg').classList.remove('show');
-    }
-
-    // ── Detectar token de recuperación en la URL ──────────────────
-    sb.auth.onAuthStateChange((event) => {
-      if (event === 'PASSWORD_RECOVERY') {
-        document.getElementById('loginSub').textContent = 'Elige tu nueva contraseña';
-        showForm('resetForm');
-      }
-    });
-
-    // Si ya está autenticado (y NO es recovery), redirigir al router
-    sb.auth.getSession().then(({ data: { session } }) => {
-      const hash = window.location.hash;
-      if (session && !hash.includes('type=recovery')) {
-        window.location.href = 'index.html';
-      }
-    });
-
-    // ── Toggle mostrar/ocultar contraseña ─────────────────────────
-    function setupToggle(btnId, inputId, iconId) {
-      document.getElementById(btnId).addEventListener('click', () => {
-        const input = document.getElementById(inputId);
-        const icon  = document.getElementById(iconId);
-        const show  = input.type === 'password';
-        input.type  = show ? 'text' : 'password';
-        icon.innerHTML = show
-          ? '<path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/>'
-          : '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
-        document.getElementById(btnId).classList.toggle('active', show);
-      });
-    }
-    setupToggle('pwdToggle',  'password',    'eyeIcon');
-    setupToggle('pwdToggle2', 'newPassword', 'eyeIcon2');
-
-    // ── Login ─────────────────────────────────────────────────────
-    document.getElementById('loginForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const btn = document.getElementById('submitBtn');
-      btn.textContent = 'Ingresando...'; btn.disabled = true;
-      document.getElementById('errorMsg').classList.remove('show');
-
-      const email    = document.getElementById('username').value.trim();
-      const password = document.getElementById('password').value;
-
-      try {
-        const { error } = await sb.auth.signInWithPassword({ email, password });
-        if (error) throw error;
-        window.location.href = 'index.html';
-      } catch (err) {
-        if (err.message?.includes('Email not confirmed')) {
-          showError('Debes confirmar tu correo antes de ingresar. Revisa tu bandeja de entrada.');
-        } else if (err.message?.includes('Usuario no encontrado')) {
-          showError('Usuario no encontrado. Verifica tu nombre de usuario.');
-        } else {
-          showError('Credenciales incorrectas. Verifica tu usuario y contraseña.');
-        }
-        btn.textContent = 'Ingresar al portal'; btn.disabled = false;
-      }
-    });
-
-    // ── Ir a recuperación ─────────────────────────────────────────
-    document.getElementById('forgotLink').addEventListener('click', (e) => {
-      e.preventDefault();
-      document.getElementById('loginSub').textContent = 'Te enviaremos un enlace a tu correo';
-      document.getElementById('errorMsg').classList.remove('show');
-      showForm('forgotForm');
-    });
-
-    document.getElementById('backToLogin').addEventListener('click', (e) => {
-      e.preventDefault();
-      document.getElementById('loginSub').textContent = 'Ingresa tus credenciales para continuar';
-      document.getElementById('errorMsg').classList.remove('show');
-      showForm('loginForm');
-    });
-
-    // ── Enviar correo de recuperación ─────────────────────────────
-    document.getElementById('forgotForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const btn   = document.getElementById('recoverBtn');
-      const email = document.getElementById('recoverEmail').value.trim();
-      btn.textContent = 'Enviando...'; btn.disabled = true;
-
-      const { error } = await sb.auth.resetPasswordForEmail(email, {
-        redirectTo: SITE_URL + '/portal/login.html'
-      });
-
-      if (error) {
-        showError('No se pudo enviar el correo. Verifica la dirección e intenta de nuevo.');
-      } else {
-        showSuccess('Correo enviado. Revisa tu bandeja de entrada y sigue el enlace.');
-      }
-      btn.textContent = 'Enviar enlace de recuperación'; btn.disabled = false;
-    });
-
-    // ── Guardar nueva contraseña ──────────────────────────────────
-    document.getElementById('resetForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const btn      = document.getElementById('resetBtn');
-      const newPwd   = document.getElementById('newPassword').value;
-      const confirm  = document.getElementById('confirmPassword').value;
-
-      if (newPwd !== confirm) { showError('Las contraseñas no coinciden.'); return; }
-
-      btn.textContent = 'Guardando...'; btn.disabled = true;
-
-      const { error } = await sb.auth.updateUser({ password: newPwd });
-      if (error) {
-        showError('Error al actualizar la contraseña: ' + error.message);
-        btn.textContent = 'Guardar nueva contraseña'; btn.disabled = false;
-      } else {
-        showSuccess('¡Contraseña actualizada! Redirigiendo...');
-        setTimeout(() => { window.location.href = 'index.html'; }, 1500);
-      }
-    });
-  </script>
+  
+  <!-- Aquí cargamos nuestro script modular limpio (Separación de Funciones) -->
+  <script src="assets/js/login.js"></script>
 </body>
 </html>
