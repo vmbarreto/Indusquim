@@ -18,6 +18,8 @@ let allDocs = [];
   const profile = await requireAdminOrCommercial();
   if (!profile) return;
 
+  await initNotifications(profile.id);
+
   const isCommercial = profile.role === 'commercial';
 
   // Nombre en sidebar

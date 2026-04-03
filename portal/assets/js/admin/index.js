@@ -14,6 +14,8 @@
   const profile = await requireAdminOrCommercial();
   if (!profile) return;
 
+  await initNotifications(profile.id);
+
   const isCommercial = profile.role === 'commercial';
 
   // ── Personalizar la interfaz según el rol ──────────────────────────────

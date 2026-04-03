@@ -7,9 +7,44 @@
   <link rel="stylesheet" href="../assets/css/portal.css" />
   <style>
     .product-img { width: 100%; aspect-ratio: 16/9; object-fit: cover; background: var(--c-bg-alt); display: block; }
-    /* Estética premium para clientes */
-    .catalog-item { transition: transform 0.2s, box-shadow 0.2s; cursor: pointer; }
-    .catalog-item:hover { transform: translateY(-4px); box-shadow: var(--sh-md); }
+    .catalog-item { transition: transform 0.2s, box-shadow 0.2s; }
+    .catalog-item:hover { transform: translateY(-3px); box-shadow: var(--sh-md); }
+
+    /* Carrito flotante */
+    .cart-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 200; display: none; }
+    .cart-overlay.open { display: block; }
+    .cart-panel {
+      position: fixed; top: 0; right: -400px; width: 370px; max-width: 100vw;
+      height: 100vh; background: var(--c-bg); z-index: 201;
+      display: flex; flex-direction: column;
+      transition: right 0.3s ease; box-shadow: -4px 0 28px rgba(0,0,0,0.18);
+    }
+    .cart-panel.open { right: 0; }
+    .cart-panel__header {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 20px 24px; border-bottom: 1px solid var(--c-border);
+      font-weight: 700; font-size: 1rem;
+    }
+    .cart-panel__header button { background: none; border: none; cursor: pointer; font-size: 1.2rem; color: var(--c-muted); }
+    .cart-panel__body { flex: 1; overflow-y: auto; padding: 8px 24px; }
+    .cart-panel__empty { text-align: center; color: var(--c-muted); padding: 40px 0; font-size: 0.9rem; }
+    .cart-panel__footer { padding: 16px 24px; border-top: 1px solid var(--c-border); display: flex; gap: 12px; }
+    .cart-item { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--c-border); }
+    .cart-item__name { flex: 1; font-size: 0.85rem; line-height: 1.3; }
+    .cart-item__qty { display: flex; align-items: center; gap: 6px; }
+    .cart-item__qty button {
+      width: 26px; height: 26px; border-radius: 50%;
+      border: 1px solid var(--c-border); background: var(--c-bg-alt);
+      cursor: pointer; font-size: 1rem; line-height: 1;
+    }
+    .cart-item__qty span { min-width: 20px; text-align: center; font-weight: 600; font-size: 0.9rem; }
+    .cart-item__remove { background: none; border: none; cursor: pointer; color: var(--c-muted); font-size: 1rem; padding: 4px; }
+    .cart-badge {
+      position: absolute; top: -6px; right: -6px;
+      background: #ef4444; color: #fff; border-radius: 50%;
+      width: 18px; height: 18px; font-size: 0.65rem;
+      display: flex; align-items: center; justify-content: center; font-weight: 700;
+    }
   </style>
 </head>
 <body>
@@ -19,14 +54,17 @@
   <aside class="sidebar">
     <div class="sidebar__logo"><a href="../../index.html" title="Volver al sitio principal" style="display:block;"><img src="../../logo-indusquim-blanco.png" alt="Indusquim" /></a></div>
     <nav class="sidebar__nav">
-      <!-- Cambiaremos el href principal con JS según tipo de cliente para que funcione el botón 'Mi Portal' -->
       <a href="#" class="sidebar__link" id="homeLink">
         <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
         Mi portal
       </a>
       <a href="catalogo.html" class="sidebar__link active">
         <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h7"/></svg>
-        Catálogo Interactivo
+        Catálogo
+      </a>
+      <a href="pedidos.html" class="sidebar__link" id="pedidosLink">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/></svg>
+        Mis pedidos
       </a>
     </nav>
     <div class="sidebar__footer">
@@ -43,29 +81,31 @@
   <div class="main-content">
     <div class="topbar">
       <button class="hamburger" id="hamburger" aria-label="Menú"><span></span><span></span><span></span></button>
-      <span class="topbar__title">Catálogo Virtual de Productos</span>
-      <!-- Búsqueda en el tope (desktop) -->
-      <div class="search-bar" style="width:280px;">
-        <svg class="search-bar__icon" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-        <input type="text" id="searchInput" placeholder="Buscar por producto..." style="font-size:0.875rem;" />
+      <span class="topbar__title">Catálogo de Productos</span>
+      <div style="display:flex;gap:10px;align-items:center;">
+        <div class="search-bar" style="width:240px;">
+          <svg class="search-bar__icon" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          <input type="text" id="searchInput" placeholder="Buscar producto..." style="font-size:0.875rem;" />
+        </div>
+        <!-- Botón carrito: solo visible para clientes -->
+        <button class="btn btn--ghost btn--sm" id="cartBtn" style="position:relative;padding:8px 12px;display:none;" title="Mi pedido">
+          <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 2 3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
+          <span class="cart-badge" id="cartBadge" style="display:none;">0</span>
+        </button>
       </div>
     </div>
-    
-    <div class="page-body">
-      <!-- Búsqueda móvil -->
-      <div class="search-bar search-bar--top">
-        <svg class="search-bar__icon" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-        <input type="text" id="searchInputMobile" placeholder="Buscar por producto..." />
-      </div>
 
-      <div style="margin-bottom:28px; display:flex; justify-content:space-between; align-items:flex-end;">
+    <div class="page-body">
+      <div class="alert alert--success" id="successMsg"></div>
+      <div class="alert alert--error"   id="errorMsg"></div>
+
+      <div style="margin-bottom:24px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
         <div>
-          <h2 style="font-family:var(--f-display);font-size:1.5rem;font-weight:800;color:var(--c-heading);">Nuestros Productos</h2>
-          <p style="color:var(--c-muted);font-size:0.9rem;margin-top:4px;">Explora el catálogo completo y descubre las descripciones de nuestras referencias.</p>
+          <h2 style="font-family:var(--f-display);font-size:1.4rem;font-weight:800;color:var(--c-heading);">Nuestros Productos</h2>
+          <p style="color:var(--c-muted);font-size:0.85rem;margin-top:4px;">Explora el catálogo. Agrega productos a tu pedido y envíalo a tu comercial.</p>
         </div>
-        
-        <select id="categoryFilter" class="form-select" style="width: auto; padding: 8px 32px 8px 12px; font-size: 0.85rem;">
-          <option value="all">Todas las Categorías</option>
+        <select id="categoryFilter" class="form-select" style="width:auto;padding:8px 32px 8px 12px;font-size:0.85rem;">
+          <option value="all">Todas las categorías</option>
           <option value="Limpieza">Limpieza</option>
           <option value="Desinfección">Desinfección</option>
           <option value="Industrial">Industrial</option>
@@ -73,33 +113,48 @@
         </select>
       </div>
 
-      <!-- Cuadrícula de catálogo (reutilizando grid layout) -->
       <div class="video-grid" id="catalogGrid">
         <div style="color:var(--c-muted);font-size:0.875rem;">Cargando catálogo…</div>
       </div>
-
     </div>
   </div>
 </div>
 
-<!-- Modal para ver detalle de producto -->
+<!-- Modal detalle de producto -->
 <div class="modal-backdrop" id="productModal">
-  <div class="modal" style="padding:0; overflow:hidden;">
-    <img id="modalImg" src="" alt="" style="width:100%; aspect-ratio:16/9; object-fit:cover; display:block; background:#eee;" />
-    <div style="padding: 24px;">
-      <div class="modal__header" style="margin-bottom:12px;">
+  <div class="modal" style="padding:0;overflow:hidden;max-width:540px;">
+    <img id="modalImg" src="" alt="" style="width:100%;aspect-ratio:16/9;object-fit:cover;display:block;background:#eee;" />
+    <div style="padding:24px;">
+      <div class="modal__header" style="margin-bottom:8px;">
         <div>
           <h3 class="modal__title" id="modalTitle">Producto</h3>
           <span class="badge badge--large" id="modalCategory" style="margin-top:6px;">Categoría</span>
         </div>
         <button class="modal__close" id="closeModal">✕</button>
       </div>
-      <p style="font-size:0.9rem; color:var(--c-body); line-height:1.6;" id="modalDesc"></p>
-      
-      <div class="modal__footer">
-        <a href="../../contacto.html" class="btn btn--primary">Solicitar Información</a>
+      <p id="modalShortDesc" style="font-size:0.82rem;color:var(--c-brand);font-weight:600;margin:8px 0 4px;"></p>
+      <p style="font-size:0.875rem;color:var(--c-body);line-height:1.6;" id="modalDesc"></p>
+      <div class="modal__footer" style="flex-wrap:wrap;gap:10px;margin-top:20px;">
+        <button id="modalSheetBtn" class="btn btn--ghost" style="display:none;">📄 Descargar ficha técnica</button>
+        <button id="modalAddCart" class="btn btn--primary" style="display:none;">+ Agregar al pedido</button>
       </div>
     </div>
+  </div>
+</div>
+
+<!-- Panel del carrito -->
+<div class="cart-overlay" id="cartOverlay"></div>
+<div class="cart-panel" id="cartPanel">
+  <div class="cart-panel__header">
+    <span>🛒 Mi pedido</span>
+    <button id="closeCart">✕</button>
+  </div>
+  <div class="cart-panel__body" id="cartItems">
+    <div class="cart-panel__empty">Tu pedido está vacío.<br>Agrega productos del catálogo.</div>
+  </div>
+  <div class="cart-panel__footer">
+    <button class="btn btn--ghost" style="flex:1;" id="clearCart">Limpiar</button>
+    <button class="btn btn--primary" style="flex:1;" id="sendOrderBtn">Enviar pedido</button>
   </div>
 </div>
 

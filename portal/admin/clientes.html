@@ -47,6 +47,10 @@
         Clientes
       </a>
 
+      <a href="pedidos.html" class="sidebar__link">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/></svg>
+        Pedidos
+      </a>
       <!-- Usuarios: solo Admin puede ver/usar. Se oculta para Comerciales vía JS -->
       <a href="usuarios.html" class="sidebar__link">
         <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -102,6 +106,16 @@
         <span></span><span></span><span></span>
       </button>
       <span class="topbar__title">Clientes</span>
+      <div class="notif-wrap" id="notifWrap" style="position:relative;margin-left:auto;">
+        <button class="btn btn--ghost btn--sm" id="notifBtn" style="position:relative;padding:8px 12px;" title="Notificaciones">
+          <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
+          <span class="notif-badge" id="notifBadge" style="display:none;">0</span>
+        </button>
+        <div class="notif-panel" id="notifPanel">
+          <div class="notif-panel__header"><span>Notificaciones</span><button id="markAllRead">Marcar todas leídas</button></div>
+          <div id="notifList"></div>
+        </div>
+      </div>
     </div>
 
     <!-- Cuerpo de la página -->
@@ -171,11 +185,11 @@
           <table>
             <thead>
               <tr>
-                <!-- Columnas de la tabla -->
                 <th>Empresa</th>
                 <th>Nombre del contacto</th>
                 <th>Correo / Teléfono</th>
                 <th>Tipo</th>
+                <th>Comercial</th>
                 <th>Registrado</th>
               </tr>
             </thead>
@@ -205,6 +219,31 @@
 </div>
 <!-- fin .portal-wrap -->
 
+<!-- Modal reasignar comercial -->
+<div class="modal-backdrop" id="reassignBackdrop">
+  <div class="modal">
+    <div class="modal__header">
+      <span class="modal__title">Reasignar comercial</span>
+      <span class="modal__close" id="closeReassign">✕</span>
+    </div>
+    <div style="padding:0 0 8px;">
+      <p style="font-size:0.85rem;color:var(--c-muted);margin-bottom:16px;">
+        Cliente: <strong id="reassignClientName">—</strong>
+      </p>
+      <div class="form-group">
+        <label class="form-label">Comercial asignado</label>
+        <select class="form-select" id="reassignSelect">
+          <option value="">Sin asignar</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal__footer">
+      <button type="button" class="btn btn--ghost" id="cancelReassign">Cancelar</button>
+      <button type="button" class="btn btn--primary" id="confirmReassign">Guardar</button>
+    </div>
+  </div>
+</div>
+
 <!-- ======================================================================
      SCRIPTS
      Siempre al final del body para no bloquear la carga visual
@@ -220,6 +259,7 @@
 <script src="../assets/js/auth.js"></script>
 
 <!-- Lógica específica de esta página -->
+<script src="../assets/js/notifications.js"></script>
 <script src="../assets/js/admin/clientes.js"></script>
 
 </body>

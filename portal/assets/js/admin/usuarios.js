@@ -6,7 +6,8 @@
  * =========================================================================
  */
 
-let allUsers = []; // Aquí guardaremos todos los usuarios para poder filtrarlos
+let allUsers       = [];
+let allCommercials = [];
 
 // -------------------------------------------------------------------------
 // 1. CARGAR INFORMACIÓN INICIAL Y VERIFICAR PERMISOS
@@ -21,26 +22,56 @@ let allUsers = []; // Aquí guardaremos todos los usuarios para poder filtrarlos
     return;
   }
 
+  await initNotifications(profile.id);
+
   document.getElementById('adminName').textContent = profile.full_name || 'Admin';
 
   // Actualizar badge de rol en el sidebar footer
   const roleEl = document.getElementById('userRole');
   if (roleEl) roleEl.textContent = 'Administrador';
 
-  await loadUsers(); // Cargar la tabla de usuarios al inicio
+  await loadCommercials();
+  await loadUsers();
 
   document.getElementById('logoutBtn').onclick = () => logout();
 })();
 
 // -------------------------------------------------------------------------
-// 2. OBTENER Y PINTAR USUARIOS (CLIENTES + COMERCIALES)
+// 2. CARGAR LISTA DE COMERCIALES (para el selector del formulario y la tabla)
+// -------------------------------------------------------------------------
+async function loadCommercials() {
+  const { data } = await sb.from('profiles')
+    .select('id, full_name')
+    .eq('role', 'commercial')
+    .order('full_name', { ascending: true });
+
+  allCommercials = data || [];
+
+  const select = document.getElementById('f_commercial');
+  allCommercials.forEach(c => {
+    const opt = document.createElement('option');
+    opt.value = c.id;
+    opt.textContent = c.full_name || 'Sin nombre';
+    select.appendChild(opt);
+  });
+}
+
+// Devuelve el nombre de un comercial por su ID (para la tabla)
+function getCommercialName(id) {
+  if (!id) return '—';
+  const c = allCommercials.find(c => c.id === id);
+  return c ? (c.full_name || '—') : '—';
+}
+
+// -------------------------------------------------------------------------
+// 3. OBTENER Y PINTAR USUARIOS (CLIENTES + COMERCIALES)
 // -------------------------------------------------------------------------
 async function loadUsers() {
   // Traemos clientes Y comerciales (los admins no aparecen en esta lista)
   const { data } = await sb.from('profiles')
-    .select('id, full_name, company_name, email, phone, role, client_type, created_at')
-    .in('role', ['client', 'commercial'])  // Ambos tipos de usuario
-    .order('role', { ascending: true })    // Primero comerciales, luego clientes
+    .select('id, full_name, company_name, email, phone, role, client_type, assigned_commercial_id, created_at')
+    .in('role', ['client', 'commercial'])
+    .order('role', { ascending: true })
     .order('created_at', { ascending: false });
 
   allUsers = data || [];
@@ -74,8 +105,13 @@ function renderTable(users) {
       : '')
       + '<button class="btn btn--danger btn--sm" style="margin-left:6px;" onclick="deleteUser(\'' + u.id + '\')">Eliminar</button>';
 
+    const empresaCell = isCommercial
+      ? '—'
+      : '<strong>' + (u.company_name || '—') + '</strong>'
+        + '<br><span style="font-size:0.75rem;color:var(--c-muted);">👤 ' + getCommercialName(u.assigned_commercial_id) + '</span>';
+
     return '<tr data-id="' + u.id + '">'
-      + '<td><strong>' + (isCommercial ? '—' : (u.company_name || '—')) + '</strong></td>'
+      + '<td>' + empresaCell + '</td>'
       + '<td>' + (u.full_name || '—') + '</td>'
       + '<td>' + contacto + '</td>'
       + '<td>' + rolBadge + '</td>'
@@ -118,10 +154,11 @@ document.getElementById('cancelModal').onclick = () => backdrop.classList.remove
 document.getElementById('f_role').addEventListener('change', (e) => {
   const isCommercial = e.target.value === 'commercial';
 
-  document.getElementById('group_company').style.display  = isCommercial ? 'none'  : 'block';
-  document.getElementById('group_phone').style.display    = isCommercial ? 'block' : 'none';
-  document.getElementById('group_password').style.display = isCommercial ? 'none'  : 'block';
-  document.getElementById('group_type').style.display     = isCommercial ? 'none'  : 'block';
+  document.getElementById('group_company').style.display    = isCommercial ? 'none'  : 'block';
+  document.getElementById('group_phone').style.display      = isCommercial ? 'block' : 'none';
+  document.getElementById('group_password').style.display   = isCommercial ? 'none'  : 'block';
+  document.getElementById('group_type').style.display       = isCommercial ? 'none'  : 'block';
+  document.getElementById('group_commercial').style.display = isCommercial ? 'none'  : 'block';
 
   // Actualizamos los 'required' para que HTML no bloquee el envío innecesariamente
   document.getElementById('f_company').required  = !isCommercial;
@@ -137,13 +174,14 @@ document.getElementById('createForm').addEventListener('submit', async (e) => {
   btn.textContent = 'Creando…';
   btn.disabled = true;
 
-  const role    = document.getElementById('f_role').value;
-  const name    = document.getElementById('f_name').value.trim();
-  const company = document.getElementById('f_company').value.trim();
-  const email   = document.getElementById('f_email').value.trim();
-  let password  = document.getElementById('f_password').value;
-  const type    = document.getElementById('f_type').value;
-  let phone     = document.getElementById('f_phone').value.trim();
+  const role         = document.getElementById('f_role').value;
+  const name         = document.getElementById('f_name').value.trim();
+  const company      = document.getElementById('f_company').value.trim();
+  const email        = document.getElementById('f_email').value.trim();
+  let password       = document.getElementById('f_password').value;
+  const type         = document.getElementById('f_type').value;
+  let phone          = document.getElementById('f_phone').value.trim();
+  const commercialId = document.getElementById('f_commercial').value || null;
 
   let generatedPin = null;
 
@@ -188,6 +226,13 @@ document.getElementById('createForm').addEventListener('submit', async (e) => {
     const result = await res.json();
     if (!res.ok) throw new Error(result.error || 'Error desconocido');
 
+    // Si es cliente y tiene comercial asignado, actualizar el perfil
+    if (role === 'client' && commercialId && result.user?.id) {
+      await sb.from('profiles')
+        .update({ assigned_commercial_id: commercialId })
+        .eq('id', result.user.id);
+    }
+
     // Éxito: si es comercial, mostramos el PIN al admin para que se lo comparta
     if (role === 'commercial') {
       alert(
@@ -205,10 +250,11 @@ document.getElementById('createForm').addEventListener('submit', async (e) => {
     document.getElementById('createForm').reset();
 
     // Reset visual del formulario al estado de "Cliente"
-    document.getElementById('group_company').style.display  = 'block';
-    document.getElementById('group_phone').style.display    = 'none';
-    document.getElementById('group_password').style.display = 'block';
-    document.getElementById('group_type').style.display     = 'block';
+    document.getElementById('group_company').style.display    = 'block';
+    document.getElementById('group_phone').style.display      = 'none';
+    document.getElementById('group_password').style.display   = 'block';
+    document.getElementById('group_type').style.display       = 'block';
+    document.getElementById('group_commercial').style.display = 'block';
 
     await loadUsers(); // Refrescar la tabla
 

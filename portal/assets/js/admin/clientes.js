@@ -11,9 +11,10 @@
  * =========================================================================
  */
 
-// Variable global donde guardaremos todos los clientes cargados desde la BD
-// Se guarda en memoria para poder filtrar sin hacer nuevas peticiones al servidor
-let allClients = [];
+let allClients     = [];
+let allCommercials = [];
+let reassignTarget = null;
+let isAdmin        = false;
 
 // =========================================================================
 // 1. INICIALIZACIÓN: verificar sesión y cargar datos
@@ -27,7 +28,10 @@ let allClients = [];
   const profile = await requireAdminOrCommercial();
   if (!profile) return; // Si no hay perfil válido, detenemos la ejecución
 
-  const isCommercial = profile.role === 'commercial'; // true si es Comercial, false si es Admin
+  await initNotifications(profile.id);
+
+  const isCommercial = profile.role === 'commercial';
+  isAdmin = profile.role === 'admin';
 
   // ── Personalizar el sidebar según el rol ──────────────────────────────
 
@@ -57,13 +61,41 @@ let allClients = [];
   // 'logout()' es una función global definida en auth.js
   document.getElementById('logoutBtn').onclick = () => logout();
 
-  // ── Cargar los clientes desde la base de datos ────────────────────────
+  // ── Cargar comerciales y clientes ────────────────────────────────────
+  await loadCommercials();
   await loadClients();
 
 })();
 
 // =========================================================================
-// 2. CARGAR CLIENTES DESDE SUPABASE
+// 2. CARGAR COMERCIALES (para lookup de nombres y modal de reasignación)
+// =========================================================================
+async function loadCommercials() {
+  const { data } = await sb.from('profiles')
+    .select('id, full_name')
+    .eq('role', 'commercial')
+    .order('full_name', { ascending: true });
+
+  allCommercials = data || [];
+
+  // Poblar el select del modal de reasignación
+  const sel = document.getElementById('reassignSelect');
+  allCommercials.forEach(c => {
+    const opt = document.createElement('option');
+    opt.value = c.id;
+    opt.textContent = c.full_name || 'Sin nombre';
+    sel.appendChild(opt);
+  });
+}
+
+function getCommercialName(id) {
+  if (!id) return '<span style="color:var(--c-muted);font-size:0.8rem;">Sin asignar</span>';
+  const c = allCommercials.find(c => c.id === id);
+  return c ? (c.full_name || '—') : '—';
+}
+
+// =========================================================================
+// 3. CARGAR CLIENTES DESDE SUPABASE
 //    Hacemos una consulta a la tabla 'profiles' filtrando por role = 'client'
 // =========================================================================
 async function loadClients() {
@@ -72,9 +104,9 @@ async function loadClients() {
   // Pedimos: nombre, empresa, correo, teléfono, tipo de cliente y fecha de registro
   const { data, error } = await sb
     .from('profiles')
-    .select('id, full_name, company_name, email, phone, client_type, created_at')
-    .eq('role', 'client')                        // Solo clientes (no admins, no comerciales)
-    .order('company_name', { ascending: true });  // Ordenados alfabéticamente por empresa
+    .select('id, full_name, company_name, email, phone, client_type, assigned_commercial_id, created_at')
+    .eq('role', 'client')
+    .order('company_name', { ascending: true });
 
   // Si hubo un error en la consulta, mostramos el detalle para poder diagnosticarlo
   if (error) {
@@ -156,12 +188,18 @@ function renderTable(clients) {
     // Fecha de registro formateada al estilo colombiano (DD/MM/AAAA)
     const fecha = new Date(c.created_at).toLocaleDateString('es-CO');
 
-    // Devolvemos la fila HTML completa para este cliente
+    // Celda de comercial: nombre + botón reasignar (solo para admin)
+    const comercialCell = getCommercialName(c.assigned_commercial_id)
+      + (isAdmin
+        ? ' <button class="btn btn--ghost btn--sm" style="margin-left:6px;font-size:0.72rem;" onclick="openReassign(\'' + c.id + '\',\'' + (c.company_name || '').replace(/'/g, "\\'") + '\',\'' + (c.assigned_commercial_id || '') + '\')">Cambiar</button>'
+        : '');
+
     return '<tr>'
       + '<td><strong>' + (c.company_name || '—') + '</strong></td>'
       + '<td>' + (c.full_name || '—') + '</td>'
       + '<td>' + contacto + '</td>'
       + '<td>' + tipoBadge + '</td>'
+      + '<td style="font-size:0.82rem;">' + comercialCell + '</td>'
       + '<td style="font-size:0.8rem;">' + fecha + '</td>'
       + '</tr>';
 
@@ -244,8 +282,14 @@ document.getElementById('filterSelect')?.addEventListener('change', applyFilters
 // =========================================================================
 // 7. ALERTAS (mensajes de éxito o error en pantalla)
 // =========================================================================
+function showSuccess(msg) {
+  const el = document.getElementById('successMsg');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 4000);
+}
+
 function showError(msg) {
-  // Mostramos el mensaje de error durante 6 segundos y luego lo ocultamos
   const el = document.getElementById('errorMsg');
   el.textContent = msg;
   el.classList.add('show');
@@ -253,7 +297,46 @@ function showError(msg) {
 }
 
 // =========================================================================
-// 8. MENÚ RESPONSIVE (hamburguesa para móvil y tablet)
+// 8. MODAL DE REASIGNACIÓN DE COMERCIAL
+// =========================================================================
+const reassignBackdrop = document.getElementById('reassignBackdrop');
+
+window.openReassign = function(clientId, clientName, currentCommercialId) {
+  reassignTarget = clientId;
+  document.getElementById('reassignClientName').textContent = clientName || '—';
+  document.getElementById('reassignSelect').value = currentCommercialId || '';
+  reassignBackdrop.classList.add('open');
+};
+
+document.getElementById('closeReassign').onclick  = () => reassignBackdrop.classList.remove('open');
+document.getElementById('cancelReassign').onclick = () => reassignBackdrop.classList.remove('open');
+
+document.getElementById('confirmReassign').onclick = async () => {
+  if (!reassignTarget) return;
+  const btn = document.getElementById('confirmReassign');
+  btn.textContent = 'Guardando…';
+  btn.disabled = true;
+
+  const newCommercialId = document.getElementById('reassignSelect').value || null;
+
+  const { error } = await sb.from('profiles')
+    .update({ assigned_commercial_id: newCommercialId })
+    .eq('id', reassignTarget);
+
+  if (error) {
+    showError('Error al reasignar: ' + error.message);
+  } else {
+    reassignBackdrop.classList.remove('open');
+    showSuccess('Comercial reasignado correctamente.');
+    await loadClients();
+  }
+
+  btn.textContent = 'Guardar';
+  btn.disabled = false;
+};
+
+// =========================================================================
+// 9. MENÚ RESPONSIVE (hamburguesa para móvil y tablet)
 // =========================================================================
 const hbg     = document.getElementById('hamburger');
 const sidebar = document.querySelector('.sidebar');

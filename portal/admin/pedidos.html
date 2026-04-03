@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pedidos — Indusquim Portal</title>
+  <link rel="stylesheet" href="../assets/css/portal.css" />
+  <style>
+    .order-card { background: var(--c-bg); border: 1px solid var(--c-border); border-radius: 12px; margin-bottom: 14px; overflow: hidden; }
+    .order-card__header { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; cursor: pointer; gap: 12px; flex-wrap: wrap; }
+    .order-card__header:hover { background: var(--c-bg-alt); }
+    .order-card__body { padding: 0 20px 16px; display: none; border-top: 1px solid var(--c-border); }
+    .order-card__body.open { display: block; }
+    .order-item-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--c-border); font-size: 0.875rem; }
+    .order-item-row:last-child { border-bottom: none; }
+    .status-badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; white-space: nowrap; }
+    .status-pending    { background: rgba(245,158,11,0.12); color: #d97706; }
+    .status-approved   { background: rgba(59,130,246,0.12); color: #3b82f6; }
+    .status-processing { background: rgba(139,92,246,0.12); color: #7c3aed; }
+    .status-dispatched { background: rgba(16,185,129,0.12); color: #059669; }
+    .status-completed  { background: rgba(107,114,128,0.12); color: #6b7280; }
+  </style>
+</head>
+<body>
+<div class="portal-wrap">
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar__logo"><a href="../../index.html" style="display:block;"><img src="../../logo-indusquim-blanco.png" alt="Indusquim" /></a></div>
+    <nav class="sidebar__nav">
+      <a href="index.html" class="sidebar__link">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+        Dashboard
+      </a>
+      <a href="clientes.html" class="sidebar__link">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+        Clientes
+      </a>
+      <a href="pedidos.html" class="sidebar__link active">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/></svg>
+        Pedidos
+      </a>
+      <a href="usuarios.html" class="sidebar__link" id="linkUsuarios">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+        Usuarios
+      </a>
+      <a href="archivos.html" class="sidebar__link">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        Archivos y Videos
+      </a>
+      <a href="catalogo.html" class="sidebar__link" id="linkCatalogo">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h7"/></svg>
+        Catálogo
+      </a>
+    </nav>
+    <div class="sidebar__footer">
+      <div class="sidebar__user">
+        <strong id="adminName">Cargando…</strong>
+        <span id="userRole" style="font-size:0.7rem;opacity:0.7;text-transform:uppercase;letter-spacing:0.05em;">Indusquim</span>
+      </div>
+      <button class="btn-logout" id="logoutBtn">Cerrar sesión</button>
+    </div>
+  </aside>
+
+  <div class="sidebar-overlay" id="sidebarOverlay"></div>
+  <div class="main-content">
+    <div class="topbar">
+      <button class="hamburger" id="hamburger" aria-label="Menú"><span></span><span></span><span></span></button>
+      <span class="topbar__title">Pedidos</span>
+      <div class="notif-wrap" id="notifWrap" style="position:relative;margin-left:auto;">
+        <button class="btn btn--ghost btn--sm" id="notifBtn" style="position:relative;padding:8px 12px;" title="Notificaciones">
+          <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
+          <span class="notif-badge" id="notifBadge" style="display:none;">0</span>
+        </button>
+        <div class="notif-panel" id="notifPanel">
+          <div class="notif-panel__header"><span>Notificaciones</span><button id="markAllRead">Marcar todas leídas</button></div>
+          <div id="notifList"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="page-body">
+      <div class="alert alert--success" id="successMsg"></div>
+      <div class="alert alert--error"   id="errorMsg"></div>
+
+      <!-- Stats -->
+      <div class="stats-row" style="margin-bottom:24px;">
+        <div class="card stat-card">
+          <div class="stat-card__num" id="statTotal">—</div>
+          <div class="stat-card__label">Total pedidos</div>
+        </div>
+        <div class="card stat-card">
+          <div class="stat-card__num" id="statPending">—</div>
+          <div class="stat-card__label">Pendientes</div>
+        </div>
+        <div class="card stat-card">
+          <div class="stat-card__num" id="statActive">—</div>
+          <div class="stat-card__label">En proceso</div>
+        </div>
+        <div class="card stat-card">
+          <div class="stat-card__num" id="statCompleted">—</div>
+          <div class="stat-card__label">Completados</div>
+        </div>
+      </div>
+
+      <!-- Filtro -->
+      <div style="margin-bottom:20px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+        <span style="font-size:0.85rem;color:var(--c-muted);">Filtrar:</span>
+        <select id="statusFilter" class="form-select" style="width:auto;padding:7px 28px 7px 12px;font-size:0.85rem;">
+          <option value="all">Todos</option>
+          <option value="pending">Pendiente</option>
+          <option value="approved">Aprobado</option>
+          <option value="processing">En proceso</option>
+          <option value="dispatched">Despachado</option>
+          <option value="completed">Completado</option>
+        </select>
+      </div>
+
+      <div id="ordersList">
+        <p style="color:var(--c-muted);font-size:0.875rem;">Cargando pedidos…</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../assets/js/supabase-client.js"></script>
+<script src="../assets/js/auth.js"></script>
+<script src="../assets/js/notifications.js"></script>
+<script src="../assets/js/admin/pedidos.js"></script>
+</body>
+</html>
