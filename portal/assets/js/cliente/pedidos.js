@@ -8,11 +8,8 @@ let allOrders      = [];
 let currentProfile = null;
 
 const STATUS_LABELS = {
-  pending:    { label: 'Pendiente de aprobación', css: 'status-pending' },
-  approved:   { label: 'Aprobado',                css: 'status-approved' },
-  processing: { label: 'En proceso',              css: 'status-processing' },
-  dispatched: { label: 'Despachado',              css: 'status-dispatched' },
-  completed:  { label: 'Completado',              css: 'status-completed' }
+  pending:  { label: 'Pendiente de aprobación', css: 'status-pending' },
+  approved: { label: 'Aprobado',                css: 'status-approved' }
 };
 
 // ==========================================
@@ -61,8 +58,8 @@ async function loadOrders() {
 
 function updateStats(orders) {
   document.getElementById('statTotal').textContent     = orders.length;
-  document.getElementById('statPending').textContent   = orders.filter(o => o.status !== 'completed').length;
-  document.getElementById('statCompleted').textContent = orders.filter(o => o.status === 'completed').length;
+  document.getElementById('statPending').textContent   = orders.filter(o => o.status === 'pending').length;
+  document.getElementById('statCompleted').textContent = orders.filter(o => o.status === 'approved').length;
 }
 
 // ==========================================
@@ -132,18 +129,8 @@ window.openOrderModal = async function(orderId) {
   document.getElementById('detailHistory').innerHTML = '<p style="color:var(--c-muted);font-size:0.8rem;">Cargando historial…</p>';
   document.getElementById('orderDetailBackdrop').classList.add('open');
 
-  // Botón de acción: solo "Marcar como recibido" si está despachado
-  const actionWrap = document.getElementById('detailActionWrap');
-  const actionBtn  = document.getElementById('detailActionBtn');
-  actionBtn.disabled    = false;
-  actionBtn.textContent = '✓ Marcar como recibido';
-
-  if (order.status === 'dispatched') {
-    actionBtn.onclick = () => markReceived(orderId);
-    actionWrap.style.display = 'block';
-  } else {
-    actionWrap.style.display = 'none';
-  }
+  // Sin acciones disponibles para el cliente con el flujo actual
+  document.getElementById('detailActionWrap').style.display = 'none';
 
   // Cargar historial
   const { data: logs } = await sb
@@ -188,46 +175,6 @@ function buildTimeline(order, logs) {
 
 function closeModal() {
   document.getElementById('orderDetailBackdrop').classList.remove('open');
-}
-
-// ==========================================
-// MARCAR COMO RECIBIDO
-// ==========================================
-async function markReceived(orderId) {
-  const btn = document.getElementById('detailActionBtn');
-  btn.textContent = 'Guardando…'; btn.disabled = true;
-
-  const now = new Date().toISOString();
-
-  const { error } = await sb.from('orders')
-    .update({ status: 'completed', updated_at: now })
-    .eq('id', orderId);
-
-  if (error) {
-    showError('Error: ' + error.message);
-    btn.textContent = '✓ Marcar como recibido'; btn.disabled = false;
-    return;
-  }
-
-  await sb.from('order_status_log').insert({
-    order_id:   orderId,
-    status:     'completed',
-    changed_at: now,
-    changed_by: currentProfile.id
-  });
-
-  if (currentProfile.assigned_commercial_id) {
-    await sb.from('notifications').insert({
-      user_id:          currentProfile.assigned_commercial_id,
-      type:             'order_completed',
-      message:          (currentProfile.company_name || currentProfile.full_name) + ' confirmó la recepción del pedido #' + orderId.slice(-6).toUpperCase() + '.',
-      related_order_id: orderId
-    });
-  }
-
-  showSuccess('Pedido marcado como recibido. ¡Gracias!');
-  closeModal();
-  await loadOrders();
 }
 
 // ==========================================

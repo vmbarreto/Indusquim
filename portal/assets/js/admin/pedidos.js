@@ -10,19 +10,14 @@ let openGroupClientId = null;   // Grupo/empresa expandido en el acordeón
 let currentDetailOrder = null;  // { orderId, companyName } — pedido abierto en el modal
 
 const STATUS_LABELS = {
-  pending:    { label: 'Pendiente',   css: 'status-pending' },
-  approved:   { label: 'Aprobado',    css: 'status-approved' },
-  processing: { label: 'En proceso',  css: 'status-processing' },
-  dispatched: { label: 'Despachado',  css: 'status-dispatched' },
-  completed:  { label: 'Completado',  css: 'status-completed' }
+  pending:  { label: 'Pendiente', css: 'status-pending' },
+  approved: { label: 'Aprobado',  css: 'status-approved' }
 };
 
-// Acciones disponibles según el estado actual (solo para admin/comercial)
+// Acciones disponibles según el estado actual
 const NEXT_ACTIONS = {
-  pending:    { label: 'Aprobar',          next: 'approved' },
-  approved:   { label: 'Marcar en proceso', next: 'processing' },
-  processing: { label: 'Marcar despachado', next: 'dispatched' }
-  // 'dispatched' → lo marca el cliente. 'completed' → estado final.
+  pending: { label: 'Aprobar', next: 'approved' }
+  // 'approved' → estado final
 };
 
 // ==========================================
@@ -99,8 +94,8 @@ async function loadOrders() {
 function updateStats(orders) {
   document.getElementById('statTotal').textContent     = orders.length;
   document.getElementById('statPending').textContent   = orders.filter(o => o.status === 'pending').length;
-  document.getElementById('statActive').textContent    = orders.filter(o => ['approved', 'processing', 'dispatched'].includes(o.status)).length;
-  document.getElementById('statCompleted').textContent = orders.filter(o => o.status === 'completed').length;
+  document.getElementById('statActive').textContent    = orders.filter(o => o.status === 'approved').length;
+  document.getElementById('statCompleted').textContent = '—';
 }
 
 // ==========================================
@@ -372,19 +367,6 @@ window.advanceStatus = async function(orderId, newStatus) {
     changed_by: currentProfile.id
   });
 
-  // Si fue despachado, notificar al cliente
-  if (newStatus === 'dispatched') {
-    const order = allOrders.find(o => o.id === orderId);
-    if (order?.client_id) {
-      await sb.from('notifications').insert({
-        user_id:          order.client_id,
-        type:             'order_dispatched',
-        message:          'Tu pedido #' + orderId.slice(-6).toUpperCase() + ' ha sido despachado. ¡Revisa tus pedidos para confirmarlo!',
-        related_order_id: orderId
-      });
-    }
-  }
-
   const statusLabel = STATUS_LABELS[newStatus]?.label || newStatus;
   const order = allOrders.find(o => o.id === orderId);
   const empresa = order?.profiles?.company_name || order?.profiles?.full_name || 'Cliente';
@@ -616,10 +598,6 @@ window.openOrderModal = async function(orderId, companyName) {
     actionBtn.textContent = action.label;
     actionBtn.onclick = () => advanceStatusFromModal(orderId, action.next, companyName);
     actionWrap.style.display = 'block';
-  } else if (order.status === 'dispatched') {
-    actionBtn.textContent = '✓ Despachado — esperando confirmación del cliente';
-    actionBtn.disabled    = true;
-    actionWrap.style.display = 'block';
   } else {
     actionWrap.style.display = 'none';
   }
@@ -654,18 +632,6 @@ async function advanceStatusFromModal(orderId, newStatus, companyName) {
     status:     newStatus,
     changed_by: currentProfile.id
   });
-
-  if (newStatus === 'dispatched') {
-    const order = allOrders.find(o => o.id === orderId);
-    if (order?.client_id) {
-      await sb.from('notifications').insert({
-        user_id:          order.client_id,
-        type:             'order_dispatched',
-        message:          'Tu pedido #' + orderId.slice(-6).toUpperCase() + ' ha sido despachado. ¡Revisa tus pedidos para confirmarlo!',
-        related_order_id: orderId
-      });
-    }
-  }
 
   const statusLabelModal = STATUS_LABELS[newStatus]?.label || newStatus;
   await logAudit('Estado de pedido actualizado', 'Pedido #' + orderId.slice(-6).toUpperCase() + ' (' + companyName + ') → ' + statusLabelModal);
