@@ -164,18 +164,115 @@ window.toggleOrder = function(i) {
 };
 
 // ==========================================
-// VISTA ADMIN — ACORDEÓN POR COMERCIAL
+// VISTA ADMIN — ACORDEÓN POR COMERCIAL → EMPRESA
 // ==========================================
-function groupByCommercial(orders) {
+
+/**
+ * Agrupa pedidos en árbol: Comercial → Empresa → Pedidos
+ */
+function groupByCommercialAndClient(orders) {
   const map = {};
   orders.forEach(o => {
-    const id   = o.commercial_id || '__none__';
-    const name = o.comercial?.full_name || 'Sin comercial';
-    if (!map[id]) map[id] = { commercialId: id, name, orders: [] };
-    map[id].orders.push(o);
+    const cid   = o.commercial_id || '__none__';
+    const cname = o.comercial?.full_name || 'Sin comercial';
+    if (!map[cid]) map[cid] = { commercialId: cid, name: cname, clients: {} };
+
+    const lid   = o.client_id || '__noclient__';
+    const lname = o.profiles?.company_name || o.profiles?.full_name || 'Cliente desconocido';
+    if (!map[cid].clients[lid]) map[cid].clients[lid] = { clientId: lid, company: lname, orders: [] };
+    map[cid].clients[lid].orders.push(o);
   });
-  return Object.values(map).sort((a, b) => a.name.localeCompare(b.name));
+
+  return Object.values(map)
+    .sort((a, b) => a.name.localeCompare(b.name))
+    .map(g => ({
+      ...g,
+      clients: Object.values(g.clients).sort((a, b) => a.company.localeCompare(b.company))
+    }));
 }
+
+/**
+ * Fila de ticket dentro de la sub-lista de empresa.
+ * Muestra código, fecha, estado. Hover → tooltip flotante. Clic → modal.
+ */
+function ticketRowHTML(o) {
+  const st      = STATUS_LABELS[o.status] || { label: o.status, css: '' };
+  const fecha   = new Date(o.created_at).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' });
+  const empresa = (o.profiles?.company_name || o.profiles?.full_name || 'Cliente')
+    .replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+
+  return '<div class="ticket-row" '
+    + 'onclick="openOrderModal(\'' + o.id + '\',\'' + empresa + '\')" '
+    + 'onmouseenter="showOrderTooltip(event,\'' + o.id + '\')" '
+    + 'onmouseleave="hideOrderTooltip()" '
+    + 'style="display:flex;justify-content:space-between;align-items:center;gap:12px;'
+    + 'padding:10px 20px 10px 40px;cursor:pointer;user-select:none;border-bottom:1px solid var(--c-border);"'
+    + ' onmouseover="this.style.background=\'var(--c-bg-alt)\'" onmouseout="this.style.background=\'\'">'
+    + '<div style="flex:1;min-width:0;">'
+    + '<div style="font-size:0.82rem;font-weight:700;letter-spacing:0.03em;">'
+    + '#' + o.id.slice(-6).toUpperCase()
+    + '</div>'
+    + '<div style="font-size:0.73rem;color:var(--c-muted);margin-top:2px;">' + fecha + '</div>'
+    + '</div>'
+    + '<div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">'
+    + '<span class="status-badge ' + st.css + '">' + st.label + '</span>'
+    + '<svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"'
+    + ' style="color:var(--c-muted);flex-shrink:0;"><polyline points="9 18 15 12 9 6"/></svg>'
+    + '</div>'
+    + '</div>';
+}
+
+/**
+ * Tooltip flotante: aparece al hacer hover sobre un ticket (solo en dispositivos con mouse).
+ * Muestra empresa, código, fecha, productos y estado del pedido.
+ */
+window.showOrderTooltip = function(event, orderId) {
+  if (window.matchMedia('(hover: none)').matches) return; // sin hover en touch
+  const order = allOrders.find(o => o.id === orderId);
+  if (!order) return;
+
+  const tooltip = document.getElementById('orderTooltip');
+  const items   = order.order_items || [];
+  const st      = STATUS_LABELS[order.status] || { label: order.status, css: '' };
+  const empresa = order.profiles?.company_name || order.profiles?.full_name || 'Cliente';
+  const fecha   = new Date(order.created_at).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' });
+
+  const itemsHtml = items.length
+    ? items.map(it =>
+        '<div style="display:flex;justify-content:space-between;gap:8px;margin-bottom:5px;">'
+        + '<span>' + (it.catalog_items?.title || 'Producto eliminado') + '</span>'
+        + '<span style="color:var(--c-muted);flex-shrink:0;">×' + it.quantity + '</span>'
+        + '</div>'
+      ).join('')
+    : '<div style="color:var(--c-muted);">Sin productos</div>';
+
+  tooltip.innerHTML =
+    '<div style="font-size:0.7rem;font-weight:700;color:var(--c-muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:3px;">'
+    + empresa + '</div>'
+    + '<div style="font-size:0.88rem;font-weight:700;margin-bottom:1px;">#' + orderId.slice(-6).toUpperCase() + '</div>'
+    + '<div style="font-size:0.75rem;color:var(--c-muted);margin-bottom:10px;">' + fecha + '</div>'
+    + '<div style="border-top:1px solid var(--c-border);padding-top:8px;margin-bottom:8px;font-size:0.78rem;">'
+    + itemsHtml + '</div>'
+    + '<span class="status-badge ' + st.css + '">' + st.label + '</span>';
+
+  // Posicionar a la derecha de la fila (o a la izquierda si no hay espacio)
+  const rect = event.currentTarget.getBoundingClientRect();
+  const tipW = 240;
+  let left = rect.right + 10;
+  if (left + tipW > window.innerWidth - 12) left = rect.left - tipW - 10;
+  let top  = rect.top - 8;
+  tooltip.style.display = 'block';
+  const tipH = tooltip.offsetHeight || 180;
+  if (top + tipH > window.innerHeight - 12) top = window.innerHeight - tipH - 12;
+  if (top < 8) top = 8;
+  tooltip.style.left = left + 'px';
+  tooltip.style.top  = top  + 'px';
+};
+
+window.hideOrderTooltip = function() {
+  const t = document.getElementById('orderTooltip');
+  if (t) t.style.display = 'none';
+};
 
 function renderAdminView(orders) {
   const list = document.getElementById('ordersList');
@@ -187,45 +284,64 @@ function renderAdminView(orders) {
     return;
   }
 
-  const groups = groupByCommercial(orders);
+  const groups = groupByCommercialAndClient(orders);
 
   list.innerHTML = groups.map(g => {
-    const active = g.orders.filter(o => o.status !== 'completed').length;
-    const nameEsc = g.name.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+    const totalActive = g.clients.reduce((s, c) => s + c.orders.filter(o => o.status !== 'completed').length, 0);
+    const totalOrders = g.clients.reduce((s, c) => s + c.orders.length, 0);
 
-    const activeOrds    = g.orders.filter(o => o.status !== 'completed')
-                                   .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-    const completedOrds = g.orders.filter(o => o.status === 'completed')
-                                   .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    // Sub-acordeones por empresa
+    const clientsHtml = g.clients.map(c => {
+      const cActive       = c.orders.filter(o => o.status !== 'completed').length;
+      const activeOrds    = c.orders.filter(o => o.status !== 'completed')
+                                     .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+      const completedOrds = c.orders.filter(o => o.status === 'completed')
+                                     .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 
-    let rowsHtml = activeOrds.map(o => {
-      const empresa = o.profiles?.company_name || o.profiles?.full_name || 'Cliente';
-      return orderRowHTML(o, empresa);
+      let rowsHtml = activeOrds.map(o => ticketRowHTML(o)).join('');
+      if (completedOrds.length) {
+        rowsHtml += '<div style="padding:6px 20px 4px 40px;font-size:0.72rem;font-weight:700;color:var(--c-muted);'
+          + 'text-transform:uppercase;letter-spacing:0.06em;border-top:1px solid var(--c-border);">Completadas</div>';
+        rowsHtml += completedOrds.map(o => ticketRowHTML(o)).join('');
+      }
+
+      const subId = 'sub-' + g.commercialId + '-' + c.clientId;
+      return '<div style="border-bottom:1px solid var(--c-border);">'
+        + '<div onclick="toggleSubGroup(\'' + subId + '\')" '
+        + 'style="display:flex;justify-content:space-between;align-items:center;'
+        + 'padding:10px 20px 10px 32px;cursor:pointer;gap:12px;"'
+        + ' onmouseover="this.style.background=\'var(--c-bg-alt)\'" onmouseout="this.style.background=\'\'">'
+        + '<div style="flex:1;min-width:0;">'
+        + '<div style="font-size:0.85rem;font-weight:600;">' + c.company + '</div>'
+        + '<div style="font-size:0.73rem;color:var(--c-muted);margin-top:1px;">'
+        + cActive + ' activo' + (cActive !== 1 ? 's' : '') + ' · ' + c.orders.length + ' en total'
+        + '</div>'
+        + '</div>'
+        + '<svg id="sub-chevron-' + subId + '" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"'
+        + ' viewBox="0 0 24 24" style="transition:transform 0.2s;flex-shrink:0;color:var(--c-muted);">'
+        + '<polyline points="6 9 12 15 18 9"/></svg>'
+        + '</div>'
+        + '<div id="sub-body-' + subId + '" style="display:none;">'
+        + '<div style="max-height:272px;overflow-y:auto;">' + rowsHtml + '</div>'
+        + '</div>'
+        + '</div>';
     }).join('');
-
-    if (completedOrds.length) {
-      rowsHtml += '<div style="padding:8px 20px 6px;font-size:0.72rem;font-weight:700;color:var(--c-muted);'
-        + 'text-transform:uppercase;letter-spacing:0.06em;border-top:1px solid var(--c-border);">Completadas</div>';
-      rowsHtml += completedOrds.map(o => {
-        const empresa = o.profiles?.company_name || o.profiles?.full_name || 'Cliente';
-        return orderRowHTML(o, empresa);
-      }).join('');
-    }
 
     return '<div class="order-card">'
       + '<div class="order-card__header" onclick="toggleGroup(\'' + g.commercialId + '\')">'
       + '<div>'
       + '<div style="font-weight:700;font-size:0.9rem;">' + g.name + '</div>'
       + '<div style="font-size:0.78rem;color:var(--c-muted);margin-top:2px;">'
-      + active + ' pedido' + (active !== 1 ? 's' : '') + ' activo' + (active !== 1 ? 's' : '')
-      + ' · ' + g.orders.length + ' en total'
+      + g.clients.length + ' empresa' + (g.clients.length !== 1 ? 's' : '')
+      + ' · ' + totalActive + ' pedido' + (totalActive !== 1 ? 's' : '') + ' activo' + (totalActive !== 1 ? 's' : '')
+      + ' · ' + totalOrders + ' en total'
       + '</div>'
       + '</div>'
       + '<svg id="grp-chevron-' + g.commercialId + '" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"'
       + ' viewBox="0 0 24 24" style="transition:transform 0.2s;flex-shrink:0;"><polyline points="6 9 12 15 18 9"/></svg>'
       + '</div>'
       + '<div id="grp-body-' + g.commercialId + '" style="display:none;border-top:1px solid var(--c-border);">'
-      + '<div style="max-height:408px;overflow-y:auto;">' + rowsHtml + '</div>'
+      + clientsHtml
       + '</div>'
       + '</div>';
   }).join('');
@@ -403,7 +519,7 @@ function orderRowHTML(o, companyName) {
     + '</div>';
 }
 
-// Acordeón exclusivo: solo un grupo abierto a la vez
+// Acordeón exclusivo nivel 1: solo un comercial abierto a la vez
 window.toggleGroup = function(clientId) {
   if (openGroupClientId && openGroupClientId !== clientId) {
     const prevBody    = document.getElementById('grp-body-'    + openGroupClientId);
@@ -418,6 +534,16 @@ window.toggleGroup = function(clientId) {
   body.style.display  = isOpen ? 'none' : 'block';
   if (chevron) chevron.style.transform = isOpen ? '' : 'rotate(180deg)';
   openGroupClientId   = isOpen ? null : clientId;
+};
+
+// Acordeón nivel 2 (empresa dentro de comercial) — múltiples abiertos permitidos
+window.toggleSubGroup = function(subId) {
+  const body    = document.getElementById('sub-body-'    + subId);
+  const chevron = document.getElementById('sub-chevron-' + subId);
+  if (!body) return;
+  const isOpen       = body.style.display !== 'none';
+  body.style.display = isOpen ? 'none' : 'block';
+  if (chevron) chevron.style.transform = isOpen ? '' : 'rotate(180deg)';
 };
 
 // ==========================================

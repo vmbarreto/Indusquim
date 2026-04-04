@@ -19,6 +19,15 @@
     .status-processing { background: rgba(139,92,246,0.12); color: #7c3aed; }
     .status-dispatched { background: rgba(16,185,129,0.12); color: #059669; }
     .status-completed  { background: rgba(107,114,128,0.12); color: #6b7280; }
+    /* Tooltip flotante de detalle de pedido */
+    #orderTooltip {
+      display: none; position: fixed; z-index: 9999; width: 240px;
+      background: var(--c-card, #fff); border: 1px solid var(--c-border);
+      border-radius: 12px; padding: 14px 16px;
+      box-shadow: 0 8px 28px rgba(0,0,0,0.14);
+      pointer-events: none; font-size: 0.8rem;
+      transition: opacity 0.1s;
+    }
   </style>
 </head>
 <body>
@@ -152,6 +161,9 @@
     </div>
   </div>
 </div>
+
+<!-- Tooltip flotante de detalle rápido de pedido -->
+<div id="orderTooltip"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="../assets/js/supabase-client.js"></script>
