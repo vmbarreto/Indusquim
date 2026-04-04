@@ -1,10 +1,10 @@
 /**
  * Mis Pedidos — Vista Cliente
- * Muestra el historial de pedidos del cliente con estado actual.
+ * Lista plana de pedidos. Clic → modal de detalle con historial (solo lectura).
  * Si el pedido está 'dispatched', el cliente puede marcarlo como completado.
  */
 
-let allOrders = [];
+let allOrders      = [];
 let currentProfile = null;
 
 const STATUS_LABELS = {
@@ -31,6 +31,11 @@ const STATUS_LABELS = {
   document.getElementById('logoutBtn').onclick = () => logout();
 
   await loadOrders();
+
+  document.getElementById('closeOrderDetail').onclick = closeModal;
+  document.getElementById('orderDetailBackdrop').addEventListener('click', (e) => {
+    if (e.target === e.currentTarget) closeModal();
+  });
 })();
 
 // ==========================================
@@ -39,7 +44,7 @@ const STATUS_LABELS = {
 async function loadOrders() {
   const { data, error } = await sb
     .from('orders')
-    .select('id, status, notes, created_at, order_items(quantity, catalog_item_id, catalog_items(title))')
+    .select('id, status, notes, created_at, updated_at, order_items(quantity, catalog_item_id, catalog_items(title))')
     .eq('client_id', currentProfile.id)
     .order('created_at', { ascending: false });
 
@@ -61,7 +66,7 @@ function updateStats(orders) {
 }
 
 // ==========================================
-// RENDERIZAR PEDIDOS
+// RENDERIZAR LISTA
 // ==========================================
 function renderOrders(orders) {
   const list = document.getElementById('ordersList');
@@ -74,56 +79,128 @@ function renderOrders(orders) {
     return;
   }
 
-  list.innerHTML = orders.map((order, i) => {
-    const st = STATUS_LABELS[order.status] || { label: order.status, css: '' };
-    const fecha = new Date(order.created_at).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' });
+  list.innerHTML = orders.map(order => {
+    const st        = STATUS_LABELS[order.status] || { label: order.status, css: '' };
+    const fecha     = new Date(order.created_at).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' });
     const itemCount = (order.order_items || []).reduce((s, i) => s + (i.quantity || 1), 0);
 
-    // Botón "Marcar como recibido" solo si está despachado
-    const receivedBtn = order.status === 'dispatched'
-      ? '<button class="btn btn--primary btn--sm" style="margin-top:12px;" onclick="markReceived(\'' + order.id + '\')">✓ Marcar como recibido</button>'
-      : '';
-
-    // Items del pedido
-    const itemsHtml = (order.order_items || []).map(item =>
-      '<div class="order-item-row">'
-      + '<span>' + (item.catalog_items?.title || 'Producto eliminado') + '</span>'
-      + '<span style="color:var(--c-muted);">x' + item.quantity + '</span>'
-      + '</div>'
-    ).join('');
-
-    return '<div class="order-card">'
-      + '<div class="order-card__header" onclick="toggleOrder(' + i + ')">'
+    return '<div class="order-card" style="cursor:pointer;" onclick="openOrderModal(\'' + order.id + '\')">'
+      + '<div class="order-card__header" style="pointer-events:none;">'
       + '<div>'
       + '<div style="font-weight:700;font-size:0.9rem;">Pedido #' + order.id.slice(-6).toUpperCase() + '</div>'
-      + '<div style="font-size:0.78rem;color:var(--c-muted);margin-top:2px;">' + fecha + ' · ' + itemCount + ' producto' + (itemCount !== 1 ? 's' : '') + '</div>'
+      + '<div style="font-size:0.78rem;color:var(--c-muted);margin-top:2px;">'
+      + fecha + ' · ' + itemCount + ' producto' + (itemCount !== 1 ? 's' : '')
       + '</div>'
+      + '</div>'
+      + '<div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">'
       + '<span class="status-badge ' + st.css + '">' + st.label + '</span>'
-      + '</div>'
-      + '<div class="order-card__body" id="orderBody' + i + '">'
-      + '<div style="padding-top:12px;">'
-      + itemsHtml
-      + receivedBtn
+      + '<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>'
       + '</div>'
       + '</div>'
       + '</div>';
   }).join('');
 }
 
-window.toggleOrder = function(i) {
-  const body = document.getElementById('orderBody' + i);
-  body.classList.toggle('open');
+// ==========================================
+// MODAL DE DETALLE (solo lectura para el cliente)
+// ==========================================
+window.openOrderModal = async function(orderId) {
+  const order = allOrders.find(o => o.id === orderId);
+  if (!order) return;
+
+  const st = STATUS_LABELS[order.status] || { label: order.status, css: '' };
+
+  // Cabecera: empresa del cliente + ticket
+  document.getElementById('detailCompany').textContent = currentProfile.company_name || currentProfile.full_name || 'Mi empresa';
+  document.getElementById('detailTicket').textContent  = '#' + orderId.slice(-6).toUpperCase();
+  const badge = document.getElementById('detailStatusBadge');
+  badge.textContent = st.label;
+  badge.className   = 'status-badge ' + st.css;
+
+  // Productos
+  const items = order.order_items || [];
+  document.getElementById('detailItems').innerHTML = items.length
+    ? items.map(it =>
+        '<div class="order-item-row">'
+        + '<span>' + (it.catalog_items?.title || 'Producto eliminado') + '</span>'
+        + '<span style="color:var(--c-muted);">×' + it.quantity + '</span>'
+        + '</div>'
+      ).join('')
+    : '<p style="color:var(--c-muted);font-size:0.875rem;">Sin productos.</p>';
+
+  // Abrir modal mientras se carga el historial
+  document.getElementById('detailHistory').innerHTML = '<p style="color:var(--c-muted);font-size:0.8rem;">Cargando historial…</p>';
+  document.getElementById('orderDetailBackdrop').classList.add('open');
+
+  // Botón de acción: solo "Marcar como recibido" si está despachado
+  const actionWrap = document.getElementById('detailActionWrap');
+  const actionBtn  = document.getElementById('detailActionBtn');
+  actionBtn.disabled    = false;
+  actionBtn.textContent = '✓ Marcar como recibido';
+
+  if (order.status === 'dispatched') {
+    actionBtn.onclick = () => markReceived(orderId);
+    actionWrap.style.display = 'block';
+  } else {
+    actionWrap.style.display = 'none';
+  }
+
+  // Cargar historial
+  const { data: logs } = await sb
+    .from('order_status_log')
+    .select('status, changed_at')
+    .eq('order_id', orderId)
+    .order('changed_at', { ascending: true });
+
+  document.getElementById('detailHistory').innerHTML = buildTimeline(order, logs);
 };
+
+// ==========================================
+// HELPERS COMPARTIDOS
+// ==========================================
+function fmtDateTime(iso) {
+  return new Date(iso).toLocaleDateString('es-CO', {
+    day: '2-digit', month: 'short', year: 'numeric',
+    hour: '2-digit', minute: '2-digit'
+  });
+}
+
+function timelineItem(label, dateIso) {
+  return '<div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:8px;">'
+    + '<div style="width:8px;height:8px;border-radius:50%;background:var(--c-brand);margin-top:4px;flex-shrink:0;"></div>'
+    + '<div>'
+    + '<div style="font-size:0.78rem;font-weight:600;color:var(--c-text);">' + label + '</div>'
+    + '<div style="font-size:0.72rem;color:var(--c-muted);">' + fmtDateTime(dateIso) + '</div>'
+    + '</div>'
+    + '</div>';
+}
+
+function buildTimeline(order, logs) {
+  let html = timelineItem('Pedido creado — Pendiente', order.created_at);
+  if (logs && logs.length) {
+    html += logs.map(e => timelineItem(STATUS_LABELS[e.status]?.label || e.status, e.changed_at)).join('');
+  } else if (order.status !== 'pending') {
+    const st = STATUS_LABELS[order.status];
+    html += timelineItem(st?.label || order.status, order.updated_at || order.created_at);
+  }
+  return html;
+}
+
+function closeModal() {
+  document.getElementById('orderDetailBackdrop').classList.remove('open');
+}
 
 // ==========================================
 // MARCAR COMO RECIBIDO
 // ==========================================
-window.markReceived = async function(orderId) {
-  const btn = event.target;
+async function markReceived(orderId) {
+  const btn = document.getElementById('detailActionBtn');
   btn.textContent = 'Guardando…'; btn.disabled = true;
 
+  const now = new Date().toISOString();
+
   const { error } = await sb.from('orders')
-    .update({ status: 'completed', updated_at: new Date().toISOString() })
+    .update({ status: 'completed', updated_at: now })
     .eq('id', orderId);
 
   if (error) {
@@ -132,8 +209,13 @@ window.markReceived = async function(orderId) {
     return;
   }
 
-  // Notificar al comercial
-  const order = allOrders.find(o => o.id === orderId);
+  await sb.from('order_status_log').insert({
+    order_id:   orderId,
+    status:     'completed',
+    changed_at: now,
+    changed_by: currentProfile.id
+  });
+
   if (currentProfile.assigned_commercial_id) {
     await sb.from('notifications').insert({
       user_id:          currentProfile.assigned_commercial_id,
@@ -144,8 +226,9 @@ window.markReceived = async function(orderId) {
   }
 
   showSuccess('Pedido marcado como recibido. ¡Gracias!');
+  closeModal();
   await loadOrders();
-};
+}
 
 // ==========================================
 // FILTRO

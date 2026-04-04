@@ -11,10 +11,12 @@
  * =========================================================================
  */
 
-let allClients     = [];
-let allCommercials = [];
-let reassignTarget = null;
-let isAdmin        = false;
+let allClients       = [];
+let allCommercials   = [];
+let reassignTarget   = null;
+let isAdmin          = false;
+let isCommercial     = false;
+let currentProfileId = null;
 
 // =========================================================================
 // 1. INICIALIZACIÓN: verificar sesión y cargar datos
@@ -30,8 +32,9 @@ let isAdmin        = false;
 
   await initNotifications(profile.id);
 
-  const isCommercial = profile.role === 'commercial';
-  isAdmin = profile.role === 'admin';
+  isCommercial     = profile.role === 'commercial';
+  isAdmin          = profile.role === 'admin';
+  currentProfileId = profile.id;
 
   // ── Personalizar el sidebar según el rol ──────────────────────────────
 
@@ -60,6 +63,7 @@ let isAdmin        = false;
   // ── Asignar evento al botón de cerrar sesión ──────────────────────────
   // 'logout()' es una función global definida en auth.js
   document.getElementById('logoutBtn').onclick = () => logout();
+  initAudit(profile);
 
   // ── Cargar comerciales y clientes ────────────────────────────────────
   await loadCommercials();
@@ -102,11 +106,18 @@ async function loadClients() {
 
   // Usamos 'sb' que es la instancia de Supabase definida en supabase-client.js
   // Pedimos: nombre, empresa, correo, teléfono, tipo de cliente y fecha de registro
-  const { data, error } = await sb
+  let query = sb
     .from('profiles')
     .select('id, full_name, company_name, email, client_type, assigned_commercial_id, created_at')
     .eq('role', 'client')
     .order('company_name', { ascending: true });
+
+  // Comercial: solo ve los clientes que tiene asignados
+  if (isCommercial) {
+    query = query.eq('assigned_commercial_id', currentProfileId);
+  }
+
+  const { data, error } = await query;
 
   // Si hubo un error en la consulta, mostramos el detalle para poder diagnosticarlo
   if (error) {
@@ -325,6 +336,10 @@ document.getElementById('confirmReassign').onclick = async () => {
   if (error) {
     showError('Error al reasignar: ' + error.message);
   } else {
+    const clientName     = document.getElementById('reassignClientName').textContent || reassignTarget;
+    const commercial     = allCommercials.find(c => c.id === newCommercialId);
+    const commercialName = commercial?.full_name || 'Sin comercial';
+    await logAudit('Comercial reasignado', clientName + ' → ' + commercialName);
     reassignBackdrop.classList.remove('open');
     showSuccess('Comercial reasignado correctamente.');
     await loadClients();

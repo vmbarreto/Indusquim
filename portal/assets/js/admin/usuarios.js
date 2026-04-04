@@ -30,6 +30,7 @@ let allCommercials = [];
   const roleEl = document.getElementById('userRole');
   if (roleEl) roleEl.textContent = 'Administrador';
 
+  initAudit(profile);
   await loadCommercials();
   await loadUsers();
 
@@ -99,14 +100,15 @@ function renderTable(users) {
     const contacto = '<span style="font-size:0.8rem;color:var(--c-muted);">' + (u.email || '—') + '</span>'
       + (isCommercial && u.phone ? '<br><span style="font-size:0.75rem;color:var(--c-muted);">📱 ' + u.phone + '</span>' : '');
 
-    // Acciones: solo "Reset pwd" aplica para clientes (usan email/contraseña)
-    const acciones = (!isCommercial
-      ? '<button class="btn btn--ghost btn--sm" onclick="resetPassword(\'' + u.id + '\')">Reset pwd</button>'
-      : '')
-      + '<button class="btn btn--danger btn--sm" style="margin-left:6px;" onclick="deleteUser(\'' + u.id + '\')">Eliminar</button>';
+    // Acciones: Editar siempre, Reset pwd solo para clientes, Eliminar siempre
+    const acciones = '<button class="btn btn--outline btn--sm" onclick="openEditUserModal(\'' + u.id + '\')">Editar</button>'
+      + (!isCommercial
+        ? ' <button class="btn btn--ghost btn--sm" style="margin-left:4px;" onclick="resetPassword(\'' + u.id + '\')">Reset pwd</button>'
+        : '')
+      + ' <button class="btn btn--danger btn--sm" style="margin-left:4px;" onclick="deleteUser(\'' + u.id + '\')">Eliminar</button>';
 
     const empresaCell = isCommercial
-      ? '—'
+      ? '<strong>' + (u.company_name || 'Indusquim') + '</strong>'
       : '<strong>' + (u.company_name || '—') + '</strong>'
         + '<br><span style="font-size:0.75rem;color:var(--c-muted);">👤 ' + getCommercialName(u.assigned_commercial_id) + '</span>';
 
@@ -124,24 +126,39 @@ function renderTable(users) {
 // -------------------------------------------------------------------------
 // 3. BARRA DE BÚSQUEDA EN TIEMPO REAL
 // -------------------------------------------------------------------------
-document.getElementById('searchInput').addEventListener('input', (e) => {
-  const q = e.target.value.toLowerCase();
+function applyFilters() {
+  const q    = document.getElementById('searchInput').value.toLowerCase();
+  const tipo = document.getElementById('roleFilter').value;
 
-  // Filtramos por empresa, nombre o correo
-  const filtrados = allUsers.filter(u =>
-    (u.company_name || '').toLowerCase().includes(q) ||
-    (u.full_name    || '').toLowerCase().includes(q) ||
-    (u.email        || '').toLowerCase().includes(q)
-  );
+  const filtrados = allUsers.filter(u => {
+    // Filtro por tipo
+    if (tipo === 'commercial' && u.role !== 'commercial') return false;
+    if (tipo === 'large'      && !(u.role === 'client' && u.client_type === 'large'))  return false;
+    if (tipo === 'small'      && !(u.role === 'client' && u.client_type === 'small'))  return false;
+
+    // Filtro por texto
+    if (q) {
+      return (u.company_name || '').toLowerCase().includes(q)
+          || (u.full_name    || '').toLowerCase().includes(q)
+          || (u.email        || '').toLowerCase().includes(q);
+    }
+    return true;
+  });
 
   renderTable(filtrados);
-});
+}
+
+document.getElementById('searchInput').addEventListener('input', applyFilters);
+document.getElementById('roleFilter').addEventListener('change', applyFilters);
 
 // -------------------------------------------------------------------------
 // 4. CONTROL DEL MODAL (VENTANA EMERGENTE CREAR USUARIO)
 // -------------------------------------------------------------------------
 const backdrop = document.getElementById('modalBackdrop');
-document.getElementById('openModal').onclick   = () => backdrop.classList.add('open');
+document.getElementById('openModal').onclick   = () => {
+  document.getElementById('createFormError').classList.remove('show');
+  backdrop.classList.add('open');
+};
 document.getElementById('closeModal').onclick  = () => backdrop.classList.remove('open');
 document.getElementById('cancelModal').onclick = () => backdrop.classList.remove('open');
 
@@ -188,7 +205,7 @@ document.getElementById('createForm').addEventListener('submit', async (e) => {
   if (role === 'commercial') {
     // Validar que el teléfono esté presente
     if (!phone) {
-      showError('El teléfono es obligatorio para los comerciales.');
+      showModalError('createFormError', 'El teléfono es obligatorio para los comerciales.');
       btn.textContent = 'Crear usuario';
       btn.disabled = false;
       return;
@@ -216,8 +233,8 @@ document.getElementById('createForm').addEventListener('submit', async (e) => {
         email,
         password,
         full_name: name,
-        company_name: company,
-        client_type: type,
+        company_name: role === 'client' ? company : 'Indusquim',
+        client_type: role === 'client' ? type : null,
         role,
         phone: phone || null
       })
@@ -226,11 +243,18 @@ document.getElementById('createForm').addEventListener('submit', async (e) => {
     const result = await res.json();
     if (!res.ok) throw new Error(result.error || 'Error desconocido');
 
-    // Si es cliente y tiene comercial asignado, actualizar el perfil
-    if (role === 'client' && commercialId && result.user?.id) {
-      await sb.from('profiles')
-        .update({ assigned_commercial_id: commercialId })
-        .eq('id', result.user.id);
+    // Forzar rol y datos en profiles (la Edge Function puede ignorar el rol)
+    if (result.user?.id) {
+      const profileFix = { role };
+      if (role === 'commercial') {
+        profileFix.company_name = 'Indusquim';
+        if (phone) profileFix.phone = phone;
+      }
+      if (role === 'client') {
+        profileFix.client_type = type;
+        if (commercialId) profileFix.assigned_commercial_id = commercialId;
+      }
+      await sb.from('profiles').update(profileFix).eq('id', result.user.id);
     }
 
     // Éxito: si es comercial, mostramos el PIN al admin para que se lo comparta
@@ -241,8 +265,10 @@ document.getElementById('createForm').addEventListener('submit', async (e) => {
         'Por favor, entrégale este PIN a ' + name + ' junto con su teléfono (' + phone + ') o correo (' + email + ') ' +
         'para que pueda iniciar sesión en el portal.'
       );
+      await logAudit('Comercial creado', name + ' (' + email + ')');
       showSuccess('Comercial creado exitosamente.');
     } else {
+      await logAudit('Cliente creado', name + ' — ' + company + ' (' + email + ')');
       showSuccess('Usuario creado exitosamente.');
     }
 
@@ -259,7 +285,7 @@ document.getElementById('createForm').addEventListener('submit', async (e) => {
     await loadUsers(); // Refrescar la tabla
 
   } catch (err) {
-    showError('Error al crear usuario: ' + err.message);
+    showModalError('createFormError', 'Error al crear usuario: ' + err.message);
   }
 
   btn.textContent = 'Crear usuario';
@@ -287,6 +313,8 @@ window.deleteUser = async function(id) {
     const result = await res.json();
     if (!res.ok) throw new Error(result.error || 'Error desconocido');
 
+    const deleted = allUsers.find(u => u.id === id);
+    await logAudit('Usuario eliminado', (deleted?.full_name || '—') + ' (' + (deleted?.email || id) + ')');
     await loadUsers();
     showSuccess('Usuario eliminado correctamente.');
 
@@ -312,13 +340,102 @@ window.resetPassword = async function(id) {
   if (error) {
     showError('No se pudo enviar el correo: ' + error.message);
   } else {
+    await logAudit('Contraseña restablecida', data.email + (data.company_name ? ' — ' + data.company_name : ''));
     showSuccess('Correo de restablecimiento enviado a ' + data.email + '.');
   }
 };
 
 // -------------------------------------------------------------------------
-// 8. ALERTAS Y MENÚ MÓVIL
+// 8. EDITAR USUARIO
 // -------------------------------------------------------------------------
+const editUserBackdrop = document.getElementById('editUserBackdrop');
+
+window.openEditUserModal = function(id) {
+  const u = allUsers.find(u => u.id === id);
+  if (!u) return;
+
+  const isCommercial = u.role === 'commercial';
+
+  document.getElementById('eu_id').value      = u.id;
+  document.getElementById('eu_role').value    = u.role;
+  document.getElementById('eu_name').value    = u.full_name || '';
+  document.getElementById('eu_company').value = u.company_name || '';
+  document.getElementById('eu_phone').value   = (u.phone || '').replace(/^\+?57/, '');
+  document.getElementById('eu_type').value    = u.client_type || 'small';
+  document.getElementById('eu_email').value   = u.email || '';
+
+  // Repoblar el select de comerciales y marcar el actual
+  const sel = document.getElementById('eu_commercial');
+  sel.innerHTML = '<option value="">Sin asignar</option>';
+  allCommercials.forEach(c => {
+    const opt = document.createElement('option');
+    opt.value = c.id;
+    opt.textContent = c.full_name || 'Sin nombre';
+    sel.appendChild(opt);
+  });
+  sel.value = u.assigned_commercial_id || '';
+
+  // Mostrar/ocultar campos según rol
+  document.getElementById('eu_group_company').style.display    = isCommercial ? 'none' : 'block';
+  document.getElementById('eu_group_phone').style.display      = isCommercial ? 'block' : 'none';
+  document.getElementById('eu_group_type').style.display       = isCommercial ? 'none' : 'block';
+  document.getElementById('eu_group_commercial').style.display = isCommercial ? 'none' : 'block';
+
+  editUserBackdrop.classList.add('open');
+};
+
+document.getElementById('closeEditUser').onclick  = () => editUserBackdrop.classList.remove('open');
+document.getElementById('cancelEditUser').onclick = () => editUserBackdrop.classList.remove('open');
+
+document.getElementById('editUserForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const btn = document.getElementById('submitEditUser');
+  btn.textContent = 'Guardando…'; btn.disabled = true;
+
+  const id   = document.getElementById('eu_id').value;
+  const role = document.getElementById('eu_role').value;
+
+  const updates = {
+    full_name: document.getElementById('eu_name').value.trim()
+  };
+
+  if (role === 'client') {
+    updates.company_name           = document.getElementById('eu_company').value.trim();
+    updates.client_type            = document.getElementById('eu_type').value;
+    updates.assigned_commercial_id = document.getElementById('eu_commercial').value || null;
+  } else {
+    let phone = document.getElementById('eu_phone').value.trim();
+    if (phone) phone = '+57' + phone.replace(/^\+?57/, '').replace(/\D/g, '');
+    updates.phone = phone || null;
+  }
+
+  const { error } = await sb.from('profiles').update(updates).eq('id', id);
+
+  if (error) {
+    showModalError('editUserError', 'Error al actualizar: ' + error.message);
+  } else {
+    const u = allUsers.find(u => u.id === id);
+    const roleLabel = role === 'commercial' ? 'Comercial' : 'Cliente';
+    await logAudit('Usuario actualizado', roleLabel + ': ' + (updates.full_name || u?.full_name || id));
+    showSuccess('Usuario actualizado correctamente.');
+    editUserBackdrop.classList.remove('open');
+    await loadUsers();
+  }
+
+  btn.textContent = 'Guardar cambios'; btn.disabled = false;
+});
+
+// -------------------------------------------------------------------------
+// 9. ALERTAS Y MENÚ MÓVIL
+// -------------------------------------------------------------------------
+function showModalError(modalErrorId, msg) {
+  const el = document.getElementById(modalErrorId);
+  if (!el) { showError(msg); return; }
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 6000);
+}
+
 function showSuccess(msg) {
   const el = document.getElementById('successMsg');
   el.textContent = msg;

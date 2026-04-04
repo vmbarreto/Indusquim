@@ -74,10 +74,10 @@
   //    Comercial ve: Total, Documentos, Videos, Pedidos (próximamente)
   // -----------------------------------------------------------------------
 
-  // Siempre traemos el total de clientes (visible para ambos roles)
-  const { data: clients } = await sb.from('profiles')
-    .select('client_type')
-    .eq('role', 'client');
+  // Traemos clientes: comercial solo ve los suyos, admin los ve todos
+  let clientsQuery = sb.from('profiles').select('client_type').eq('role', 'client');
+  if (isCommercial) clientsQuery = clientsQuery.eq('assigned_commercial_id', profile.id);
+  const { data: clients } = await clientsQuery;
 
   // Total de documentos (visible para ambos roles)
   const { data: docs } = await sb.from('documents').select('id');
@@ -119,10 +119,12 @@
   // 3. DIRECTORIO DE CLIENTES (Búsqueda, Filtro y Paginación)
   // -----------------------------------------------------------------------
   
-  // Traemos los datos de los clientes incluyendo ahora correo y teléfono para la columna Contacto
-  const { data: allFetchedClients } = await sb.from('profiles')
+  // Directorio: comercial solo ve sus clientes asignados
+  let dirQuery = sb.from('profiles')
     .select('full_name, company_name, email, phone, client_type, created_at')
     .eq('role', 'client');
+  if (isCommercial) dirQuery = dirQuery.eq('assigned_commercial_id', profile.id);
+  const { data: allFetchedClients } = await dirQuery;
 
   // Guardamos en memoria y ordenamos alfabéticamente por empresa
   let allClientsData = (allFetchedClients || []).sort((a, b) => {

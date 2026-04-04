@@ -52,6 +52,10 @@
         <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h7"/></svg>
         Catálogo
       </a>
+      <a href="historial.html" class="sidebar__link" id="linkHistorial">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        Historial
+      </a>
     </nav>
     <div class="sidebar__footer">
       <div class="sidebar__user">
@@ -103,7 +107,7 @@
         </div>
       </div>
 
-      <!-- Filtro -->
+      <!-- Filtros -->
       <div style="margin-bottom:20px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
         <span style="font-size:0.85rem;color:var(--c-muted);">Filtrar:</span>
         <select id="statusFilter" class="form-select" style="width:auto;padding:7px 28px 7px 12px;font-size:0.85rem;">
@@ -114,6 +118,9 @@
           <option value="dispatched">Despachado</option>
           <option value="completed">Completado</option>
         </select>
+        <input type="text" id="ticketSearch" class="form-input"
+          placeholder="Buscar por código de ticket…"
+          style="width:220px;padding:7px 12px;font-size:0.85rem;" />
       </div>
 
       <div id="ordersList">
@@ -123,10 +130,34 @@
   </div>
 </div>
 
+<!-- Modal: detalle e historial de un pedido -->
+<div class="modal-backdrop" id="orderDetailBackdrop">
+  <div class="modal" style="max-width:560px;">
+    <div class="modal__header">
+      <div style="flex:1;min-width:0;">
+        <div class="modal__title" id="detailCompany" style="font-size:1rem;">—</div>
+        <div style="font-size:0.75rem;color:var(--c-muted);margin-top:2px;">
+          Ticket <span id="detailTicket" style="font-weight:700;">—</span>
+          <span class="status-badge" id="detailStatusBadge" style="margin-left:8px;vertical-align:middle;"></span>
+        </div>
+      </div>
+      <button class="modal__close" id="closeOrderDetail">✕</button>
+    </div>
+    <div style="margin:16px 0 6px;font-size:0.72rem;font-weight:700;color:var(--c-muted);text-transform:uppercase;letter-spacing:0.06em;">Productos</div>
+    <div id="detailItems"></div>
+    <div style="margin:16px 0 6px;font-size:0.72rem;font-weight:700;color:var(--c-muted);text-transform:uppercase;letter-spacing:0.06em;">Historial</div>
+    <div id="detailHistory"><p style="color:var(--c-muted);font-size:0.8rem;">Cargando…</p></div>
+    <div id="detailActionWrap" style="margin-top:18px;display:none;">
+      <button class="btn btn--primary" style="width:100%;" id="detailActionBtn"></button>
+    </div>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="../assets/js/supabase-client.js"></script>
 <script src="../assets/js/auth.js"></script>
 <script src="../assets/js/notifications.js"></script>
+<script src="../assets/js/audit.js"></script>
 <script src="../assets/js/admin/pedidos.js"></script>
 </body>
 </html>

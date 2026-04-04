@@ -1,20 +1,19 @@
 /**
  * =========================================================================
  * ARCHIVO: assets/js/admin/archivos.js
- * Objetivo: Gesti\u00f3n de archivos PDF y videos (carga, listado y eliminar).
- *           L\u00f3gica para asignar archivos a clientes grandes o peque\u00f1os.
+ * Objetivo: Gestión de archivos PDF y videos (carga via modal, listado y eliminar).
+ *           Categorías: Informes de visita | Capacitaciones (PDF + Video)
  * =========================================================================
  */
 
-// Variables globales para mantener informaci\u00f3n que usaremos en m\u00faltiples funciones
-let largeClients = [];
-let allDocs = [];
+let allClients  = [];  // Todos los clientes (large + small)
+let allInformes = [];  // Documentos tipo 'report'
+let allPresentaciones = []; // Documentos tipo 'presentation'
 
 // -------------------------------------------------------------------------
-// 1. INICIALIZACI\u00d3N AL CARGAR LA P\u00c1GINA
+// 1. INICIALIZACIÓN
 // -------------------------------------------------------------------------
 (async () => {
-  // Verificamos tener la sesi\u00f3n del admin, sino se redirige autom\u00e1ticamente
   const profile = await requireAdminOrCommercial();
   if (!profile) return;
 
@@ -22,353 +21,361 @@ let allDocs = [];
 
   const isCommercial = profile.role === 'commercial';
 
-  // Nombre en sidebar
   document.getElementById('adminName').textContent = profile.full_name || (isCommercial ? 'Comercial' : 'Admin');
 
-  // Badge de rol
   const roleEl = document.getElementById('userRole');
   if (roleEl) {
     roleEl.textContent = isCommercial ? 'Comercial' : 'Administrador';
     if (isCommercial) roleEl.style.color = '#c084fc';
   }
 
-  // Ocultar opciones del sidebar no permitidas para comerciales
   if (isCommercial) {
     const linkUsuarios = document.querySelector('.sidebar__nav a[href="usuarios.html"]');
     if (linkUsuarios) linkUsuarios.style.display = 'none';
-
     const linkCatalogo = document.querySelector('.sidebar__nav a[href="catalogo.html"]');
     if (linkCatalogo) linkCatalogo.style.display = 'none';
-
-    // Mostrar el banner informativo con instrucciones para el comercial
-    // Este banner le explica para qué sirve esta sección y cómo usarla
-    const banner = document.getElementById('commercialBanner');
-    if (banner) banner.style.display = 'block';
   }
 
-  
-  // '.onclick' es otra forma v\u00e1lida de hacer 'addEventListener("click")'
   document.getElementById('logoutBtn').onclick = () => logout();
+  initAudit(profile);
 
-  // Cargamos los clientes VIP ("large") desde Supabase para luego agregarlos 
-  // a los selectores (los men\u00fas desplegables de "¿Para qui\u00e9n es este archivo?")
+  // Cargar TODOS los clientes (large y small) para el selector del modal
   const { data } = await sb.from('profiles')
     .select('id, company_name, full_name')
-    .eq('role', 'client').eq('client_type', 'large');
-    
-  largeClients = data || [];
-  
-  largeClients.forEach(c => {
-    // Generamos las opciones del selector
-    const opt = `<option value="${c.id}">${c.company_name || c.full_name}</option>`;
-    document.getElementById('docClient').innerHTML   += opt;
-    document.getElementById('videoClient').innerHTML += opt;
+    .eq('role', 'client')
+    .order('company_name', { ascending: true });
+
+  allClients = data || [];
+
+  const sel = document.getElementById('uploadClient');
+  allClients.forEach(c => {
+    const opt = document.createElement('option');
+    opt.value = c.id;
+    opt.textContent = c.company_name || c.full_name || 'Sin nombre';
+    sel.appendChild(opt);
   });
 
-  // Finalmente traemos la lista de archivos que ya est\u00e1n subidos
-  await loadDocs();
+  await loadInformes();
+  await loadPresentaciones();
   await loadVideos();
 })();
 
 // -------------------------------------------------------------------------
-// 2. L\u00d3GICA DE INTERFAZ: PESTA\u00d1AS (TABS)
+// 2. TABS
 // -------------------------------------------------------------------------
 document.querySelectorAll('.tab-btn').forEach(btn => {
   btn.addEventListener('click', () => {
-    // Removemos la clase "active" de todas las pesta\u00f1as
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
     document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-    
-    // Le a\u00f1adimos la clase "active" solo a la que tocamos
     btn.classList.add('active');
-    // Mostramos el contenido interno apuntando al data-tab de esa pesta\u00f1a
     document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
   });
 });
 
 // -------------------------------------------------------------------------
-// 3. OMNIPRESENCIA INTELIGENTE DEL SELECTOR DE TIPO
+// 3. MODAL DE SUBIDA
 // -------------------------------------------------------------------------
-const docTypeEl   = document.getElementById('docType');
-const docClientEl = document.getElementById('docClient');
+const uploadBackdrop = document.getElementById('uploadModalBackdrop');
 
-// Si elegimos tipo de documento "General", deshabilitamos el selector de clientes
-docTypeEl.addEventListener('change', () => {
-  if (docTypeEl.value === 'general_doc') {
-    docClientEl.value = '';
-    docClientEl.disabled = true;
+document.getElementById('openUploadModal').onclick  = () => {
+  hideModalError();
+  document.getElementById('uploadForm').reset();
+  resetDropArea();
+  uploadBackdrop.classList.add('open');
+};
+document.getElementById('closeUploadModal').onclick  = () => uploadBackdrop.classList.remove('open');
+document.getElementById('cancelUploadModal').onclick = () => uploadBackdrop.classList.remove('open');
+
+// Adaptar formulario según categoría elegida
+document.getElementById('uploadCategory').addEventListener('change', () => {
+  const cat = document.getElementById('uploadCategory').value;
+  const isVideo = cat === 'video';
+  document.getElementById('uploadDescGroup').style.display = isVideo ? 'block' : 'none';
+
+  // Cambiar el tipo de archivo aceptado y el hint
+  const fileInput = document.getElementById('uploadFile');
+  const hint = document.getElementById('uploadFileHint');
+  if (isVideo) {
+    fileInput.accept = 'video/*';
+    hint.textContent = 'MP4, MOV — Máximo 500 MB';
+    document.querySelector('#uploadDropArea .upload-area__icon').textContent = '🎥';
   } else {
-    docClientEl.disabled = false;
+    fileInput.accept = '.pdf';
+    hint.textContent = 'PDF — Máximo 50 MB';
+    document.querySelector('#uploadDropArea .upload-area__icon').textContent = '📄';
   }
+
+  // Resetear archivo seleccionado al cambiar categoría
+  fileInput.value = '';
+  resetDropArea();
+  hideModalError();
 });
 
-// Y al rev\u00e9s, si indicamos un cliente espec\u00edfico, evitamos subir como "General"
-docClientEl.addEventListener('change', () => {
-  if (docClientEl.value !== '') {
-    if (docTypeEl.value === 'general_doc') docTypeEl.value = 'report';
-    docTypeEl.querySelector('option[value="general_doc"]').disabled = true;
+// Drag & Drop del modal
+const dropArea = document.getElementById('uploadDropArea');
+dropArea.onclick = () => document.getElementById('uploadFile').click();
+
+document.getElementById('uploadFile').onchange = (e) => {
+  const file = e.target.files[0];
+  if (file) {
+    const size = (file.size / 1024 / 1024).toFixed(1);
+    dropArea.innerHTML = '<div class="upload-area__icon">✅</div>'
+      + '<p><strong>' + file.name + '</strong></p>'
+      + '<p style="color:var(--c-muted)">' + size + ' MB listo para subir</p>';
+    dropArea.onclick = () => document.getElementById('uploadFile').click();
   } else {
-    docTypeEl.querySelector('option[value="general_doc"]').disabled = false;
+    resetDropArea();
   }
-});
+};
+
+function resetDropArea() {
+  const cat = document.getElementById('uploadCategory').value;
+  const isVideo = cat === 'video';
+  dropArea.innerHTML = '<div class="upload-area__icon">' + (isVideo ? '🎥' : '📄') + '</div>'
+    + '<p><strong>Haz clic o arrastra</strong> el archivo aquí</p>'
+    + '<p style="color:var(--c-muted);font-size:0.8rem;" id="uploadFileHint">'
+    + (isVideo ? 'MP4, MOV — Máximo 500 MB' : 'PDF — Máximo 50 MB') + '</p>';
+  dropArea.onclick = () => document.getElementById('uploadFile').click();
+}
 
 // -------------------------------------------------------------------------
-// 4. \u00c1REAS DE "DRAG & DROP" (ARRASTRAR O HACER CLIC)
-// Esto hace que subir archivos use la zona punteada bonita 
+// 4. SUBMIT: SUBIR ARCHIVO
 // -------------------------------------------------------------------------
-['doc','video'].forEach(prefix => {
-  const area = document.getElementById(`${prefix}DropArea`);
-  area.dataset.original = area.innerHTML; // Guardamos c\u00f3mo era originalmente para restablacer
-  
-  // Al hacer clic en el \u00e1rea gris gigante, en realidad simulamos presionar el input original oculto
-  area.onclick = () => document.getElementById(`${prefix}File`).click();
-  
-  document.getElementById(`${prefix}File`).onchange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      const size = (file.size / 1024 / 1024).toFixed(1); // Convertirmos bytes a MB
-      area.innerHTML = `<div class="upload-area__icon">\u2705</div><p><strong>${file.name}</strong></p><p style="color:var(--c-muted)">${size} MB listo para subir</p>`;
+document.getElementById('uploadForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  hideModalError();
+
+  const file     = document.getElementById('uploadFile').files[0];
+  const category = document.getElementById('uploadCategory').value;
+  const title    = document.getElementById('uploadTitle').value.trim();
+  const desc     = document.getElementById('uploadDesc').value.trim();
+  const clientId = document.getElementById('uploadClient').value || null;
+
+  if (!file) {
+    showModalError('Debes seleccionar un archivo antes de subir.');
+    return;
+  }
+  if (!title) {
+    showModalError('El título es obligatorio.');
+    return;
+  }
+
+  const btn = document.getElementById('uploadSubmit');
+  const bar = document.getElementById('uploadProgressBar');
+  btn.textContent = 'Subiendo…'; btn.disabled = true;
+  document.getElementById('uploadProgress').style.display = 'block';
+  bar.classList.add('progress-bar--active');
+
+  const safeName = file.name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-zA-Z0-9._-]/g, '_');
+  const path = (clientId || 'general') + '/' + Date.now() + '_' + safeName;
+
+  try {
+    if (category === 'video') {
+      // Subir a bucket 'videos'
+      const { error: upErr } = await sb.storage.from('videos').upload(path, file);
+      if (upErr) throw upErr;
+      const { error: dbErr } = await sb.from('videos').insert({ title, description: desc, file_path: path, client_id: clientId });
+      if (dbErr) throw dbErr;
+      const clientName = clientId ? (allClients.find(c => c.id === clientId)?.company_name || clientId) : 'General';
+      await logAudit('Video subido', title + ' → ' + clientName);
     } else {
-      area.innerHTML = area.dataset.original;
+      // Subir a 'client-files' o 'general-files'
+      const bucket = clientId ? 'client-files' : 'general-files';
+      const { error: upErr } = await sb.storage.from(bucket).upload(path, file);
+      if (upErr) throw upErr;
+      const { error: dbErr } = await sb.from('documents').insert({ title, type: category, file_path: path, client_id: clientId });
+      if (dbErr) throw dbErr;
+      const clientName = clientId ? (allClients.find(c => c.id === clientId)?.company_name || clientId) : 'General';
+      const typeLabel  = category === 'report' ? 'Informe subido' : 'Presentación subida';
+      await logAudit(typeLabel, title + ' → ' + clientName);
     }
-    // Nos aseguramos que la funci\u00f3n click se conserve aunque cambiemos el HTML
-    area.onclick = () => document.getElementById(`${prefix}File`).click();
-  };
-});
 
-// -------------------------------------------------------------------------
-// 5. SUBIR DOCUMENTOS PDF AL SERVIDOR (STORAGE)
-// -------------------------------------------------------------------------
-document.getElementById('docForm').addEventListener('submit', async (e) => {
-  e.preventDefault();
-  
-  const file     = document.getElementById('docFile').files[0];
-  const title    = document.getElementById('docTitle').value.trim();
-  const type     = document.getElementById('docType').value;
-  const clientId = document.getElementById('docClient').value || null; // Null si es para todos
-  if (!file) return;
+    bar.classList.remove('progress-bar--active');
+    bar.style.width = '100%';
+    setTimeout(() => { document.getElementById('uploadProgress').style.display = 'none'; bar.style.width = '0%'; }, 700);
 
-  const btn = document.getElementById('docSubmit');
-  const bar = document.getElementById('docProgressBar');
-  btn.textContent = 'Subiendo\u2026'; btn.disabled = true;
-  document.getElementById('docProgress').style.display = 'block';
-  bar.classList.add('progress-bar--active');
+    uploadBackdrop.classList.remove('open');
+    document.getElementById('uploadForm').reset();
+    resetDropArea();
 
-  // Limpiamos el nombre original del archivo eliminando tildes y s\u00edmbolos raros para evitar errores al guardar
-  const safeName = file.name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-zA-Z0-9._-]/g, '_');
-  
-  // Armamos la ruta tipo "carpetaCliente/123443_nombrefile.pdf"
-  const path = `${clientId || 'general'}/${Date.now()}_${safeName}`;
-  const bucket = clientId ? 'client-files' : 'general-files';
+    showSuccess('Archivo subido correctamente.');
 
-  // Subimos el archivo a Supabase Storage
-  const { error: upErr } = await sb.storage.from(bucket).upload(path, file);
-  bar.classList.remove('progress-bar--active');
-  
-  if (upErr) { 
-    showError(upErr.message); 
-    document.getElementById('docProgress').style.display = 'none'; 
-    btn.textContent = 'Subir documento'; btn.disabled = false; 
-    return; 
+    // Recargar la lista correspondiente
+    if (category === 'report') await loadInformes();
+    else if (category === 'presentation') await loadPresentaciones();
+    else await loadVideos();
+
+  } catch (err) {
+    bar.classList.remove('progress-bar--active');
+    document.getElementById('uploadProgress').style.display = 'none';
+    showModalError('Error al subir: ' + (err.message || 'Error desconocido'));
   }
 
-  // Ahora indicamos a la base de datos SQL el registro del documento y a qui\u00e9n pertenece
-  await sb.from('documents').insert({ title, type, file_path: path, client_id: clientId });
-  bar.style.width = '100%'; // Simulaci\u00f3n de final
-  
-  // Un retraso visual antes de esconder la barra
-  setTimeout(() => { document.getElementById('docProgress').style.display = 'none'; bar.style.width = '0%'; }, 700);
-  
-  showSuccess('Documento subido correctamente.');
-  document.getElementById('docForm').reset();
-  
-  // Reiniciar dise\u00f1o del Drag and Drop
-  const da = document.getElementById('docDropArea');
-  da.innerHTML = da.dataset.original; 
-  da.onclick = () => document.getElementById('docFile').click();
-  
-  await loadDocs(); // Recargamos para ver el recien a\u00f1adido!
-  btn.textContent = 'Subir documento'; btn.disabled = false;
+  btn.textContent = 'Subir archivo'; btn.disabled = false;
 });
 
 // -------------------------------------------------------------------------
-// 6. SUBIR VIDEOS (L\u00f3gica similar a la del documento)
-// -------------------------------------------------------------------------
-document.getElementById('videoForm').addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const file     = document.getElementById('videoFile').files[0];
-  const title    = document.getElementById('videoTitle').value.trim();
-  const desc     = document.getElementById('videoDesc').value.trim();
-  const clientId = document.getElementById('videoClient').value || null;
-  if (!file) return;
-
-  const btn = document.getElementById('videoSubmit');
-  const bar = document.getElementById('videoProgressBar');
-  btn.textContent = 'Subiendo\u2026'; btn.disabled = true;
-  document.getElementById('videoProgress').style.display = 'block';
-  bar.classList.add('progress-bar--active');
-
-  const safeName = file.name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-zA-Z0-9._-]/g, '_');
-  const path = `${clientId || 'general'}/${Date.now()}_${safeName}`;
-  const { error: upErr } = await sb.storage.from('videos').upload(path, file);
-  
-  bar.classList.remove('progress-bar--active');
-  
-  if (upErr) { 
-    showError(upErr.message); 
-    document.getElementById('videoProgress').style.display = 'none'; 
-    btn.textContent = 'Subir video'; btn.disabled = false; 
-    return; 
-  }
-
-  await sb.from('videos').insert({ title, description: desc, file_path: path, client_id: clientId });
-  bar.style.width = '100%';
-  setTimeout(() => { document.getElementById('videoProgress').style.display = 'none'; bar.style.width = '0%'; }, 700);
-  
-  showSuccess('Video subido correctamente.');
-  document.getElementById('videoForm').reset();
-  const va = document.getElementById('videoDropArea');
-  va.innerHTML = va.dataset.original; 
-  va.onclick = () => document.getElementById('videoFile').click();
-  
-  await loadVideos();
-  btn.textContent = 'Subir video'; btn.disabled = false;
-});
-
-// -------------------------------------------------------------------------
-// 7. CONSULTAR BASES Y CREAR TABLAS HTML EN TIEMPO REAL
+// 5. CARGAR Y RENDERIZAR LISTAS
 // -------------------------------------------------------------------------
 
-async function loadDocs() {
-  const { data } = await sb.from('documents').select('*').order('created_at', { ascending: false });
-  allDocs = data || [];
-  renderDocs(allDocs);
+async function loadInformes() {
+  const { data } = await sb.from('documents')
+    .select('*').eq('type', 'report').order('created_at', { ascending: false });
+  allInformes = data || [];
+  renderInformes(allInformes);
 }
 
-// Funci\u00f3n para 'Pintar' Documentos en la lista
-function renderDocs(docs) {
-  const list = document.getElementById('docList');
-  if (!docs.length) { 
-    list.innerHTML = '<p style="color:var(--c-muted);font-size:0.875rem;">Sin documentos a\u00fan.</p>'; 
-    return; 
-  }
-  
-  // .map() nos permite transcribir nuestra info en c\u00f3digo HTML masivo
-  list.innerHTML = docs.map(d => {
-    // Si est\u00e1 asociado a un cliente VIP buscamos el nombre, si no ser\u00e1 General
-    const client = largeClients.find(c => c.id === d.client_id);
-    const tag = client ? `<strong>${client.company_name || client.full_name}</strong>` : '<em>General</em>';
-    const typeLabel = { report: 'Informe', presentation: 'Presentaci\u00f3n', general_doc: 'Doc. general' }[d.type] || d.type;
-    
-    // Y devolvemos el dise\u00f1o de Item directamente inyectado
-    return `<div class="file-item">
-      <div class="file-item__icon">\ud83d\udcc4</div>
-      <div class="file-item__info">
-        <div class="file-item__name">${d.title}</div>
-        <div class="file-item__meta">${typeLabel} \u00b7 ${tag} \u00b7 ${new Date(d.created_at).toLocaleDateString('es-CO')}</div>
-      </div>
-      <div class="file-item__actions">
-        <!-- Estos eventos llaman funciones locales con par\u00e1metros espec\u00edficos de ESTE archivo -->
-        <button class="btn btn--ghost btn--sm" onclick="downloadFile('${d.file_path}', '${d.client_id ? 'client-files' : 'general-files'}')">Descargar</button>
-        <button class="btn btn--danger btn--sm" onclick="deleteDoc('${d.id}', '${d.file_path}', '${d.client_id ? 'client-files' : 'general-files'}')">Eliminar</button>
-      </div>
-    </div>`;
-  }).join('');
+async function loadPresentaciones() {
+  const { data } = await sb.from('documents')
+    .select('*').eq('type', 'presentation').order('created_at', { ascending: false });
+  allPresentaciones = data || [];
+  renderPresentaciones(allPresentaciones);
 }
 
-// B\u00fasqueda simple en tiempo real (evento del input superior)
-document.getElementById('docSearch').addEventListener('input', (e) => {
-  const q = e.target.value.toLowerCase();
-  renderDocs(allDocs.filter(d => d.title.toLowerCase().includes(q)));
-});
+function getClientName(clientId) {
+  if (!clientId) return '<em>General</em>';
+  const c = allClients.find(c => c.id === clientId);
+  return c ? '<strong>' + (c.company_name || c.full_name) + '</strong>' : '<em>General</em>';
+}
+
+function renderInformes(docs) {
+  const list = document.getElementById('informesList');
+  if (!docs.length) {
+    list.innerHTML = '<p style="color:var(--c-muted);font-size:0.875rem;">Sin informes aún.</p>';
+    return;
+  }
+  list.innerHTML = docs.map(d => fileItemHTML(d, d.client_id ? 'client-files' : 'general-files')).join('');
+}
+
+function renderPresentaciones(docs) {
+  const list = document.getElementById('presentacionesList');
+  if (!docs.length) {
+    list.innerHTML = '<p style="color:var(--c-muted);font-size:0.875rem;">Sin presentaciones aún.</p>';
+    return;
+  }
+  list.innerHTML = docs.map(d => fileItemHTML(d, d.client_id ? 'client-files' : 'general-files')).join('');
+}
+
+function fileItemHTML(d, bucket) {
+  return '<div class="file-item">'
+    + '<div class="file-item__icon">📄</div>'
+    + '<div class="file-item__info">'
+    + '<div class="file-item__name">' + d.title + '</div>'
+    + '<div class="file-item__meta">' + getClientName(d.client_id) + ' · ' + new Date(d.created_at).toLocaleDateString('es-CO') + '</div>'
+    + '</div>'
+    + '<div class="file-item__actions">'
+    + '<button class="btn btn--ghost btn--sm" onclick="downloadFile(\'' + d.file_path + '\', \'' + bucket + '\')">Descargar</button>'
+    + '<button class="btn btn--danger btn--sm" onclick="deleteDoc(\'' + d.id + '\', \'' + d.file_path + '\', \'' + bucket + '\')">Eliminar</button>'
+    + '</div>'
+    + '</div>';
+}
 
 async function loadVideos() {
   const { data } = await sb.from('videos').select('*').order('created_at', { ascending: false });
   const list = document.getElementById('videoList');
-  if (!data || !data.length) { 
-    list.innerHTML = '<p style="color:var(--c-muted);font-size:0.875rem;">Sin videos a\u00fan.</p>'; 
-    return; 
+  if (!data || !data.length) {
+    list.innerHTML = '<p style="color:var(--c-muted);font-size:0.875rem;">Sin videos aún.</p>';
+    return;
   }
-  list.innerHTML = data.map(v => {
-    const client = largeClients.find(c => c.id === v.client_id);
-    const tag = client ? `<strong>${client.company_name || client.full_name}</strong>` : '<em>General</em>';
-    
-    // Obtenemos la URL pública generada de Supabase
-    const videoUrl = sb.storage.from('videos').getPublicUrl(v.file_path).data.publicUrl;
-
-    return `<div class="video-card">
-      <video controls src="${videoUrl}" preload="metadata"></video>
-      <div class="video-card__body">
-        <h3 class="video-card__title">${v.title}</h3>
-        <p class="video-card__desc">${v.description || 'Sin descripción'}</p>
-        <p style="font-size:0.75rem; color:var(--c-muted); margin-top:8px;">
-          ${tag} · ${new Date(v.created_at).toLocaleDateString('es-CO')}
-        </p>
-        <button class="btn btn--danger btn--sm" style="margin-top:12px; width:100%" onclick="deleteVideo('${v.id}', '${v.file_path}')">
-          Eliminar Video
-        </button>
-      </div>
-    </div>`;
+  const signedUrls = await Promise.all(
+    data.map(v => sb.storage.from('videos').createSignedUrl(v.file_path, 3600))
+  );
+  list.innerHTML = data.map((v, i) => {
+    const videoUrl = signedUrls[i].data?.signedUrl || '';
+    return '<div class="video-card">'
+      + '<video controls src="' + videoUrl + '" preload="metadata"></video>'
+      + '<div class="video-card__body">'
+      + '<h3 class="video-card__title">' + v.title + '</h3>'
+      + '<p class="video-card__desc">' + (v.description || 'Sin descripción') + '</p>'
+      + '<p style="font-size:0.75rem;color:var(--c-muted);margin-top:8px;">'
+      + getClientName(v.client_id) + ' · ' + new Date(v.created_at).toLocaleDateString('es-CO')
+      + '</p>'
+      + '<button class="btn btn--danger btn--sm" style="margin-top:12px;width:100%" onclick="deleteVideo(\'' + v.id + '\', \'' + v.file_path + '\')">Eliminar</button>'
+      + '</div>'
+      + '</div>';
   }).join('');
 }
 
 // -------------------------------------------------------------------------
-// 8. ACCIONES DE DESCARGAR Y ELIMINAR (Globales)
+// 6. BÚSQUEDAS EN TIEMPO REAL
 // -------------------------------------------------------------------------
+document.getElementById('informesSearch').addEventListener('input', (e) => {
+  const q = e.target.value.toLowerCase();
+  renderInformes(allInformes.filter(d => d.title.toLowerCase().includes(q)));
+});
 
-/* Nota que esta funci\u00f3n debe ser 'global' para que los 'onclick' autogenerados del HTML la vean */
+document.getElementById('presentacionesSearch').addEventListener('input', (e) => {
+  const q = e.target.value.toLowerCase();
+  renderPresentaciones(allPresentaciones.filter(d => d.title.toLowerCase().includes(q)));
+});
+
+// -------------------------------------------------------------------------
+// 7. ACCIONES GLOBALES (DESCARGAR / ELIMINAR)
+// -------------------------------------------------------------------------
 window.downloadFile = async function(path, bucket) {
-  // Solicitamos a supabase acceso temporal
   const { data } = await sb.storage.from(bucket).createSignedUrl(path, 60);
   if (data) {
-    // Para forzar la descarga en el navegador, hacemos un enlace falso
     const a = document.createElement('a');
     a.href = data.signedUrl;
     a.download = path.split('/').pop();
     document.body.appendChild(a);
-    a.click(); // Lo clicamos
-    document.body.removeChild(a); // Y escondemos el v\u00eddeo de la escena del crimen
+    a.click();
+    document.body.removeChild(a);
   }
-}
+};
 
 window.deleteDoc = async function(id, path, bucket) {
-  if (!confirm('\u00bfEliminar este documento?')) return;
-  // Borramos el recurso en la nube
+  if (!confirm('¿Eliminar este documento?')) return;
+  const doc = [...allInformes, ...allPresentaciones].find(d => d.id === id);
   await sb.storage.from(bucket).remove([path]);
-  // Borramos la fila de la base de datos SQL
   await sb.from('documents').delete().eq('id', id);
-  // Recargamos el muro
-  await loadDocs();
+  await logAudit('Documento eliminado', doc?.title || path.split('/').pop());
+  await loadInformes();
+  await loadPresentaciones();
   showSuccess('Documento eliminado.');
-}
+};
 
 window.deleteVideo = async function(id, path) {
-  if (!confirm('\u00bfEliminar este video?')) return;
+  if (!confirm('¿Eliminar este video?')) return;
   await sb.storage.from('videos').remove([path]);
   await sb.from('videos').delete().eq('id', id);
+  await logAudit('Video eliminado', path.split('/').pop());
   await loadVideos();
   showSuccess('Video eliminado.');
-}
+};
 
 // -------------------------------------------------------------------------
-// 9. ALERTAS Y MEN\u00da MOVIL
+// 8. ALERTAS
 // -------------------------------------------------------------------------
+function showModalError(msg) {
+  const el = document.getElementById('uploadModalError');
+  el.textContent = msg;
+  el.classList.add('show');
+}
+
+function hideModalError() {
+  const el = document.getElementById('uploadModalError');
+  if (el) el.classList.remove('show');
+}
+
 function showSuccess(msg) {
   const el = document.getElementById('successMsg');
-  el.textContent = msg; 
+  el.textContent = msg;
   el.classList.add('show');
   setTimeout(() => el.classList.remove('show'), 4000);
 }
 
 function showError(msg) {
   const el = document.getElementById('errorMsg');
-  el.textContent = msg; 
+  el.textContent = msg;
   el.classList.add('show');
   setTimeout(() => el.classList.remove('show'), 6000);
 }
 
-// Hamburger Toggle
-const hbg = document.getElementById('hamburger');
+// -------------------------------------------------------------------------
+// 9. MENÚ MÓVIL
+// -------------------------------------------------------------------------
+const hbg     = document.getElementById('hamburger');
 const sidebar = document.querySelector('.sidebar');
 const overlay = document.getElementById('sidebarOverlay');
 

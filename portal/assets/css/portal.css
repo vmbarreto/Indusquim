@@ -36,7 +36,7 @@ input, select, textarea { font-family: inherit; }
 
 /* ─── Layout ────────────────────────────────────────────────── */
 .portal-wrap   { display: flex; min-height: 100vh; }
-.sidebar       { width: 260px; flex-shrink: 0; background: var(--c-dark); display: flex; flex-direction: column; padding: 0; }
+.sidebar       { width: 260px; flex-shrink: 0; background: var(--c-dark); display: flex; flex-direction: column; padding: 0; position: sticky; top: 0; height: 100vh; overflow-y: auto; }
 .sidebar__logo { padding: 28px 24px 20px; border-bottom: 1px solid rgba(255,255,255,0.08); }
 .sidebar__logo img { height: 36px; display: block; }
 .sidebar__logo a { display: block; opacity: 0.9; transition: opacity .2s; }

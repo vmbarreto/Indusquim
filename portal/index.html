@@ -22,7 +22,7 @@
 
       if (!profile) { await sb.auth.signOut(); window.location.href = 'login.html'; return; }
 
-      if (profile.role === 'admin') {
+      if (profile.role === 'admin' || profile.role === 'commercial') {
         window.location.href = 'admin/index.html';
       } else if (profile.client_type === 'large') {
         window.location.href = 'cliente/grande.html';

@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Historial — Indusquim Portal</title>
+  <link rel="stylesheet" href="../assets/css/portal.css" />
+  <style>
+    .audit-badge {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      white-space: nowrap;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .audit-badge--create  { background: rgba(16,185,129,0.12);  color: #059669; }
+    .audit-badge--update  { background: rgba(59,130,246,0.12);  color: #3b82f6; }
+    .audit-badge--delete  { background: rgba(214,64,69,0.12);   color: #d64045; }
+    .audit-badge--status  { background: rgba(139,92,246,0.12);  color: #7c3aed; }
+    .audit-badge--other   { background: rgba(107,114,128,0.12); color: #6b7280; }
+    .audit-notice {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 16px;
+      background: rgba(44,95,38,0.07);
+      border: 1px solid rgba(44,95,38,0.2);
+      border-radius: var(--r-md);
+      margin-bottom: 20px;
+      font-size: 0.85rem;
+      color: var(--c-brand);
+    }
+    #auditTableWrap {
+      overflow-x: auto;
+    }
+    #auditTableWrap table {
+      min-width: 640px;
+    }
+  </style>
+</head>
+<body>
+<div class="portal-wrap">
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar__logo"><a href="../../index.html" style="display:block;"><img src="../../logo-indusquim-blanco.png" alt="Indusquim" /></a></div>
+    <nav class="sidebar__nav">
+      <a href="index.html" class="sidebar__link">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+        Dashboard
+      </a>
+      <a href="clientes.html" class="sidebar__link">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+        Clientes
+      </a>
+      <a href="pedidos.html" class="sidebar__link">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/></svg>
+        Pedidos
+      </a>
+      <a href="usuarios.html" class="sidebar__link" id="linkUsuarios">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+        Usuarios
+      </a>
+      <a href="archivos.html" class="sidebar__link">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        Archivos y Videos
+      </a>
+      <a href="catalogo.html" class="sidebar__link" id="linkCatalogo">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h7"/></svg>
+        Catálogo
+      </a>
+      <a href="historial.html" class="sidebar__link active">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        Historial
+      </a>
+    </nav>
+    <div class="sidebar__footer">
+      <div class="sidebar__user">
+        <strong id="adminName">Cargando…</strong>
+        <span id="userRole" style="font-size:0.7rem;opacity:0.7;text-transform:uppercase;letter-spacing:0.05em;">Indusquim</span>
+      </div>
+      <button class="btn-logout" id="logoutBtn">Cerrar sesión</button>
+    </div>
+  </aside>
+
+  <div class="sidebar-overlay" id="sidebarOverlay"></div>
+  <div class="main-content">
+    <div class="topbar">
+      <button class="hamburger" id="hamburger" aria-label="Menú"><span></span><span></span><span></span></button>
+      <span class="topbar__title">Historial de cambios</span>
+      <div class="notif-wrap" id="notifWrap" style="position:relative;margin-left:auto;">
+        <button class="btn btn--ghost btn--sm" id="notifBtn" style="position:relative;padding:8px 12px;" title="Notificaciones">
+          <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
+          <span class="notif-badge" id="notifBadge" style="display:none;">0</span>
+        </button>
+        <div class="notif-panel" id="notifPanel">
+          <div class="notif-panel__header"><span>Notificaciones</span><button id="markAllRead">Marcar todas leídas</button></div>
+          <div id="notifList"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="page-body">
+      <div class="audit-notice">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        Este historial es de solo lectura. Ningún rol puede eliminar ni modificar los registros.
+      </div>
+
+      <!-- Filtros -->
+      <div class="card" style="margin-bottom:20px;padding:16px 20px;">
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+          <input type="text" id="auditSearch" class="form-input"
+            placeholder="Buscar por acción o detalle…"
+            style="flex:1;min-width:180px;max-width:320px;font-size:0.85rem;padding:7px 12px;" />
+          <select id="auditUserFilter" class="form-select"
+            style="width:auto;min-width:160px;font-size:0.85rem;padding:7px 28px 7px 12px;">
+            <option value="">Todos los usuarios</option>
+          </select>
+          <select id="auditTypeFilter" class="form-select"
+            style="width:auto;font-size:0.85rem;padding:7px 28px 7px 12px;">
+            <option value="">Todas las acciones</option>
+            <option value="creado">Creaciones</option>
+            <option value="actualizado">Actualizaciones</option>
+            <option value="eliminado">Eliminaciones</option>
+            <option value="estado">Cambios de estado</option>
+            <option value="subido">Subidas</option>
+          </select>
+          <span id="auditCount" style="font-size:0.82rem;color:var(--c-muted);margin-left:auto;white-space:nowrap;"></span>
+        </div>
+      </div>
+
+      <!-- Tabla -->
+      <div class="card" style="padding:0;overflow:hidden;">
+        <div id="auditTableWrap">
+          <table>
+            <thead>
+              <tr>
+                <th style="width:160px;">Fecha y hora</th>
+                <th style="width:160px;">Usuario</th>
+                <th style="width:180px;">Acción</th>
+                <th>Detalle</th>
+              </tr>
+            </thead>
+            <tbody id="auditTable">
+              <tr><td colspan="4" style="text-align:center;color:var(--c-muted);padding:32px;">Cargando historial…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../assets/js/supabase-client.js"></script>
+<script src="../assets/js/auth.js"></script>
+<script src="../assets/js/notifications.js"></script>
+<script src="../assets/js/admin/historial.js"></script>
+</body>
+</html>
