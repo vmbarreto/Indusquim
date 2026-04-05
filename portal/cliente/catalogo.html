@@ -6,9 +6,13 @@
   <title>Catálogo Virtual — Indusquim Portal</title>
   <link rel="stylesheet" href="../assets/css/portal.css" />
   <style>
-    .product-img { width: 100%; aspect-ratio: 16/9; object-fit: cover; background: var(--c-bg-alt); display: block; }
-    .catalog-item { transition: transform 0.2s, box-shadow 0.2s; }
-    .catalog-item:hover { transform: translateY(-3px); box-shadow: var(--sh-md); }
+    .catalog-row { display: flex; align-items: center; gap: 16px; padding: 14px 16px; background: var(--c-bg); border: 1px solid var(--c-border); border-radius: 10px; margin-bottom: 10px; }
+    .catalog-row__img { width: 72px; height: 56px; object-fit: cover; border-radius: 6px; flex-shrink: 0; background: var(--c-bg-alt); }
+    .catalog-row__info { flex: 1; min-width: 0; }
+    .catalog-row__title { font-weight: 700; font-size: 0.9rem; }
+    .catalog-row__desc  { font-size: 0.78rem; color: var(--c-muted); margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .catalog-row__qty   { font-size: 0.78rem; color: var(--c-muted); margin-top: 2px; }
+    .catalog-row__actions { display: flex; gap: 8px; flex-shrink: 0; }
 
     /* Carrito flotante */
     .cart-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 200; display: none; }
@@ -117,7 +121,7 @@
         </select>
       </div>
 
-      <div class="video-grid" id="catalogGrid">
+      <div id="catalogGrid">
         <div style="color:var(--c-muted);font-size:0.875rem;">Cargando catálogo…</div>
       </div>
     </div>
@@ -136,10 +140,8 @@
         </div>
         <button class="modal__close" id="closeModal">✕</button>
       </div>
-      <p id="modalShortDesc" style="font-size:0.82rem;color:var(--c-brand);font-weight:600;margin:8px 0 4px;"></p>
       <p style="font-size:0.875rem;color:var(--c-body);line-height:1.6;" id="modalDesc"></p>
       <div class="modal__footer" style="flex-wrap:wrap;gap:10px;margin-top:20px;">
-        <button id="modalSheetBtn" class="btn btn--ghost" style="display:none;">📄 Descargar ficha técnica</button>
         <button id="modalAddCart" class="btn btn--primary" style="display:none;">+ Agregar al pedido</button>
       </div>
     </div>

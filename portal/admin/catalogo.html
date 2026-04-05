@@ -6,7 +6,13 @@
   <title>Catálogo — Indusquim Portal</title>
   <link rel="stylesheet" href="../assets/css/portal.css" />
   <style>
-    .product-img { width: 100%; aspect-ratio: 16/9; object-fit: cover; background: var(--c-bg-alt); display: block; }
+    .catalog-row { display: flex; align-items: center; gap: 16px; padding: 14px 16px; background: var(--c-bg); border: 1px solid var(--c-border); border-radius: 10px; margin-bottom: 10px; }
+    .catalog-row__img { width: 72px; height: 56px; object-fit: cover; border-radius: 6px; flex-shrink: 0; background: var(--c-bg-alt); }
+    .catalog-row__info { flex: 1; min-width: 0; }
+    .catalog-row__title { font-weight: 700; font-size: 0.9rem; }
+    .catalog-row__desc  { font-size: 0.78rem; color: var(--c-muted); margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .catalog-row__qty   { font-size: 0.78rem; color: var(--c-muted); margin-top: 2px; }
+    .catalog-row__actions { display: flex; gap: 8px; flex-shrink: 0; }
   </style>
 </head>
 <body>
@@ -98,7 +104,7 @@
             </select>
           </div>
         </div>
-        <div class="video-grid" id="catalogList">
+        <div id="catalogList">
           <p style="color:var(--c-muted);font-size:0.875rem;">Cargando…</p>
         </div>
       </div>
@@ -131,12 +137,12 @@
         </div>
       </div>
       <div class="form-group" style="margin-top:16px;">
-        <label class="form-label">Descripción corta <span style="color:var(--c-brand)">*</span></label>
-        <input type="text" class="form-input" id="prodShortDesc" placeholder="Una línea visible en la tarjeta (máx. 80 caracteres)" maxlength="80" required />
+        <label class="form-label">Descripción <span style="color:var(--c-brand)">*</span></label>
+        <textarea class="form-input" id="prodDesc" rows="3" placeholder="Descripción del producto…" required></textarea>
       </div>
       <div class="form-group">
-        <label class="form-label">Descripción completa <span style="color:var(--c-brand)">*</span></label>
-        <textarea class="form-input" id="prodDesc" rows="3" placeholder="Descripción detallada del producto…" required></textarea>
+        <label class="form-label">Cantidad disponible</label>
+        <input type="number" class="form-input" id="prodQuantity" min="0" value="0" style="width:140px;" />
       </div>
       <div class="form-group">
         <label class="form-label">Imagen de portada <span style="color:var(--c-brand)">*</span></label>
@@ -146,15 +152,6 @@
           <p style="color:var(--c-muted);font-size:0.8rem;">JPG o PNG — Recomendado 16:9</p>
         </div>
         <input type="file" id="prodFile" accept="image/*" style="display:none;" required />
-      </div>
-      <div class="form-group">
-        <label class="form-label">Ficha técnica <span style="font-size:0.75rem;color:var(--c-muted);">(PDF opcional)</span></label>
-        <div class="upload-area" id="sheetDropArea" style="padding:16px 20px;">
-          <div class="upload-area__icon" style="font-size:1.4rem;">📄</div>
-          <p><strong>Haz clic o arrastra</strong> el PDF de la ficha técnica</p>
-          <p style="color:var(--c-muted);font-size:0.8rem;">Solo archivos PDF</p>
-        </div>
-        <input type="file" id="sheetFile" accept="application/pdf" style="display:none;" />
       </div>
       <div class="alert alert--error" id="prodModalError" style="margin-bottom:12px;"></div>
       <div class="progress-wrap" id="prodProgress" style="display:none;margin-bottom:12px;">
@@ -180,9 +177,8 @@
         </div>
         <button class="modal__close" id="closeDetailModal">✕</button>
       </div>
-      <p id="detailShortDesc" style="font-size:0.82rem;color:var(--c-brand);font-weight:600;margin:10px 0 4px;"></p>
       <p style="font-size:0.875rem;color:var(--c-body);line-height:1.6;" id="detailDesc"></p>
-      <div style="margin-top:14px;" id="detailSheetWrap"></div>
+      <div style="margin-top:10px;font-size:0.8rem;color:var(--c-muted);" id="detailQuantity"></div>
     </div>
   </div>
 </div>
@@ -197,7 +193,6 @@
     <form id="editForm">
       <input type="hidden" id="e_id" />
       <input type="hidden" id="e_oldImgPath" />
-      <input type="hidden" id="e_oldSheetPath" />
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
         <div class="form-group" style="margin:0;">
           <label class="form-label">Nombre del producto <span style="color:var(--c-brand)">*</span></label>
@@ -214,12 +209,12 @@
         </div>
       </div>
       <div class="form-group" style="margin-top:16px;">
-        <label class="form-label">Descripción corta <span style="color:var(--c-brand)">*</span></label>
-        <input type="text" class="form-input" id="e_shortDesc" maxlength="80" required />
+        <label class="form-label">Descripción <span style="color:var(--c-brand)">*</span></label>
+        <textarea class="form-input" id="e_desc" rows="3" required></textarea>
       </div>
       <div class="form-group">
-        <label class="form-label">Descripción completa <span style="color:var(--c-brand)">*</span></label>
-        <textarea class="form-input" id="e_desc" rows="3" required></textarea>
+        <label class="form-label">Cantidad disponible</label>
+        <input type="number" class="form-input" id="e_quantity" min="0" value="0" style="width:140px;" />
       </div>
       <div class="form-group">
         <label class="form-label">Nueva imagen <span style="font-size:0.75rem;color:var(--c-muted);">(opcional — reemplaza la actual)</span></label>
@@ -227,13 +222,6 @@
           <div id="editImgPreview" style="font-size:0.85rem;color:var(--c-muted);">Haz clic para cambiar la imagen</div>
         </div>
         <input type="file" id="e_imgFile" accept="image/*" style="display:none;" />
-      </div>
-      <div class="form-group">
-        <label class="form-label">Nueva ficha técnica <span style="font-size:0.75rem;color:var(--c-muted);">(PDF opcional)</span></label>
-        <div class="upload-area" id="editSheetArea" style="padding:12px 16px;cursor:pointer;">
-          <div id="editSheetPreview" style="font-size:0.85rem;color:var(--c-muted);">Haz clic para cambiar el PDF</div>
-        </div>
-        <input type="file" id="e_sheetFile" accept="application/pdf" style="display:none;" />
       </div>
       <div class="alert alert--error" id="editModalError" style="margin-bottom:12px;"></div>
       <div class="modal__footer">

@@ -52,27 +52,27 @@ async function fetchCatalog() {
 function renderCatalog(items) {
   const grid = document.getElementById('catalogGrid');
   if (!items.length) {
-    grid.innerHTML = '<p style="color:var(--c-muted);font-size:0.875rem;grid-column:1/-1;">No hay productos en esta categoría.</p>';
+    grid.innerHTML = '<p style="color:var(--c-muted);font-size:0.875rem;">No hay productos en esta categoría.</p>';
     return;
   }
 
   grid.innerHTML = items.map((p, idx) => {
     const imgUrl = sb.storage.from('catalog-images').getPublicUrl(p.file_path).data.publicUrl;
 
-    // Botones según rol
     const btns = isClientRole()
-      ? '<button class="btn btn--ghost btn--sm" style="flex:1;" onclick="openProductModal(' + idx + ')">Detalles</button>'
-        + '<button class="btn btn--primary btn--sm" style="flex:1;" onclick="addToCart(' + idx + ')">+ Agregar</button>'
-      : '<button class="btn btn--ghost btn--sm" style="width:100%;" onclick="openProductModal(' + idx + ')">Ver detalles</button>';
+      ? '<button class="btn btn--ghost btn--sm" onclick="openProductModal(' + idx + ')">Detalles</button>'
+        + '<button class="btn btn--primary btn--sm" onclick="addToCart(' + idx + ')">+ Agregar</button>'
+      : '<button class="btn btn--ghost btn--sm" onclick="openProductModal(' + idx + ')">Ver detalles</button>';
 
-    return '<div class="video-card catalog-item">'
-      + '<img src="' + imgUrl + '" class="product-img" alt="' + p.title + '" loading="lazy" />'
-      + '<div class="video-card__body">'
-      + '<h3 class="video-card__title">' + p.title + '</h3>'
-      + '<span class="badge badge--large" style="margin-top:4px;display:inline-block;">' + p.category + '</span>'
-      + (p.short_description ? '<p style="font-size:0.82rem;color:var(--c-muted);margin-top:6px;line-height:1.4;">' + p.short_description + '</p>' : '')
-      + '<div style="display:flex;gap:8px;margin-top:14px;">' + btns + '</div>'
+    return '<div class="catalog-row">'
+      + '<img src="' + imgUrl + '" class="catalog-row__img" alt="' + p.title + '" loading="lazy" />'
+      + '<div class="catalog-row__info">'
+      + '<div class="catalog-row__title">' + p.title + '</div>'
+      + '<span class="badge badge--large" style="margin-top:3px;display:inline-block;">' + p.category + '</span>'
+      + (p.description ? '<div class="catalog-row__desc">' + p.description + '</div>' : '')
+      + '<div class="catalog-row__qty">Disponible: ' + (p.quantity || 0) + '</div>'
       + '</div>'
+      + '<div class="catalog-row__actions">' + btns + '</div>'
       + '</div>';
   }).join('');
 }
@@ -105,20 +105,10 @@ window.openProductModal = function(idx) {
 
   document.getElementById('modalTitle').textContent    = p.title;
   document.getElementById('modalCategory').textContent = p.category;
-  document.getElementById('modalShortDesc').textContent = p.short_description || '';
   document.getElementById('modalDesc').textContent     = p.description || '';
 
   const imgUrl = sb.storage.from('catalog-images').getPublicUrl(p.file_path).data.publicUrl;
   document.getElementById('modalImg').src = imgUrl;
-
-  // Ficha técnica
-  const sheetBtn = document.getElementById('modalSheetBtn');
-  if (p.technical_sheet_path) {
-    sheetBtn.style.display = 'inline-flex';
-    sheetBtn.onclick = () => downloadSheet(p.technical_sheet_path, p.title);
-  } else {
-    sheetBtn.style.display = 'none';
-  }
 
   // Botón agregar: solo para clientes
   document.getElementById('modalAddCart').style.display = isClientRole() ? 'inline-flex' : 'none';
@@ -135,16 +125,6 @@ document.getElementById('modalAddCart').onclick = () => {
     productModal.classList.remove('open');
   }
 };
-
-// Descargar ficha técnica
-async function downloadSheet(sheetPath, productTitle) {
-  const { data, error } = await sb.storage.from('technical-sheets').createSignedUrl(sheetPath, 120);
-  if (error) { showError('No se pudo descargar la ficha técnica.'); return; }
-  const a = document.createElement('a');
-  a.href = data.signedUrl;
-  a.download = productTitle + '_ficha_tecnica.pdf';
-  a.click();
-}
 
 // ==========================================
 // CARRITO
