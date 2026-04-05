@@ -6,8 +6,10 @@
  * =========================================================================
  */
 
-let allUsers       = [];
-let allCommercials = [];
+let allUsers        = [];
+let allCommercials  = [];
+let allCatalogItems = [];
+let pendingClientData = null;
 
 // -------------------------------------------------------------------------
 // 1. CARGAR INFORMACIÓN INICIAL Y VERIFICAR PERMISOS
@@ -32,6 +34,7 @@ let allCommercials = [];
 
   initAudit(profile);
   await loadCommercials();
+  await loadCatalogItems();
   await loadUsers();
 
   document.getElementById('logoutBtn').onclick = () => logout();
@@ -55,6 +58,14 @@ async function loadCommercials() {
     opt.textContent = c.full_name || 'Sin nombre';
     select.appendChild(opt);
   });
+}
+
+// -------------------------------------------------------------------------
+// 3. CARGAR CATÁLOGO (para checklist del paso 2)
+// -------------------------------------------------------------------------
+async function loadCatalogItems() {
+  const { data } = await sb.from('catalog_items').select('id, title').order('title', { ascending: true });
+  allCatalogItems = data || [];
 }
 
 // Devuelve el nombre de un comercial por su ID (para la tabla)
@@ -152,45 +163,76 @@ document.getElementById('searchInput').addEventListener('input', applyFilters);
 document.getElementById('roleFilter').addEventListener('change', applyFilters);
 
 // -------------------------------------------------------------------------
-// 4. CONTROL DEL MODAL (VENTANA EMERGENTE CREAR USUARIO)
+// 4. CONTROL DEL MODAL — WIZARD (2 pasos para clientes, 1 para comerciales)
 // -------------------------------------------------------------------------
 const backdrop = document.getElementById('modalBackdrop');
 
 function openCreateModal() {
   document.getElementById('createForm').reset();
   document.getElementById('createFormError').classList.remove('show');
-  // Asegurar required correcto al abrir (estado limpio = cliente por defecto oculto)
+  document.getElementById('step2Error').classList.remove('show');
+  pendingClientData = null;
   syncCreateFormRequired('');
+  showStep(1);
   backdrop.classList.add('open');
 }
 
+function closeCreateModal() {
+  backdrop.classList.remove('open');
+  document.getElementById('wizardSteps').style.display = 'none';
+  pendingClientData = null;
+}
+
+function showStep(n) {
+  document.getElementById('step1').style.display = n === 1 ? 'block' : 'none';
+  document.getElementById('step2').style.display = n === 2 ? 'block' : 'none';
+
+  const dot1 = document.getElementById('stepDot1');
+  const dot2 = document.getElementById('stepDot2');
+  dot1.style.background = n === 1 ? 'var(--c-brand)' : 'var(--c-bg-alt)';
+  dot1.style.color      = n === 1 ? '#fff' : 'var(--c-muted)';
+  dot2.style.background = n === 2 ? 'var(--c-brand)' : 'var(--c-bg-alt)';
+  dot2.style.color      = n === 2 ? '#fff' : 'var(--c-muted)';
+}
+
+function renderProductChecklist() {
+  const list = document.getElementById('productCheckList');
+  if (!allCatalogItems.length) {
+    list.innerHTML = '<p style="padding:16px;color:var(--c-muted);font-size:0.85rem;">No hay productos en el catálogo todavía.</p>';
+    return;
+  }
+  list.innerHTML = allCatalogItems.map(p =>
+    '<label style="display:flex;align-items:center;gap:10px;padding:11px 14px;cursor:pointer;border-bottom:1px solid var(--c-border);transition:background 0.1s;" onmouseover="this.style.background=\'var(--c-bg-alt)\'" onmouseout="this.style.background=\'\'">'
+    + '<input type="checkbox" value="' + p.id + '" style="width:16px;height:16px;flex-shrink:0;cursor:pointer;" />'
+    + '<span style="font-size:0.875rem;">' + p.title + '</span>'
+    + '</label>'
+  ).join('');
+}
+
 document.getElementById('openModal').onclick   = openCreateModal;
-document.getElementById('closeModal').onclick  = () => backdrop.classList.remove('open');
-document.getElementById('cancelModal').onclick = () => backdrop.classList.remove('open');
+document.getElementById('closeModal').onclick  = closeCreateModal;
+document.getElementById('cancelModal').onclick = closeCreateModal;
+document.getElementById('backToStep1').onclick  = () => showStep(1);
 
 // Ajusta required y visibilidad de campos según rol
 function syncCreateFormRequired(role) {
   const isCommercial = role === 'commercial';
   const isClient     = role === 'client';
 
-  // Empresa: solo cliente
   document.getElementById('group_company').style.display    = isCommercial ? 'none' : 'block';
   document.getElementById('f_company').required             = isClient;
-
-  // Contraseña: solo cliente
   document.getElementById('group_password').style.display   = isCommercial ? 'none' : 'block';
   document.getElementById('f_password').required            = isClient;
-
-  // Tipo de cliente: solo cliente
   document.getElementById('group_type').style.display       = isCommercial ? 'none' : 'block';
   document.getElementById('f_type').required                = isClient;
-
-  // Comercial asignado: solo cliente
   document.getElementById('group_commercial').style.display = isCommercial ? 'none' : 'block';
   document.getElementById('f_commercial').required          = isClient;
-
-  // Teléfono: siempre visible, obligatorio para comercial
   document.getElementById('f_phone').required               = isCommercial;
+
+  // Indicador de pasos solo para clientes
+  document.getElementById('wizardSteps').style.display = isClient ? 'flex' : 'none';
+  // Texto del botón según rol
+  document.getElementById('submitCreate').textContent = isClient ? 'Siguiente →' : 'Crear usuario';
 }
 
 document.getElementById('f_role').addEventListener('change', (e) => {
@@ -198,35 +240,78 @@ document.getElementById('f_role').addEventListener('change', (e) => {
 });
 
 // -------------------------------------------------------------------------
-// 5. CREAR USUARIO (Método POST vía Edge Function manage-users)
+// 5. CREAR USUARIO — wizard
 // -------------------------------------------------------------------------
-document.getElementById('createForm').addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const btn = document.getElementById('submitCreate');
-  btn.textContent = 'Creando…';
-  btn.disabled = true;
 
-  const role         = document.getElementById('f_role').value;
-  const name         = document.getElementById('f_name').value.trim();
-  const company      = document.getElementById('f_company').value.trim();
-  const email        = document.getElementById('f_email').value.trim();
-  let password       = document.getElementById('f_password').value;
-  const type         = document.getElementById('f_type').value;
-  let phone          = document.getElementById('f_phone').value.trim();
-  const commercialId = document.getElementById('f_commercial').value || null;
+// Botón principal del paso 1: "Siguiente →" para clientes, "Crear usuario" para comerciales
+document.getElementById('submitCreate').addEventListener('click', async () => {
+  const role = document.getElementById('f_role').value;
+
+  // Validar con HTML5 nativo
+  if (!document.getElementById('createForm').checkValidity()) {
+    document.getElementById('createForm').reportValidity();
+    return;
+  }
+
+  if (role === 'commercial') {
+    // Comercial → crear directamente sin paso 2
+    await executeCreateUser({
+      role,
+      name:  document.getElementById('f_name').value.trim(),
+      email: document.getElementById('f_email').value.trim(),
+      phone: document.getElementById('f_phone').value.trim()
+    });
+    return;
+  }
+
+  // Cliente → guardar datos y pasar al paso 2
+  pendingClientData = {
+    role,
+    name:         document.getElementById('f_name').value.trim(),
+    company:      document.getElementById('f_company').value.trim(),
+    email:        document.getElementById('f_email').value.trim(),
+    password:     document.getElementById('f_password').value,
+    type:         document.getElementById('f_type').value,
+    phone:        document.getElementById('f_phone').value.trim(),
+    commercialId: document.getElementById('f_commercial').value || null
+  };
+
+  document.getElementById('step2CompanyName').textContent = pendingClientData.company;
+  renderProductChecklist();
+  showStep(2);
+});
+
+// Botón "Crear cliente" del paso 2
+document.getElementById('confirmCreateClient').addEventListener('click', async () => {
+  if (!pendingClientData) return;
+  const btn = document.getElementById('confirmCreateClient');
+  btn.textContent = 'Creando…'; btn.disabled = true;
+
+  const selectedIds = [...document.querySelectorAll('#productCheckList input:checked')].map(cb => cb.value);
+
+  await executeCreateUser(pendingClientData, selectedIds, btn);
+
+  btn.textContent = 'Crear cliente'; btn.disabled = false;
+});
+
+async function executeCreateUser(data, catalogIds, btn) {
+  const submitBtn = btn || document.getElementById('submitCreate');
+  submitBtn.textContent = 'Creando…'; submitBtn.disabled = true;
+
+  const { role, name, company, email, phone, commercialId } = data;
+  let { password } = data;
+  const type = data.type;
 
   let generatedPin = null;
 
   if (role === 'commercial') {
-    // Forzar el prefijo +57
-    phone = '+57' + phone.replace(/^\+?57/, '').replace(/\D/g, '');
-    // PIN aleatorio de 6 dígitos como contraseña temporal
+    const cleanPhone = '+57' + phone.replace(/^\+?57/, '').replace(/\D/g, '');
+    data.phone = cleanPhone;
     generatedPin = Math.floor(100000 + Math.random() * 900000).toString();
     password = generatedPin;
   }
 
   try {
-    // Necesitamos la sesión activa para autorizar la llamada al backend
     const { data: { session } } = await sb.auth.getSession();
 
     const res = await fetch(SUPABASE_URL + '/functions/v1/manage-users', {
@@ -243,56 +328,65 @@ document.getElementById('createForm').addEventListener('submit', async (e) => {
         company_name: role === 'client' ? company : 'Indusquim',
         client_type: role === 'client' ? type : null,
         role,
-        phone: phone || null
+        phone: data.phone || null
       })
     });
 
     const result = await res.json();
     if (!res.ok) throw new Error(result.error || 'Error desconocido');
 
-    // Forzar rol y datos en profiles (la Edge Function puede ignorar el rol)
     if (result.user?.id) {
       const profileFix = { role };
       if (role === 'commercial') {
         profileFix.company_name = 'Indusquim';
-        if (phone) profileFix.phone = phone;
+        if (data.phone) profileFix.phone = data.phone;
       }
       if (role === 'client') {
         profileFix.client_type = type;
         if (commercialId) profileFix.assigned_commercial_id = commercialId;
       }
       await sb.from('profiles').update(profileFix).eq('id', result.user.id);
+
+      // Insertar productos seleccionados en client_catalog
+      if (role === 'client' && catalogIds && catalogIds.length > 0) {
+        await sb.from('client_catalog').insert(
+          catalogIds.map(item_id => ({ client_id: result.user.id, item_id }))
+        );
+      }
     }
 
-    // Éxito: si es comercial, mostramos el PIN al admin para que se lo comparta
     if (role === 'commercial') {
       alert(
         '¡COMERCIAL CREADO EXITOSAMENTE!\n\n' +
         'El PIN de acceso temporal es: ' + generatedPin + '\n\n' +
-        'Por favor, entrégale este PIN a ' + name + ' junto con su teléfono (' + phone + ') o correo (' + email + ') ' +
-        'para que pueda iniciar sesión en el portal.'
+        'Entrégale este PIN a ' + name + ' junto con su teléfono (' + data.phone + ') o correo (' + email + ').'
       );
       await logAudit('Comercial creado', name + ' (' + email + ')');
       showSuccess('Comercial creado exitosamente.');
     } else {
-      await logAudit('Cliente creado', name + ' — ' + company + ' (' + email + ')');
-      showSuccess('Usuario creado exitosamente.');
+      const nProd = catalogIds ? catalogIds.length : 0;
+      await logAudit('Cliente creado', name + ' — ' + company + ' (' + email + ') · ' + nProd + ' productos asignados');
+      showSuccess('Cliente creado con ' + nProd + ' producto' + (nProd !== 1 ? 's' : '') + ' asignado' + (nProd !== 1 ? 's' : '') + '.');
     }
 
-    backdrop.classList.remove('open');
+    closeCreateModal();
     document.getElementById('createForm').reset();
     syncCreateFormRequired('');
     await loadUsers();
 
   } catch (err) {
-    showModalError('createFormError', err.message.includes('already') || err.message.includes('exist')
+    const msg = err.message.includes('already') || err.message.includes('exist')
       ? 'Este correo ya está registrado. Usa otro correo electrónico.'
-      : 'Error al crear usuario: ' + err.message);
+      : 'Error al crear usuario: ' + err.message;
+    // Mostrar error en el paso activo
+    const errorEl = role === 'client' && document.getElementById('step2').style.display !== 'none'
+      ? 'step2Error' : 'createFormError';
+    showModalError(errorEl, msg);
   }
 
-  btn.textContent = 'Crear usuario';
-  btn.disabled = false;
-});
+  submitBtn.textContent = role === 'commercial' ? 'Crear usuario' : 'Siguiente →';
+  submitBtn.disabled = false;
+}
 
 // -------------------------------------------------------------------------
 // 6. ELIMINAR USUARIO

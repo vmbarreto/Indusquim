@@ -44,7 +44,33 @@ const isClientRole = () => currentProfile && currentProfile.role === 'client';
 // CARGAR CATÁLOGO
 // ==========================================
 async function fetchCatalog() {
-  const { data } = await sb.from('catalog_items').select('*').order('created_at', { ascending: false });
+  // Admin y comercial ven todos los productos
+  if (!isClientRole()) {
+    const { data } = await sb.from('catalog_items').select('*').order('created_at', { ascending: false });
+    allProducts = data || [];
+    renderCatalog(allProducts);
+    return;
+  }
+
+  // Cliente: solo los productos asignados en client_catalog
+  const { data: assigned } = await sb
+    .from('client_catalog')
+    .select('item_id')
+    .eq('client_id', currentProfile.id);
+
+  if (!assigned || assigned.length === 0) {
+    allProducts = [];
+    renderCatalog([]);
+    return;
+  }
+
+  const ids = assigned.map(r => r.item_id);
+  const { data } = await sb
+    .from('catalog_items')
+    .select('*')
+    .in('id', ids)
+    .order('created_at', { ascending: false });
+
   allProducts = data || [];
   renderCatalog(allProducts);
 }
@@ -52,7 +78,7 @@ async function fetchCatalog() {
 function renderCatalog(items) {
   const grid = document.getElementById('catalogGrid');
   if (!items.length) {
-    grid.innerHTML = '<p style="color:var(--c-muted);font-size:0.875rem;">No hay productos en esta categoría.</p>';
+    grid.innerHTML = '<p style="color:var(--c-muted);font-size:0.875rem;">No tienes productos asignados todavía. Contacta a tu comercial.</p>';
     return;
   }
 
