@@ -7,7 +7,7 @@
  */
 
 let allClients  = [];  // Todos los clientes (large + small)
-let allInformes = [];  // Documentos tipo 'report'
+let allSoporte  = [];  // Documentos tipo 'support'
 let allPresentaciones = []; // Documentos tipo 'presentation'
 
 // -------------------------------------------------------------------------
@@ -55,7 +55,7 @@ let allPresentaciones = []; // Documentos tipo 'presentation'
     sel.appendChild(opt);
   });
 
-  await loadInformes();
+  await loadSoporte();
   await loadPresentaciones();
   await loadVideos();
 })();
@@ -186,7 +186,7 @@ document.getElementById('uploadForm').addEventListener('submit', async (e) => {
       const { error: dbErr } = await sb.from('documents').insert({ title, type: category, file_path: path, client_id: clientId });
       if (dbErr) throw dbErr;
       const clientName = clientId ? (allClients.find(c => c.id === clientId)?.company_name || clientId) : 'General';
-      const typeLabel  = category === 'report' ? 'Informe subido' : 'Presentación subida';
+      const typeLabel  = category === 'support' ? 'Documento soporte subido' : 'Presentación subida';
       await logAudit(typeLabel, title + ' → ' + clientName);
     }
 
@@ -201,7 +201,7 @@ document.getElementById('uploadForm').addEventListener('submit', async (e) => {
     showSuccess('Archivo subido correctamente.');
 
     // Recargar la lista correspondiente
-    if (category === 'report') await loadInformes();
+    if (category === 'support') await loadSoporte();
     else if (category === 'presentation') await loadPresentaciones();
     else await loadVideos();
 
@@ -218,11 +218,11 @@ document.getElementById('uploadForm').addEventListener('submit', async (e) => {
 // 5. CARGAR Y RENDERIZAR LISTAS
 // -------------------------------------------------------------------------
 
-async function loadInformes() {
+async function loadSoporte() {
   const { data } = await sb.from('documents')
-    .select('*').eq('type', 'report').order('created_at', { ascending: false });
-  allInformes = data || [];
-  renderInformes(allInformes);
+    .select('*').eq('type', 'support').order('created_at', { ascending: false });
+  allSoporte = data || [];
+  renderSoporte(allSoporte);
 }
 
 async function loadPresentaciones() {
@@ -238,10 +238,10 @@ function getClientName(clientId) {
   return c ? '<strong>' + (c.company_name || c.full_name) + '</strong>' : '<em>General</em>';
 }
 
-function renderInformes(docs) {
-  const list = document.getElementById('informesList');
+function renderSoporte(docs) {
+  const list = document.getElementById('soporteList');
   if (!docs.length) {
-    list.innerHTML = '<p style="color:var(--c-muted);font-size:0.875rem;">Sin informes aún.</p>';
+    list.innerHTML = '<p style="color:var(--c-muted);font-size:0.875rem;">Sin documentos de soporte aún.</p>';
     return;
   }
   list.innerHTML = docs.map(d => fileItemHTML(d, d.client_id ? 'client-files' : 'general-files')).join('');
@@ -299,9 +299,9 @@ async function loadVideos() {
 // -------------------------------------------------------------------------
 // 6. BÚSQUEDAS EN TIEMPO REAL
 // -------------------------------------------------------------------------
-document.getElementById('informesSearch').addEventListener('input', (e) => {
+document.getElementById('soporteSearch').addEventListener('input', (e) => {
   const q = e.target.value.toLowerCase();
-  renderInformes(allInformes.filter(d => d.title.toLowerCase().includes(q)));
+  renderSoporte(allSoporte.filter(d => d.title.toLowerCase().includes(q)));
 });
 
 document.getElementById('presentacionesSearch').addEventListener('input', (e) => {
@@ -326,11 +326,11 @@ window.downloadFile = async function(path, bucket) {
 
 window.deleteDoc = async function(id, path, bucket) {
   if (!confirm('¿Eliminar este documento?')) return;
-  const doc = [...allInformes, ...allPresentaciones].find(d => d.id === id);
+  const doc = [...allSoporte, ...allPresentaciones].find(d => d.id === id);
   await sb.storage.from(bucket).remove([path]);
   await sb.from('documents').delete().eq('id', id);
   await logAudit('Documento eliminado', doc?.title || path.split('/').pop());
-  await loadInformes();
+  await loadSoporte();
   await loadPresentaciones();
   showSuccess('Documento eliminado.');
 };

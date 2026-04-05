@@ -51,13 +51,13 @@ let currentProfile = null;
 // CARGAR MATERIAL GENERAL (client_id = null)
 // ==========================================
 async function loadGeneral() {
-  const [{ data: reportes }, { data: presentaciones }, { data: videos }] = await Promise.all([
-    sb.from('documents').select('*').eq('type', 'report').is('client_id', null).order('created_at', { ascending: false }),
+  const [{ data: soporte }, { data: presentaciones }, { data: videos }] = await Promise.all([
+    sb.from('documents').select('*').eq('type', 'support').is('client_id', null).order('created_at', { ascending: false }),
     sb.from('documents').select('*').eq('type', 'presentation').is('client_id', null).order('created_at', { ascending: false }),
     sb.from('videos').select('*').is('client_id', null).order('created_at', { ascending: false })
   ]);
 
-  renderFileList('generalReportes',       reportes       || [], 'general-files');
+  renderFileList('generalSoporte',        soporte        || [], 'general-files');
   renderFileList('generalPresentaciones', presentaciones || [], 'general-files');
   renderVideoGrid('generalVideos',        videos         || []);
 }
@@ -66,13 +66,13 @@ async function loadGeneral() {
 // CARGAR MI MATERIAL (client_id = mi perfil)
 // ==========================================
 async function loadPersonal() {
-  const [{ data: reportes }, { data: presentaciones }, { data: videos }] = await Promise.all([
-    sb.from('documents').select('*').eq('type', 'report').eq('client_id', currentProfile.id).order('created_at', { ascending: false }),
+  const [{ data: soporte }, { data: presentaciones }, { data: videos }] = await Promise.all([
+    sb.from('documents').select('*').eq('type', 'support').eq('client_id', currentProfile.id).order('created_at', { ascending: false }),
     sb.from('documents').select('*').eq('type', 'presentation').eq('client_id', currentProfile.id).order('created_at', { ascending: false }),
     sb.from('videos').select('*').eq('client_id', currentProfile.id).order('created_at', { ascending: false })
   ]);
 
-  renderFileList('personalReportes',       reportes       || [], 'client-files');
+  renderFileList('personalSoporte',        soporte        || [], 'client-files');
   renderFileList('personalPresentaciones', presentaciones || [], 'client-files');
   renderVideoGrid('personalVideos',        videos         || []);
 }
