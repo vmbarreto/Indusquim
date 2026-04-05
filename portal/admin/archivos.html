@@ -29,6 +29,10 @@
         <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/></svg>
         Pedidos
       </a>
+      <a href="pqrs.html" class="sidebar__link">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+        PQRS
+      </a>
       <a href="usuarios.html" class="sidebar__link">
         <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
         Usuarios
@@ -53,6 +57,8 @@
       </div>
       <button class="btn-logout" id="logoutBtn">Cerrar sesión</button>
     </div>
+
+    <div style="text-align:center;font-size:0.65rem;color:rgba(255,255,255,0.3);padding-bottom:6px;letter-spacing:0.05em;">v2.0</div>
   </aside>
 
   <!-- Main -->
@@ -80,12 +86,27 @@
 
       <!-- Tabs -->
       <div class="tabs">
-        <button class="tab-btn active" data-tab="soporte">Documentos soporte</button>
+        <button class="tab-btn active" data-tab="informes">Informes de visita</button>
+        <button class="tab-btn" data-tab="soporte">Documentos soporte</button>
         <button class="tab-btn" data-tab="capacitaciones">Capacitaciones</button>
       </div>
 
+      <!-- Tab: Informes de visita -->
+      <div class="tab-panel active" id="tab-informes">
+        <div class="card">
+          <div class="card__title" style="display:flex;align-items:center;justify-content:space-between;">
+            Informes de visita
+            <div class="search-bar" style="width:240px;">
+              <svg class="search-bar__icon" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+              <input type="text" id="informesSearch" placeholder="Buscar…" style="font-size:0.8rem;" />
+            </div>
+          </div>
+          <div class="file-list" id="informesList"><p style="color:var(--c-muted);font-size:0.875rem;">Cargando…</p></div>
+        </div>
+      </div>
+
       <!-- Tab: Documentos soporte -->
-      <div class="tab-panel active" id="tab-soporte">
+      <div class="tab-panel" id="tab-soporte">
         <div class="card">
           <div class="card__title" style="display:flex;align-items:center;justify-content:space-between;">
             Documentos soporte
@@ -134,6 +155,7 @@
       <div class="form-group">
         <label class="form-label">Categoría <span style="color:var(--c-brand)">*</span></label>
         <select class="form-select" id="uploadCategory">
+          <option value="report">Informe de visita (PDF)</option>
           <option value="support">Documento soporte (PDF)</option>
           <option value="presentation">Capacitación — Presentación (PDF)</option>
           <option value="video">Capacitación — Video</option>
@@ -148,11 +170,11 @@
         <input type="text" class="form-input" id="uploadDesc" placeholder="Breve descripción del contenido…" />
       </div>
       <div class="form-group">
-        <label class="form-label">Asignar a cliente</label>
+        <label class="form-label" id="uploadClientLabel">Asignar a cliente</label>
         <select class="form-select" id="uploadClient">
           <option value="">— General (visible para todos) —</option>
         </select>
-        <p class="form-hint">Deja en blanco para que sea visible para todos los clientes.</p>
+        <p class="form-hint" id="uploadClientHint">Deja en blanco para que sea visible para todos los clientes.</p>
       </div>
       <div class="form-group">
         <label class="form-label">Archivo <span style="color:var(--c-brand)">*</span></label>

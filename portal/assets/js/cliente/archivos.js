@@ -49,6 +49,7 @@ let currentProfile = null;
 
 // ==========================================
 // CARGAR MATERIAL GENERAL (client_id = null)
+// Sin informes de visita — aplica a todos los clientes (incluidos pequeños)
 // ==========================================
 async function loadGeneral() {
   const [{ data: soporte }, { data: presentaciones }, { data: videos }] = await Promise.all([
@@ -64,17 +65,20 @@ async function loadGeneral() {
 
 // ==========================================
 // CARGAR MI MATERIAL (client_id = mi perfil)
+// Solo clientes grandes — incluye informes de visita + documentos soporte + capacitaciones
 // ==========================================
 async function loadPersonal() {
-  const [{ data: soporte }, { data: presentaciones }, { data: videos }] = await Promise.all([
+  const [{ data: informes }, { data: soporte }, { data: presentaciones }, { data: videos }] = await Promise.all([
+    sb.from('documents').select('*').eq('type', 'report').eq('client_id', currentProfile.id).order('created_at', { ascending: false }),
     sb.from('documents').select('*').eq('type', 'support').eq('client_id', currentProfile.id).order('created_at', { ascending: false }),
     sb.from('documents').select('*').eq('type', 'presentation').eq('client_id', currentProfile.id).order('created_at', { ascending: false }),
     sb.from('videos').select('*').eq('client_id', currentProfile.id).order('created_at', { ascending: false })
   ]);
 
-  renderFileList('personalSoporte',        soporte        || [], 'client-files');
-  renderFileList('personalPresentaciones', presentaciones || [], 'client-files');
-  renderVideoGrid('personalVideos',        videos         || []);
+  renderFileList('personalInformes',      informes       || [], 'client-files');
+  renderFileList('personalSoporte',       soporte        || [], 'client-files');
+  renderFileList('personalPresentaciones',presentaciones || [], 'client-files');
+  renderVideoGrid('personalVideos',       videos         || []);
 }
 
 // ==========================================

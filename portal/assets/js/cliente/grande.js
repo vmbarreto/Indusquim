@@ -63,6 +63,7 @@ let allItems = []; // Aqu\u00ed guardaremos los documentos y videos temporalment
 function renderAll(docs, videos) {
   // Filtramos por su 'type' interno de BD (report y presentation) para saber en d\u00f3nde se van a listar
   renderDocs('reports', docs.filter(d => d.type === 'report'));
+  renderDocs('support', docs.filter(d => d.type === 'support'));
   renderDocs('presentations', docs.filter(d => d.type === 'presentation'));
   renderVideos(videos);
 }

@@ -87,6 +87,7 @@ function populateUserFilter(logs) {
 // ==========================================
 function badgeClass(action) {
   const a = (action || '').toLowerCase();
+  if (a.includes('pqrs'))      return 'audit-badge--pqrs';
   if (a.includes('eliminad'))  return 'audit-badge--delete';
   if (a.includes('cread') || a.includes('subid')) return 'audit-badge--create';
   if (a.includes('estado') || a.includes('aprobad') || a.includes('despachad') || a.includes('proceso')) return 'audit-badge--status';
@@ -131,17 +132,25 @@ function escHtml(str) {
 // FILTROS
 // ==========================================
 function applyFilters() {
-  const q    = document.getElementById('auditSearch').value.toLowerCase();
-  const user = document.getElementById('auditUserFilter').value;
-  const type = document.getElementById('auditTypeFilter').value.toLowerCase();
+  const q        = document.getElementById('auditSearch').value.toLowerCase();
+  const user     = document.getElementById('auditUserFilter').value;
+  const type     = document.getElementById('auditTypeFilter').value.toLowerCase();
+  const dateFrom = document.getElementById('auditDateFrom').value;  // 'YYYY-MM-DD' o ''
+  const dateTo   = document.getElementById('auditDateTo').value;    // 'YYYY-MM-DD' o ''
+
+  const fromTs = dateFrom ? new Date(dateFrom + 'T00:00:00').getTime() : null;
+  const toTs   = dateTo   ? new Date(dateTo   + 'T23:59:59').getTime() : null;
 
   const filtered = allLogs.filter(l => {
     const action  = (l.action  || '').toLowerCase();
     const details = (l.details || '').toLowerCase();
+    const logTs   = new Date(l.created_at).getTime();
 
-    if (q    && !action.includes(q)    && !details.includes(q))    return false;
-    if (user && l.user_id !== user)                                 return false;
-    if (type && !action.includes(type))                             return false;
+    if (q      && !action.includes(q)    && !details.includes(q)) return false;
+    if (user   && l.user_id !== user)                              return false;
+    if (type   && !action.includes(type))                          return false;
+    if (fromTs && logTs < fromTs)                                  return false;
+    if (toTs   && logTs > toTs)                                    return false;
     return true;
   });
 
@@ -151,6 +160,13 @@ function applyFilters() {
 document.getElementById('auditSearch').addEventListener('input', applyFilters);
 document.getElementById('auditUserFilter').addEventListener('change', applyFilters);
 document.getElementById('auditTypeFilter').addEventListener('change', applyFilters);
+document.getElementById('auditDateFrom').addEventListener('change', applyFilters);
+document.getElementById('auditDateTo').addEventListener('change', applyFilters);
+document.getElementById('auditDateClear').addEventListener('click', () => {
+  document.getElementById('auditDateFrom').value = '';
+  document.getElementById('auditDateTo').value   = '';
+  applyFilters();
+});
 
 // ==========================================
 // HAMBURGUESA

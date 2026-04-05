@@ -252,23 +252,58 @@ function updateCartBadge() {
 }
 
 // ==========================================
-// ENVIAR PEDIDO
+// ENVIAR PEDIDO — abre modal de confirmación
 // ==========================================
-document.getElementById('sendOrderBtn').onclick = async () => {
+document.getElementById('sendOrderBtn').onclick = () => {
   if (!cart.length) { showError('Agrega al menos un producto antes de enviar.'); return; }
+  // Limpiar campos y errores del modal
+  document.getElementById('orderDeliveryDate').value = '';
+  document.getElementById('orderNotes').value = '';
+  const errEl = document.getElementById('orderConfirmError');
+  errEl.textContent = ''; errEl.classList.remove('show');
+  // Fecha mínima = hoy
+  document.getElementById('orderDeliveryDate').min = new Date().toISOString().split('T')[0];
+  document.getElementById('orderConfirmModal').classList.add('open');
+};
 
-  const btn = document.getElementById('sendOrderBtn');
+document.getElementById('closeOrderConfirmModal').onclick  = () => document.getElementById('orderConfirmModal').classList.remove('open');
+document.getElementById('cancelOrderConfirmModal').onclick = () => document.getElementById('orderConfirmModal').classList.remove('open');
+document.getElementById('orderConfirmModal').onclick = (e) => {
+  if (e.target === document.getElementById('orderConfirmModal')) document.getElementById('orderConfirmModal').classList.remove('open');
+};
+
+document.getElementById('confirmSendOrderBtn').onclick = async () => {
+  const deliveryDate = document.getElementById('orderDeliveryDate').value.trim();
+  const notes        = document.getElementById('orderNotes').value.trim();
+  const errEl        = document.getElementById('orderConfirmError');
+
+  if (!deliveryDate) {
+    errEl.textContent = 'La fecha de entrega es obligatoria.';
+    errEl.classList.add('show');
+    return;
+  }
+  if (!notes) {
+    errEl.textContent = 'Las observaciones son obligatorias.';
+    errEl.classList.add('show');
+    return;
+  }
+
+  const btn = document.getElementById('confirmSendOrderBtn');
   btn.textContent = 'Enviando…'; btn.disabled = true;
+  errEl.textContent = ''; errEl.classList.remove('show');
 
   // Crear orden
   const { data: order, error: orderErr } = await sb.from('orders').insert({
     client_id:     currentProfile.id,
     commercial_id: currentProfile.assigned_commercial_id || null,
-    status:        'pending'
+    status:        'pending',
+    delivery_date: deliveryDate,
+    notes:         notes
   }).select().single();
 
   if (orderErr) {
-    showError('Error al enviar pedido: ' + orderErr.message);
+    errEl.textContent = 'Error al enviar: ' + orderErr.message;
+    errEl.classList.add('show');
     btn.textContent = 'Enviar pedido'; btn.disabled = false;
     return;
   }
@@ -294,6 +329,7 @@ document.getElementById('sendOrderBtn').onclick = async () => {
   cart = [];
   renderCart();
   updateCartBadge();
+  document.getElementById('orderConfirmModal').classList.remove('open');
   closeCart();
   showSuccess('¡Pedido enviado! Tu comercial lo revisará pronto.');
   btn.textContent = 'Enviar pedido'; btn.disabled = false;

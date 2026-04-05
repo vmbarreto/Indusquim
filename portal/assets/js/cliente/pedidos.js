@@ -41,7 +41,7 @@ const STATUS_LABELS = {
 async function loadOrders() {
   const { data, error } = await sb
     .from('orders')
-    .select('id, status, notes, created_at, updated_at, order_items(quantity, catalog_item_id, catalog_items(title))')
+    .select('id, status, notes, delivery_date, created_at, updated_at, order_items(quantity, catalog_item_id, catalog_items(title))')
     .eq('client_id', currentProfile.id)
     .order('created_at', { ascending: false });
 
@@ -124,6 +124,19 @@ window.openOrderModal = async function(orderId) {
         + '</div>'
       ).join('')
     : '<p style="color:var(--c-muted);font-size:0.875rem;">Sin productos.</p>';
+
+  // Fecha de entrega y observaciones
+  const detailMeta = document.getElementById('detailMeta');
+  if (detailMeta) {
+    const deliveryStr = order.delivery_date
+      ? new Date(order.delivery_date + 'T12:00:00').toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' })
+      : '—';
+    detailMeta.innerHTML =
+      '<div style="display:flex;flex-direction:column;gap:6px;font-size:0.82rem;">'
+      + '<div><span style="color:var(--c-muted);">Fecha de entrega: </span><strong>' + deliveryStr + '</strong></div>'
+      + (order.notes ? '<div><span style="color:var(--c-muted);">Observaciones: </span>' + order.notes + '</div>' : '')
+      + '</div>';
+  }
 
   // Abrir modal mientras se carga el historial
   document.getElementById('detailHistory').innerHTML = '<p style="color:var(--c-muted);font-size:0.8rem;">Cargando historial…</p>';

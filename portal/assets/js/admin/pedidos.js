@@ -64,7 +64,7 @@ async function loadOrders() {
 
   let query = sb
     .from('orders')
-    .select('id, status, notes, created_at, updated_at, client_id, commercial_id, profiles!orders_client_id_fkey(full_name, company_name), comercial:profiles!orders_commercial_id_fkey(full_name), order_items(quantity, catalog_item_id, catalog_items(title))')
+    .select('id, status, notes, delivery_date, created_at, updated_at, client_id, commercial_id, profiles!orders_client_id_fkey(full_name, company_name), comercial:profiles!orders_commercial_id_fkey(full_name), order_items(quantity, catalog_item_id, catalog_items(title))')
     .order('created_at', { ascending: false });
 
   // Comercial: solo sus clientes
@@ -92,10 +92,9 @@ async function loadOrders() {
 }
 
 function updateStats(orders) {
-  document.getElementById('statTotal').textContent     = orders.length;
-  document.getElementById('statPending').textContent   = orders.filter(o => o.status === 'pending').length;
-  document.getElementById('statActive').textContent    = orders.filter(o => o.status === 'approved').length;
-  document.getElementById('statCompleted').textContent = '—';
+  document.getElementById('statTotal').textContent   = orders.length;
+  document.getElementById('statPending').textContent = orders.filter(o => o.status === 'pending').length;
+  document.getElementById('statActive').textContent  = orders.filter(o => o.status === 'approved').length;
 }
 
 // ==========================================
@@ -585,6 +584,19 @@ window.openOrderModal = async function(orderId, companyName) {
         + '</div>'
       ).join('')
     : '<p style="color:var(--c-muted);font-size:0.875rem;">Sin productos.</p>';
+
+  // Fecha de entrega y observaciones
+  const detailMeta = document.getElementById('detailMeta');
+  if (detailMeta) {
+    const deliveryStr = order.delivery_date
+      ? new Date(order.delivery_date + 'T12:00:00').toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' })
+      : '—';
+    detailMeta.innerHTML =
+      '<div style="display:flex;flex-direction:column;gap:6px;font-size:0.82rem;">'
+      + '<div><span style="color:var(--c-muted);">Fecha de entrega: </span><strong>' + deliveryStr + '</strong></div>'
+      + (order.notes ? '<div><span style="color:var(--c-muted);">Observaciones: </span>' + order.notes + '</div>' : '')
+      + '</div>';
+  }
 
   document.getElementById('detailHistory').innerHTML = '<p style="color:var(--c-muted);font-size:0.8rem;">Cargando historial…</p>';
   document.getElementById('orderDetailBackdrop').classList.add('open');
