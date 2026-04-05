@@ -64,8 +64,6 @@ document.getElementById('productForm').addEventListener('submit', async (e) => {
   const title    = document.getElementById('prodTitle').value.trim();
   const cat      = document.getElementById('prodCategory').value;
   const desc     = document.getElementById('prodDesc').value.trim();
-  const quantity = parseInt(document.getElementById('prodQuantity').value, 10) || 0;
-
   if (!imgFile) { showModalError('prodModalError', 'Debes subir una imagen de portada.'); return; }
 
   const btn = document.getElementById('prodSubmit');
@@ -85,7 +83,7 @@ document.getElementById('productForm').addEventListener('submit', async (e) => {
   }
 
   const { error: dbErr } = await sb.from('catalog_items').insert({
-    title, category: cat, description: desc, quantity, file_path: imgPath
+    title, category: cat, description: desc, file_path: imgPath
   });
 
   document.getElementById('prodProgressBar').classList.remove('progress-bar--active');
@@ -130,7 +128,6 @@ function renderCatalog(items) {
       + '<div class="catalog-row__title">' + p.title + '</div>'
       + '<span class="badge badge--large" style="margin-top:3px;display:inline-block;">' + p.category + '</span>'
       + (p.description ? '<div class="catalog-row__desc">' + p.description + '</div>' : '')
-      + '<div class="catalog-row__qty">Cantidad: ' + (p.quantity || 0) + '</div>'
       + '</div>'
       + '<div class="catalog-row__actions">'
       + '<button class="btn btn--ghost btn--sm" onclick="openDetailModal(\'' + p.id + '\')">Detalles</button>'
@@ -154,7 +151,6 @@ window.openDetailModal = function(id) {
   document.getElementById('detailTitle').textContent    = p.title;
   document.getElementById('detailCategory').textContent = p.category;
   document.getElementById('detailDesc').textContent     = p.description || '';
-  document.getElementById('detailQuantity').textContent = 'Cantidad disponible: ' + (p.quantity || 0);
   adminDetailModal.classList.add('open');
 };
 
@@ -175,7 +171,6 @@ window.openEditModal = function(id) {
   document.getElementById('e_title').value      = p.title;
   document.getElementById('e_category').value   = p.category;
   document.getElementById('e_desc').value       = p.description || '';
-  document.getElementById('e_quantity').value   = p.quantity || 0;
   document.getElementById('e_imgFile').value    = '';
 
   const imgUrl = sb.storage.from('catalog-images').getPublicUrl(p.file_path).data.publicUrl;
@@ -228,7 +223,6 @@ document.getElementById('editForm').addEventListener('submit', async (e) => {
     title:       document.getElementById('e_title').value.trim(),
     category:    document.getElementById('e_category').value,
     description: document.getElementById('e_desc').value.trim(),
-    quantity:    parseInt(document.getElementById('e_quantity').value, 10) || 0,
     file_path:   imgPath
   }).eq('id', id);
 

@@ -58,21 +58,18 @@ function renderCatalog(items) {
 
   grid.innerHTML = items.map((p, idx) => {
     const imgUrl = sb.storage.from('catalog-images').getPublicUrl(p.file_path).data.publicUrl;
-
-    const btns = isClientRole()
-      ? '<button class="btn btn--ghost btn--sm" onclick="openProductModal(' + idx + ')">Detalles</button>'
-        + '<button class="btn btn--primary btn--sm" onclick="addToCart(' + idx + ')">+ Agregar</button>'
+    const actionsHtml = isClientRole()
+      ? buildRowActions(p.id, idx)
       : '<button class="btn btn--ghost btn--sm" onclick="openProductModal(' + idx + ')">Ver detalles</button>';
 
-    return '<div class="catalog-row">'
+    return '<div class="catalog-row" data-pid="' + p.id + '">'
       + '<img src="' + imgUrl + '" class="catalog-row__img" alt="' + p.title + '" loading="lazy" />'
       + '<div class="catalog-row__info">'
       + '<div class="catalog-row__title">' + p.title + '</div>'
       + '<span class="badge badge--large" style="margin-top:3px;display:inline-block;">' + p.category + '</span>'
       + (p.description ? '<div class="catalog-row__desc">' + p.description + '</div>' : '')
-      + '<div class="catalog-row__qty">Disponible: ' + (p.quantity || 0) + '</div>'
       + '</div>'
-      + '<div class="catalog-row__actions">' + btns + '</div>'
+      + '<div class="catalog-row__actions" id="row-actions-' + p.id + '">' + actionsHtml + '</div>'
       + '</div>';
   }).join('');
 }
@@ -132,22 +129,53 @@ document.getElementById('modalAddCart').onclick = () => {
 document.getElementById('cartBtn').onclick     = openCart;
 document.getElementById('closeCart').onclick   = closeCart;
 document.getElementById('cartOverlay').onclick = closeCart;
-document.getElementById('clearCart').onclick   = () => { cart = []; renderCart(); };
+document.getElementById('clearCart').onclick   = () => {
+  const ids = cart.map(i => i.product_id);
+  cart = [];
+  renderCart();
+  updateCartBadge();
+  ids.forEach(updateRowActions);
+};
 
 function openCart()  { document.getElementById('cartPanel').classList.add('open'); document.getElementById('cartOverlay').classList.add('open'); }
 function closeCart() { document.getElementById('cartPanel').classList.remove('open'); document.getElementById('cartOverlay').classList.remove('open'); }
 
+function buildRowActions(productId, idx) {
+  const qty = (cart.find(i => i.product_id === productId) || {}).quantity || 0;
+  if (qty > 0) {
+    return '<div class="qty-selector">'
+      + '<button class="qty-btn" onclick="changeRowQty(\'' + productId + '\', -1)">−</button>'
+      + '<span class="qty-num">' + qty + '</span>'
+      + '<button class="qty-btn" onclick="changeRowQty(\'' + productId + '\', 1)">+</button>'
+      + '</div>';
+  }
+  const idxVal = allProducts.findIndex(p => p.id === productId);
+  return '<button class="btn btn--ghost btn--sm" onclick="openProductModal(' + idxVal + ')">Detalles</button>'
+    + '<button class="btn btn--primary btn--sm" onclick="addToCart(' + idxVal + ')">+ Agregar</button>';
+}
+
+function updateRowActions(productId) {
+  const div = document.getElementById('row-actions-' + productId);
+  if (div) div.innerHTML = buildRowActions(productId);
+}
+
 window.addToCart = function(idx) {
   const p = allProducts[idx];
   const existing = cart.find(i => i.product_id === p.id);
-  if (existing) {
-    existing.quantity++;
-  } else {
-    cart.push({ product_id: p.id, title: p.title, quantity: 1 });
-  }
+  if (existing) { existing.quantity++; } else { cart.push({ product_id: p.id, title: p.title, quantity: 1 }); }
   renderCart();
   updateCartBadge();
-  openCart();
+  updateRowActions(p.id);
+};
+
+window.changeRowQty = function(productId, delta) {
+  const item = cart.find(i => i.product_id === productId);
+  if (!item) return;
+  item.quantity += delta;
+  if (item.quantity <= 0) cart = cart.filter(i => i.product_id !== productId);
+  renderCart();
+  updateCartBadge();
+  updateRowActions(productId);
 };
 
 window.changeQty = function(productId, delta) {
@@ -157,12 +185,14 @@ window.changeQty = function(productId, delta) {
   if (item.quantity <= 0) cart = cart.filter(i => i.product_id !== productId);
   renderCart();
   updateCartBadge();
+  updateRowActions(productId);
 };
 
 window.removeFromCart = function(productId) {
   cart = cart.filter(i => i.product_id !== productId);
   renderCart();
   updateCartBadge();
+  updateRowActions(productId);
 };
 
 function renderCart() {

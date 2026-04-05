@@ -11,8 +11,12 @@
     .catalog-row__info { flex: 1; min-width: 0; }
     .catalog-row__title { font-weight: 700; font-size: 0.9rem; }
     .catalog-row__desc  { font-size: 0.78rem; color: var(--c-muted); margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .catalog-row__qty   { font-size: 0.78rem; color: var(--c-muted); margin-top: 2px; }
-    .catalog-row__actions { display: flex; gap: 8px; flex-shrink: 0; }
+    .catalog-row__actions { display: flex; gap: 8px; flex-shrink: 0; align-items: center; }
+    .qty-selector { display: flex; align-items: center; gap: 6px; animation: qtyPop 0.18s ease; }
+    .qty-btn { width: 28px; height: 28px; border-radius: 50%; border: 1.5px solid var(--c-border); background: var(--c-bg-alt); cursor: pointer; font-size: 1.1rem; font-weight: 700; line-height: 1; display: flex; align-items: center; justify-content: center; transition: background 0.15s, border-color 0.15s; }
+    .qty-btn:hover { background: var(--c-brand); color: #fff; border-color: var(--c-brand); }
+    .qty-num { min-width: 22px; text-align: center; font-weight: 700; font-size: 1rem; }
+    @keyframes qtyPop { from { transform: scale(0.6); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 
     /* Carrito flotante */
     .cart-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 200; display: none; }
