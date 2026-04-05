@@ -155,31 +155,46 @@ document.getElementById('roleFilter').addEventListener('change', applyFilters);
 // 4. CONTROL DEL MODAL (VENTANA EMERGENTE CREAR USUARIO)
 // -------------------------------------------------------------------------
 const backdrop = document.getElementById('modalBackdrop');
-document.getElementById('openModal').onclick   = () => {
+
+function openCreateModal() {
+  document.getElementById('createForm').reset();
   document.getElementById('createFormError').classList.remove('show');
+  // Asegurar required correcto al abrir (estado limpio = cliente por defecto oculto)
+  syncCreateFormRequired('');
   backdrop.classList.add('open');
-};
+}
+
+document.getElementById('openModal').onclick   = openCreateModal;
 document.getElementById('closeModal').onclick  = () => backdrop.classList.remove('open');
 document.getElementById('cancelModal').onclick = () => backdrop.classList.remove('open');
 
-// -------------------------------------------------------------------------
-// 4.5. FORMULARIO DINÁMICO SEGÚN ROL SELECCIONADO
-// Cuando el admin elige "Comercial", el formulario cambia:
-//   - Desaparece "Empresa" y "Contraseña" (el PIN se genera automático)
-//   - Aparece el campo de "Teléfono"
-// -------------------------------------------------------------------------
+// Ajusta required y visibilidad de campos según rol
+function syncCreateFormRequired(role) {
+  const isCommercial = role === 'commercial';
+  const isClient     = role === 'client';
+
+  // Empresa: solo cliente
+  document.getElementById('group_company').style.display    = isCommercial ? 'none' : 'block';
+  document.getElementById('f_company').required             = isClient;
+
+  // Contraseña: solo cliente
+  document.getElementById('group_password').style.display   = isCommercial ? 'none' : 'block';
+  document.getElementById('f_password').required            = isClient;
+
+  // Tipo de cliente: solo cliente
+  document.getElementById('group_type').style.display       = isCommercial ? 'none' : 'block';
+  document.getElementById('f_type').required                = isClient;
+
+  // Comercial asignado: solo cliente
+  document.getElementById('group_commercial').style.display = isCommercial ? 'none' : 'block';
+  document.getElementById('f_commercial').required          = isClient;
+
+  // Teléfono: siempre visible, obligatorio para comercial
+  document.getElementById('f_phone').required               = isCommercial;
+}
+
 document.getElementById('f_role').addEventListener('change', (e) => {
-  const isCommercial = e.target.value === 'commercial';
-
-  document.getElementById('group_company').style.display    = isCommercial ? 'none'  : 'block';
-  document.getElementById('group_phone').style.display      = isCommercial ? 'block' : 'none';
-  document.getElementById('group_password').style.display   = isCommercial ? 'none'  : 'block';
-  document.getElementById('group_type').style.display       = isCommercial ? 'none'  : 'block';
-  document.getElementById('group_commercial').style.display = isCommercial ? 'none'  : 'block';
-
-  // Actualizamos los 'required' para que HTML no bloquee el envío innecesariamente
-  document.getElementById('f_company').required  = !isCommercial;
-  document.getElementById('f_password').required = !isCommercial;
+  syncCreateFormRequired(e.target.value);
 });
 
 // -------------------------------------------------------------------------
@@ -203,17 +218,9 @@ document.getElementById('createForm').addEventListener('submit', async (e) => {
   let generatedPin = null;
 
   if (role === 'commercial') {
-    // Validar que el teléfono esté presente
-    if (!phone) {
-      showModalError('createFormError', 'El teléfono es obligatorio para los comerciales.');
-      btn.textContent = 'Crear usuario';
-      btn.disabled = false;
-      return;
-    }
-    // Forzar el prefijo +57. Si el usuario ya lo puso, lo limpiamos primero.
+    // Forzar el prefijo +57
     phone = '+57' + phone.replace(/^\+?57/, '').replace(/\D/g, '');
-
-    // Generamos un PIN numérico aleatorio de 6 dígitos → será la contraseña temporal
+    // PIN aleatorio de 6 dígitos como contraseña temporal
     generatedPin = Math.floor(100000 + Math.random() * 900000).toString();
     password = generatedPin;
   }
@@ -274,18 +281,13 @@ document.getElementById('createForm').addEventListener('submit', async (e) => {
 
     backdrop.classList.remove('open');
     document.getElementById('createForm').reset();
-
-    // Reset visual del formulario al estado de "Cliente"
-    document.getElementById('group_company').style.display    = 'block';
-    document.getElementById('group_phone').style.display      = 'none';
-    document.getElementById('group_password').style.display   = 'block';
-    document.getElementById('group_type').style.display       = 'block';
-    document.getElementById('group_commercial').style.display = 'block';
-
-    await loadUsers(); // Refrescar la tabla
+    syncCreateFormRequired('');
+    await loadUsers();
 
   } catch (err) {
-    showModalError('createFormError', 'Error al crear usuario: ' + err.message);
+    showModalError('createFormError', err.message.includes('already') || err.message.includes('exist')
+      ? 'Este correo ya está registrado. Usa otro correo electrónico.'
+      : 'Error al crear usuario: ' + err.message);
   }
 
   btn.textContent = 'Crear usuario';
@@ -430,10 +432,11 @@ document.getElementById('editUserForm').addEventListener('submit', async (e) => 
 // -------------------------------------------------------------------------
 function showModalError(modalErrorId, msg) {
   const el = document.getElementById(modalErrorId);
-  if (!el) { showError(msg); return; }
+  if (!el) return;
   el.textContent = msg;
   el.classList.add('show');
-  setTimeout(() => el.classList.remove('show'), 6000);
+  el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  setTimeout(() => el.classList.remove('show'), 7000);
 }
 
 function showSuccess(msg) {
