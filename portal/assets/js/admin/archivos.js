@@ -297,8 +297,13 @@ document.getElementById('uploadForm').addEventListener('submit', async (e) => {
 // -------------------------------------------------------------------------
 
 async function loadInformes() {
-  const { data } = await sb.from('documents')
+  const { data, error } = await sb.from('documents')
     .select('*').eq('type', 'report').order('created_at', { ascending: false });
+  if (error) {
+    document.getElementById('informesList').innerHTML =
+      '<p style="color:var(--c-danger);font-size:0.875rem;">Error al cargar: ' + error.message + '</p>';
+    return;
+  }
   allInformes = data || [];
   renderInformes(allInformes);
 }
