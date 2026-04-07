@@ -11,8 +11,12 @@ let allCommercials   = [];  // Todos los comerciales
 let allInformes      = [];  // Documentos tipo 'report'
 let allSoporte       = [];  // Documentos tipo 'support'
 let allPresentaciones = []; // Documentos tipo 'presentation'
+let allVideos        = [];  // Videos
 let currentIsCommercial = false;
-let openArchGroupId  = null;
+let openArchGroupId     = null;
+let openSoporteGroupId  = null;
+let openPresentGroupId  = null;
+let openVideoGroupId    = null;
 
 function escHtml(str) {
   if (!str) return '';
@@ -489,69 +493,187 @@ async function loadPresentaciones() {
   renderPresentaciones(allPresentaciones);
 }
 
-function getClientName(clientId) {
-  if (!clientId) return '<em>General</em>';
-  const c = allClients.find(c => c.id === clientId);
-  return c ? '<strong>' + (c.company_name || c.full_name) + '</strong>' : '<em>General</em>';
-}
-
-function renderSoporte(docs) {
-  const list = document.getElementById('soporteList');
-  if (!docs.length) {
-    list.innerHTML = '<p style="color:var(--c-muted);font-size:0.875rem;">Sin documentos de soporte aún.</p>';
-    return;
-  }
-  list.innerHTML = docs.map(d => fileItemHTML(d, d.client_id ? 'client-files' : 'general-files')).join('');
-}
-
-function renderPresentaciones(docs) {
-  const list = document.getElementById('presentacionesList');
-  if (!docs.length) {
-    list.innerHTML = '<p style="color:var(--c-muted);font-size:0.875rem;">Sin presentaciones aún.</p>';
-    return;
-  }
-  list.innerHTML = docs.map(d => fileItemHTML(d, d.client_id ? 'client-files' : 'general-files')).join('');
-}
-
-function fileItemHTML(d, bucket) {
-  return '<div class="file-item">'
-    + '<div class="file-item__icon">📄</div>'
-    + '<div class="file-item__info">'
-    + '<div class="file-item__name">' + d.title + '</div>'
-    + '<div class="file-item__meta">' + getClientName(d.client_id) + ' · ' + new Date(d.created_at).toLocaleDateString('es-CO') + '</div>'
-    + '</div>'
-    + '<div class="file-item__actions">'
-    + '<button class="btn btn--ghost btn--sm" onclick="downloadFile(\'' + d.file_path + '\', \'' + bucket + '\')">Descargar</button>'
-    + '<button class="btn btn--danger btn--sm" onclick="deleteDoc(\'' + d.id + '\', \'' + d.file_path + '\', \'' + bucket + '\')">Eliminar</button>'
-    + '</div>'
-    + '</div>';
-}
-
 async function loadVideos() {
   const { data } = await sb.from('videos').select('*').order('created_at', { ascending: false });
-  const list = document.getElementById('videoList');
-  if (!data || !data.length) {
-    list.innerHTML = '<p style="color:var(--c-muted);font-size:0.875rem;">Sin videos aún.</p>';
+  allVideos = data || [];
+  await renderVideos(allVideos);
+}
+
+// ── Agrupar documentos por cliente (General primero, luego clientes A-Z) ──
+function groupDocsByClient(docs) {
+  const map = {};
+  docs.forEach(d => {
+    const key  = d.client_id || '__general__';
+    if (!map[key]) {
+      const c = allClients.find(c => c.id === d.client_id);
+      map[key] = {
+        id:   key,
+        name: d.client_id ? (c?.company_name || c?.full_name || 'Cliente') : 'General',
+        docs: []
+      };
+    }
+    map[key].docs.push(d);
+  });
+  // General primero, luego A-Z
+  return Object.values(map).sort((a, b) => {
+    if (a.id === '__general__') return -1;
+    if (b.id === '__general__') return  1;
+    return a.name.localeCompare(b.name, 'es');
+  });
+}
+
+function renderDocAccordion(listId, groups, prefix, toggleFn) {
+  const list = document.getElementById(listId);
+  if (!groups.length) {
+    list.innerHTML = '<div style="text-align:center;padding:48px 0;color:var(--c-muted);"><p style="font-size:1.5rem;margin-bottom:8px;">📄</p><p>No hay archivos aún.</p></div>';
     return;
   }
-  const signedUrls = await Promise.all(
-    data.map(v => sb.storage.from('videos').createSignedUrl(v.file_path, 3600))
-  );
-  list.innerHTML = data.map((v, i) => {
-    const videoUrl = signedUrls[i].data?.signedUrl || '';
-    return '<div class="video-card">'
-      + '<video controls src="' + videoUrl + '" preload="metadata"></video>'
-      + '<div class="video-card__body">'
-      + '<h3 class="video-card__title">' + v.title + '</h3>'
-      + '<p class="video-card__desc">' + (v.description || 'Sin descripción') + '</p>'
-      + '<p style="font-size:0.75rem;color:var(--c-muted);margin-top:8px;">'
-      + getClientName(v.client_id) + ' · ' + new Date(v.created_at).toLocaleDateString('es-CO')
-      + '</p>'
-      + '<button class="btn btn--danger btn--sm" style="margin-top:12px;width:100%" onclick="deleteVideo(\'' + v.id + '\', \'' + v.file_path + '\')">Eliminar</button>'
+  list.innerHTML = groups.map(g => {
+    const rowsHtml = g.docs.map(d => {
+      const bucket = d.client_id ? 'client-files' : 'general-files';
+      const fp     = d.file_path.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+      const fecha  = new Date(d.created_at).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' });
+      return '<div style="display:flex;justify-content:space-between;align-items:center;gap:12px;'
+        + 'padding:10px 20px 10px 40px;border-bottom:1px solid var(--c-border);" '
+        + 'onmouseover="this.style.background=\'var(--c-bg-alt)\'" onmouseout="this.style.background=\'\'">'
+        + '<div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0;">'
+        + '<span style="font-size:1rem;flex-shrink:0;">📄</span>'
+        + '<div style="min-width:0;">'
+        + '<div style="font-size:0.82rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + escHtml(d.title) + '</div>'
+        + '<div style="font-size:0.73rem;color:var(--c-muted);margin-top:2px;">' + fecha + '</div>'
+        + '</div>'
+        + '</div>'
+        + '<div style="display:flex;gap:6px;flex-shrink:0;">'
+        + '<button class="btn btn--ghost btn--sm" onclick="downloadFile(\'' + fp + '\',\'' + bucket + '\')">Descargar</button>'
+        + '<button class="btn btn--danger btn--sm" onclick="deleteDoc(\'' + d.id + '\',\'' + fp + '\',\'' + bucket + '\')">Eliminar</button>'
+        + '</div>'
+        + '</div>';
+    }).join('');
+
+    const groupKey = prefix + g.id;
+    return '<div class="order-card">'
+      + '<div class="order-card__header" onclick="' + toggleFn + '(\'' + groupKey + '\')">'
+      + '<div>'
+      + '<div style="font-weight:700;font-size:0.9rem;">' + escHtml(g.name) + '</div>'
+      + '<div style="font-size:0.78rem;color:var(--c-muted);margin-top:2px;">'
+      + g.docs.length + ' archivo' + (g.docs.length !== 1 ? 's' : '')
+      + '</div>'
+      + '</div>'
+      + '<svg id="grp-chevron-' + groupKey + '" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" '
+      + 'viewBox="0 0 24 24" style="transition:transform 0.2s;flex-shrink:0;">'
+      + '<polyline points="6 9 12 15 18 9"/></svg>'
+      + '</div>'
+      + '<div id="grp-body-' + groupKey + '" style="display:none;border-top:1px solid var(--c-border);">'
+      + '<div style="max-height:272px;overflow-y:auto;">' + rowsHtml + '</div>'
       + '</div>'
       + '</div>';
   }).join('');
 }
+
+function renderSoporte(docs) {
+  renderDocAccordion('soporteList', groupDocsByClient(docs), 'sop-', 'toggleSoporteGroup');
+}
+
+function renderPresentaciones(docs) {
+  renderDocAccordion('presentacionesList', groupDocsByClient(docs), 'pre-', 'togglePresentGroup');
+}
+
+async function renderVideos(videos) {
+  const list = document.getElementById('videoList');
+  if (!videos.length) {
+    list.innerHTML = '<div style="text-align:center;padding:48px 0;color:var(--c-muted);"><p style="font-size:1.5rem;margin-bottom:8px;">🎥</p><p>No hay videos aún.</p></div>';
+    return;
+  }
+
+  // Agrupar por cliente
+  const map = {};
+  videos.forEach(v => {
+    const key = v.client_id || '__general__';
+    if (!map[key]) {
+      const c = allClients.find(c => c.id === v.client_id);
+      map[key] = { id: key, name: v.client_id ? (c?.company_name || c?.full_name || 'Cliente') : 'General', videos: [] };
+    }
+    map[key].videos.push(v);
+  });
+  const groups = Object.values(map).sort((a, b) => {
+    if (a.id === '__general__') return -1;
+    if (b.id === '__general__') return  1;
+    return a.name.localeCompare(b.name, 'es');
+  });
+
+  // Obtener URLs firmadas para todos los videos
+  const allVids   = groups.flatMap(g => g.videos);
+  const signedMap = {};
+  await Promise.all(allVids.map(async v => {
+    const { data } = await sb.storage.from('videos').createSignedUrl(v.file_path, 3600);
+    signedMap[v.id] = data?.signedUrl || '';
+  }));
+
+  list.innerHTML = groups.map(g => {
+    const rowsHtml = g.videos.map(v => {
+      const fecha = new Date(v.created_at).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' });
+      return '<div style="display:flex;justify-content:space-between;align-items:center;gap:12px;'
+        + 'padding:10px 20px 10px 40px;border-bottom:1px solid var(--c-border);" '
+        + 'onmouseover="this.style.background=\'var(--c-bg-alt)\'" onmouseout="this.style.background=\'\'">'
+        + '<div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0;">'
+        + '<span style="font-size:1rem;flex-shrink:0;">🎥</span>'
+        + '<div style="min-width:0;">'
+        + '<div style="font-size:0.82rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + escHtml(v.title) + '</div>'
+        + '<div style="font-size:0.73rem;color:var(--c-muted);margin-top:2px;">'
+        + (v.description ? escHtml(v.description) + ' · ' : '') + fecha
+        + '</div>'
+        + '</div>'
+        + '</div>'
+        + '<div style="display:flex;gap:6px;flex-shrink:0;align-items:center;">'
+        + (signedMap[v.id] ? '<a class="btn btn--ghost btn--sm" href="' + signedMap[v.id] + '" target="_blank">Ver</a>' : '')
+        + '<button class="btn btn--danger btn--sm" onclick="deleteVideo(\'' + v.id + '\',\'' + v.file_path.replace(/'/g,"\\'") + '\')">Eliminar</button>'
+        + '</div>'
+        + '</div>';
+    }).join('');
+
+    const groupKey = 'vid-' + g.id;
+    return '<div class="order-card">'
+      + '<div class="order-card__header" onclick="toggleVideoGroup(\'' + groupKey + '\')">'
+      + '<div>'
+      + '<div style="font-weight:700;font-size:0.9rem;">' + escHtml(g.name) + '</div>'
+      + '<div style="font-size:0.78rem;color:var(--c-muted);margin-top:2px;">'
+      + g.videos.length + ' video' + (g.videos.length !== 1 ? 's' : '')
+      + '</div>'
+      + '</div>'
+      + '<svg id="grp-chevron-' + groupKey + '" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" '
+      + 'viewBox="0 0 24 24" style="transition:transform 0.2s;flex-shrink:0;">'
+      + '<polyline points="6 9 12 15 18 9"/></svg>'
+      + '</div>'
+      + '<div id="grp-body-' + groupKey + '" style="display:none;border-top:1px solid var(--c-border);">'
+      + '<div style="max-height:320px;overflow-y:auto;">' + rowsHtml + '</div>'
+      + '</div>'
+      + '</div>';
+  }).join('');
+}
+
+// ── Toggles independientes por sección ────────────────────────────────────
+function makeToggle(getOpen, setOpen) {
+  return function(id) {
+    const prev = getOpen();
+    if (prev && prev !== id) {
+      const pb = document.getElementById('grp-body-'    + prev);
+      const pc = document.getElementById('grp-chevron-' + prev);
+      if (pb) pb.style.display    = 'none';
+      if (pc) pc.style.transform  = '';
+    }
+    const body    = document.getElementById('grp-body-'    + id);
+    const chevron = document.getElementById('grp-chevron-' + id);
+    if (!body) return;
+    const isOpen       = body.style.display !== 'none';
+    body.style.display = isOpen ? 'none' : 'block';
+    if (chevron) chevron.style.transform = isOpen ? '' : 'rotate(180deg)';
+    setOpen(isOpen ? null : id);
+  };
+}
+
+window.toggleSoporteGroup  = makeToggle(() => openSoporteGroupId, v => openSoporteGroupId = v);
+window.togglePresentGroup  = makeToggle(() => openPresentGroupId, v => openPresentGroupId = v);
+window.toggleVideoGroup    = makeToggle(() => openVideoGroupId,   v => openVideoGroupId   = v);
 
 // -------------------------------------------------------------------------
 // 6. BÚSQUEDAS EN TIEMPO REAL
