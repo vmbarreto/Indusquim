@@ -14,6 +14,11 @@ let allPresentaciones = []; // Documentos tipo 'presentation'
 let currentIsCommercial = false;
 let openArchGroupId  = null;
 
+function escHtml(str) {
+  if (!str) return '';
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
 // -------------------------------------------------------------------------
 // 1. INICIALIZACIÓN
 // -------------------------------------------------------------------------
