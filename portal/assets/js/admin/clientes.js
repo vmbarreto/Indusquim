@@ -180,6 +180,12 @@ function renderTable(clients) {
     return;
   }
 
+  // Ordenar: grandes primero (A-Z), luego pequeños (A-Z)
+  clients = [...clients].sort((a, b) => {
+    if (a.client_type !== b.client_type) return a.client_type === 'large' ? -1 : 1;
+    return (a.company_name || '').localeCompare(b.company_name || '', 'es');
+  });
+
   // Calculamos el total de páginas necesarias
   const totalPages = Math.ceil(clients.length / itemsPerPage);
 
