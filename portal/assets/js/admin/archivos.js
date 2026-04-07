@@ -40,7 +40,7 @@ let allPresentaciones = []; // Documentos tipo 'presentation'
   // Comercial: solo sus clientes asignados (sin opción General)
   // Admin: todos los clientes + opción General
   let clientQuery = sb.from('profiles')
-    .select('id, company_name, full_name')
+    .select('id, company_name, full_name, client_type')
     .eq('role', 'client')
     .order('company_name', { ascending: true });
 
@@ -52,6 +52,9 @@ let allPresentaciones = []; // Documentos tipo 'presentation'
   allClients = data || [];
 
   const sel = document.getElementById('uploadClient');
+
+  // Guardar en el selector si es comercial, para usarlo al cambiar categoría
+  sel.dataset.commercial = isCommercial ? 'true' : 'false';
 
   if (isCommercial) {
     // Quitar la opción "General" — comerciales deben asignar siempre a un cliente
@@ -106,7 +109,9 @@ document.getElementById('cancelUploadModal').onclick = () => uploadBackdrop.clas
 // Adaptar formulario según categoría elegida
 document.getElementById('uploadCategory').addEventListener('change', () => {
   const cat = document.getElementById('uploadCategory').value;
-  const isVideo = cat === 'video';
+  const isVideo   = cat === 'video';
+  const isInforme = cat === 'report';
+
   document.getElementById('uploadDescGroup').style.display = isVideo ? 'block' : 'none';
 
   // Cambiar el tipo de archivo aceptado y el hint
@@ -120,6 +125,47 @@ document.getElementById('uploadCategory').addEventListener('change', () => {
     fileInput.accept = '.pdf';
     hint.textContent = 'PDF — Máximo 50 MB';
     document.querySelector('#uploadDropArea .upload-area__icon').textContent = '📄';
+  }
+
+  // Informes de visita: solo clientes grandes, campo obligatorio
+  const sel  = document.getElementById('uploadClient');
+  const lbl  = document.getElementById('uploadClientLabel');
+  const hint2 = document.getElementById('uploadClientHint');
+  // Reconstruir opciones del selector según la categoría
+  while (sel.options.length > 0) sel.remove(0);
+  if (isInforme) {
+    // Sin opción "General" — siempre asignado a un cliente grande
+    sel.required = true;
+    if (lbl)  lbl.innerHTML  = 'Cliente grande <span style="color:var(--c-brand)">*</span>';
+    if (hint2) hint2.textContent = 'Los informes de visita son exclusivos para clientes grandes.';
+    allClients.filter(c => c.client_type === 'large').forEach(c => {
+      const opt = document.createElement('option');
+      opt.value = c.id;
+      opt.textContent = c.company_name || c.full_name || 'Sin nombre';
+      sel.appendChild(opt);
+    });
+  } else {
+    // Restaurar selector normal
+    const isCommercial = document.getElementById('uploadClient').dataset.commercial === 'true';
+    if (!isCommercial) {
+      const generalOpt = document.createElement('option');
+      generalOpt.value = '';
+      generalOpt.textContent = '— General (visible para todos) —';
+      sel.appendChild(generalOpt);
+      sel.required = false;
+      if (lbl)  lbl.innerHTML  = 'Asignar a cliente';
+      if (hint2) hint2.textContent = 'Deja en blanco para que sea visible para todos los clientes.';
+    } else {
+      sel.required = true;
+      if (lbl)  lbl.innerHTML  = 'Cliente <span style="color:var(--c-brand)">*</span>';
+      if (hint2) hint2.textContent = 'Selecciona el cliente al que pertenece este archivo.';
+    }
+    allClients.forEach(c => {
+      const opt = document.createElement('option');
+      opt.value = c.id;
+      opt.textContent = c.company_name || c.full_name || 'Sin nombre';
+      sel.appendChild(opt);
+    });
   }
 
   // Resetear archivo seleccionado al cambiar categoría
