@@ -13,7 +13,9 @@
 
 let allClients       = [];
 let allCommercials   = [];
+let allCatalogItems  = [];
 let reassignTarget   = null;
+let editCatalogTarget = null;
 let isAdmin          = false;
 let isCommercial     = false;
 let currentProfileId = null;
@@ -67,8 +69,9 @@ let currentProfileId = null;
   document.getElementById('logoutBtn').onclick = () => logout();
   initAudit(profile);
 
-  // ── Cargar comerciales y clientes ────────────────────────────────────
+  // ── Cargar comerciales, catálogo y clientes ──────────────────────────
   await loadCommercials();
+  await loadCatalogItems();
   await loadClients();
 
 })();
@@ -92,6 +95,11 @@ async function loadCommercials() {
     opt.textContent = c.full_name || 'Sin nombre';
     sel.appendChild(opt);
   });
+}
+
+async function loadCatalogItems() {
+  const { data } = await sb.from('catalog_items').select('id, title').order('title', { ascending: true });
+  allCatalogItems = data || [];
 }
 
 function getCommercialName(id) {
@@ -167,7 +175,7 @@ function renderTable(clients) {
 
   // Si no hay clientes que mostrar, mostramos un mensaje vacío
   if (clients.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:var(--c-muted); padding:32px;">No se encontraron clientes.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:var(--c-muted); padding:32px;">No se encontraron clientes.</td></tr>';
     document.getElementById('paginationWrap').innerHTML = '';
     return;
   }
@@ -204,6 +212,10 @@ function renderTable(clients) {
         ? ' <button class="btn btn--ghost btn--sm" style="margin-left:6px;font-size:0.72rem;" onclick="openReassign(\'' + c.id + '\',\'' + (c.company_name || '').replace(/'/g, "\\'") + '\',\'' + (c.assigned_commercial_id || '') + '\')">Cambiar</button>'
         : '');
 
+    const catalogBtn = (isAdmin && c.client_type === 'large')
+      ? '<button class="btn btn--ghost btn--sm" style="font-size:0.72rem;" onclick="openEditCatalog(\'' + c.id + '\',\'' + (c.company_name || '').replace(/'/g, "\\'") + '\')">Catálogo</button>'
+      : '<span style="color:var(--c-muted);font-size:0.75rem;">—</span>';
+
     return '<tr>'
       + '<td><strong>' + (c.company_name || '—') + '</strong></td>'
       + '<td>' + (c.full_name || '—') + '</td>'
@@ -212,6 +224,7 @@ function renderTable(clients) {
       + '<td>' + tipoBadge + '</td>'
       + '<td style="font-size:0.82rem;">' + comercialCell + '</td>'
       + '<td style="font-size:0.8rem;">' + fecha + '</td>'
+      + '<td>' + catalogBtn + '</td>'
       + '</tr>';
 
   }).join(''); // '.join("")' une todas las filas en un solo string HTML
@@ -308,7 +321,77 @@ function showError(msg) {
 }
 
 // =========================================================================
-// 8. MODAL DE REASIGNACIÓN DE COMERCIAL
+// 8. MODAL EDITAR CATÁLOGO DE CLIENTE
+// =========================================================================
+const editCatalogBackdrop = document.getElementById('editCatalogBackdrop');
+
+window.openEditCatalog = async function(clientId, clientName) {
+  editCatalogTarget = clientId;
+  document.getElementById('editCatalogClientName').textContent = clientName || '—';
+  document.getElementById('editCatalogError').classList.remove('show');
+
+  // Cargar los productos actualmente asignados al cliente
+  const { data: assigned } = await sb.from('client_catalog')
+    .select('item_id').eq('client_id', clientId);
+  const assignedIds = new Set((assigned || []).map(r => r.item_id));
+
+  // Renderizar checklist con los productos del catálogo
+  const list = document.getElementById('editCatalogList');
+  if (!allCatalogItems.length) {
+    list.innerHTML = '<p style="padding:16px;color:var(--c-muted);font-size:0.85rem;">No hay productos en el catálogo.</p>';
+  } else {
+    list.innerHTML = allCatalogItems.map(p =>
+      '<label style="display:flex;align-items:center;gap:10px;padding:11px 14px;cursor:pointer;border-bottom:1px solid var(--c-border);" onmouseover="this.style.background=\'var(--c-bg-alt)\'" onmouseout="this.style.background=\'\'">'
+      + '<input type="checkbox" value="' + p.id + '" ' + (assignedIds.has(p.id) ? 'checked' : '') + ' style="width:16px;height:16px;flex-shrink:0;cursor:pointer;" />'
+      + '<span style="font-size:0.875rem;">' + p.title + '</span>'
+      + '</label>'
+    ).join('');
+  }
+
+  editCatalogBackdrop.classList.add('open');
+};
+
+document.getElementById('closeEditCatalog').onclick  = () => editCatalogBackdrop.classList.remove('open');
+document.getElementById('cancelEditCatalog').onclick = () => editCatalogBackdrop.classList.remove('open');
+
+document.getElementById('saveEditCatalog').onclick = async () => {
+  if (!editCatalogTarget) return;
+  const btn = document.getElementById('saveEditCatalog');
+  btn.textContent = 'Guardando…'; btn.disabled = true;
+
+  const selectedIds = [...document.querySelectorAll('#editCatalogList input:checked')].map(cb => cb.value);
+
+  // Reemplazar todo el catálogo del cliente: borrar y volver a insertar
+  const { error: delErr } = await sb.from('client_catalog').delete().eq('client_id', editCatalogTarget);
+  if (delErr) {
+    document.getElementById('editCatalogError').textContent = 'Error al actualizar: ' + delErr.message;
+    document.getElementById('editCatalogError').classList.add('show');
+    btn.textContent = 'Guardar'; btn.disabled = false;
+    return;
+  }
+
+  if (selectedIds.length > 0) {
+    const { error: insErr } = await sb.from('client_catalog').insert(
+      selectedIds.map(item_id => ({ client_id: editCatalogTarget, item_id }))
+    );
+    if (insErr) {
+      document.getElementById('editCatalogError').textContent = 'Error al guardar: ' + insErr.message;
+      document.getElementById('editCatalogError').classList.add('show');
+      btn.textContent = 'Guardar'; btn.disabled = false;
+      return;
+    }
+  }
+
+  const clientName = document.getElementById('editCatalogClientName').textContent;
+  await logAudit('Catálogo editado', clientName + ' → ' + selectedIds.length + ' producto' + (selectedIds.length !== 1 ? 's' : ''));
+
+  editCatalogBackdrop.classList.remove('open');
+  showSuccess('Catálogo actualizado correctamente.');
+  btn.textContent = 'Guardar'; btn.disabled = false;
+};
+
+// =========================================================================
+// 9. MODAL DE REASIGNACIÓN DE COMERCIAL
 // =========================================================================
 const reassignBackdrop = document.getElementById('reassignBackdrop');
 

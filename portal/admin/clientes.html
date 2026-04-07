@@ -202,6 +202,7 @@
                 <th>Tipo</th>
                 <th>Comercial</th>
                 <th>Registrado</th>
+                <th>Catálogo</th>
               </tr>
             </thead>
             <!-- El tbody se rellena dinámicamente con JavaScript -->
@@ -229,6 +230,25 @@
 
 </div>
 <!-- fin .portal-wrap -->
+
+<!-- Modal editar catálogo de cliente -->
+<div class="modal-backdrop" id="editCatalogBackdrop">
+  <div class="modal" style="max-width:480px;">
+    <div class="modal__header">
+      <span class="modal__title">Editar catálogo</span>
+      <span class="modal__close" id="closeEditCatalog">✕</span>
+    </div>
+    <p style="font-size:0.85rem;color:var(--c-muted);margin-bottom:16px;">
+      Cliente: <strong id="editCatalogClientName">—</strong>
+    </p>
+    <div id="editCatalogList" style="max-height:340px;overflow-y:auto;border:1px solid var(--c-border);border-radius:8px;"></div>
+    <div class="alert alert--error" id="editCatalogError" style="margin-top:12px;"></div>
+    <div class="modal__footer" style="margin-top:16px;">
+      <button type="button" class="btn btn--ghost" id="cancelEditCatalog">Cancelar</button>
+      <button type="button" class="btn btn--primary" id="saveEditCatalog">Guardar</button>
+    </div>
+  </div>
+</div>
 
 <!-- Modal reasignar comercial -->
 <div class="modal-backdrop" id="reassignBackdrop">
