@@ -325,15 +325,15 @@ function renderInformes(docs) {
 function renderInformesAdmin(docs) {
   const list = document.getElementById('informesList');
   if (!docs.length) {
-    list.innerHTML = '<p style="color:var(--c-muted);font-size:0.875rem;">Sin informes de visita aún.</p>';
+    list.innerHTML = '<div style="text-align:center;padding:48px 0;color:var(--c-muted);"><p style="font-size:1.5rem;margin-bottom:8px;">📄</p><p>No hay informes de visita aún.</p></div>';
     return;
   }
 
   // Agrupar por comercial → cliente
   const map = {};
   docs.forEach(d => {
-    const client  = allClients.find(c => c.id === d.client_id);
-    const commId  = client?.assigned_commercial_id || '__none__';
+    const client   = allClients.find(c => c.id === d.client_id);
+    const commId   = client?.assigned_commercial_id || '__none__';
     const commName = allCommercials.find(c => c.id === commId)?.full_name || 'Sin comercial';
     if (!map[commId]) map[commId] = { name: commName, clients: {} };
     const clientId   = d.client_id || '__none__';
@@ -343,34 +343,47 @@ function renderInformesAdmin(docs) {
   });
 
   list.innerHTML = Object.entries(map).map(([commId, comm]) => {
-    const totalDocs = Object.values(comm.clients).reduce((s, c) => s + c.docs.length, 0);
+    const totalDocs    = Object.values(comm.clients).reduce((s, c) => s + c.docs.length, 0);
+    const totalClients = Object.keys(comm.clients).length;
 
     const clientsHtml = Object.entries(comm.clients).map(([clientId, client]) => {
-      const subId = 'ai-sub-' + commId + '-' + clientId;
+      const subId   = 'inf-' + commId + '-' + clientId;
+      const rowsHtml = client.docs.map(d => informeRowHTML(d)).join('');
       return '<div style="border-bottom:1px solid var(--c-border);">'
-        + '<div onclick="toggleArchSubGroup(\'' + subId + '\')" style="display:flex;justify-content:space-between;align-items:center;padding:10px 20px 10px 32px;cursor:pointer;gap:12px;" onmouseover="this.style.background=\'var(--c-bg-alt)\'" onmouseout="this.style.background=\'\'">'
+        + '<div onclick="toggleArchSubGroup(\'' + subId + '\')" '
+        + 'style="display:flex;justify-content:space-between;align-items:center;padding:10px 20px 10px 32px;cursor:pointer;gap:12px;" '
+        + 'onmouseover="this.style.background=\'var(--c-bg-alt)\'" onmouseout="this.style.background=\'\'">'
         + '<div style="flex:1;min-width:0;">'
         + '<div style="font-size:0.85rem;font-weight:600;">' + escHtml(client.name) + '</div>'
-        + '<div style="font-size:0.73rem;color:var(--c-muted);margin-top:1px;">' + client.docs.length + ' informe' + (client.docs.length !== 1 ? 's' : '') + '</div>'
+        + '<div style="font-size:0.73rem;color:var(--c-muted);margin-top:1px;">'
+        + client.docs.length + ' informe' + (client.docs.length !== 1 ? 's' : '')
         + '</div>'
-        + '<svg id="arch-sub-chev-' + subId + '" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" style="transition:transform 0.2s;flex-shrink:0;color:var(--c-muted);"><polyline points="6 9 12 15 18 9"/></svg>'
         + '</div>'
-        + '<div id="arch-sub-body-' + subId + '" style="display:none;">'
-        + client.docs.map(d => informeRowHTML(d)).join('')
+        + '<svg id="sub-chevron-' + subId + '" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" '
+        + 'viewBox="0 0 24 24" style="transition:transform 0.2s;flex-shrink:0;color:var(--c-muted);">'
+        + '<polyline points="6 9 12 15 18 9"/></svg>'
+        + '</div>'
+        + '<div id="sub-body-' + subId + '" style="display:none;">'
+        + '<div style="max-height:272px;overflow-y:auto;">' + rowsHtml + '</div>'
         + '</div></div>';
     }).join('');
 
-    return '<div class="order-card" style="margin-bottom:12px;">'
+    return '<div class="order-card">'
       + '<div class="order-card__header" onclick="toggleArchGroup(\'' + commId + '\')">'
       + '<div>'
       + '<div style="font-weight:700;font-size:0.9rem;">' + escHtml(comm.name) + '</div>'
       + '<div style="font-size:0.78rem;color:var(--c-muted);margin-top:2px;">'
-      + Object.keys(comm.clients).length + ' empresa' + (Object.keys(comm.clients).length !== 1 ? 's' : '')
+      + totalClients + ' empresa' + (totalClients !== 1 ? 's' : '')
       + ' · ' + totalDocs + ' informe' + (totalDocs !== 1 ? 's' : '')
-      + '</div></div>'
-      + '<svg id="arch-grp-chev-' + commId + '" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" style="transition:transform 0.2s;flex-shrink:0;"><polyline points="6 9 12 15 18 9"/></svg>'
       + '</div>'
-      + '<div id="arch-grp-body-' + commId + '" style="display:none;border-top:1px solid var(--c-border);">' + clientsHtml + '</div>'
+      + '</div>'
+      + '<svg id="grp-chevron-' + commId + '" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" '
+      + 'viewBox="0 0 24 24" style="transition:transform 0.2s;flex-shrink:0;">'
+      + '<polyline points="6 9 12 15 18 9"/></svg>'
+      + '</div>'
+      + '<div id="grp-body-' + commId + '" style="display:none;border-top:1px solid var(--c-border);">'
+      + clientsHtml
+      + '</div>'
       + '</div>';
   }).join('');
 }
@@ -379,7 +392,7 @@ function renderInformesAdmin(docs) {
 function renderInformesComercial(docs) {
   const list = document.getElementById('informesList');
   if (!docs.length) {
-    list.innerHTML = '<p style="color:var(--c-muted);font-size:0.875rem;">Sin informes de visita aún.</p>';
+    list.innerHTML = '<div style="text-align:center;padding:48px 0;color:var(--c-muted);"><p style="font-size:1.5rem;margin-bottom:8px;">📄</p><p>No hay informes de visita aún.</p></div>';
     return;
   }
 
@@ -394,18 +407,23 @@ function renderInformesComercial(docs) {
   });
 
   list.innerHTML = Object.entries(map).map(([clientId, client]) => {
-    return '<div class="order-card" style="margin-bottom:12px;">'
+    const rowsHtml = client.docs.map(d => informeRowHTML(d)).join('');
+    return '<div class="order-card">'
       + '<div class="order-card__header" onclick="toggleArchGroup(\'' + clientId + '\')">'
       + '<div>'
       + '<div style="font-weight:700;font-size:0.9rem;">' + escHtml(client.name) + '</div>'
       + '<div style="font-size:0.78rem;color:var(--c-muted);margin-top:2px;">'
       + client.docs.length + ' informe' + (client.docs.length !== 1 ? 's' : '')
-      + '</div></div>'
-      + '<svg id="arch-grp-chev-' + clientId + '" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" style="transition:transform 0.2s;flex-shrink:0;"><polyline points="6 9 12 15 18 9"/></svg>'
       + '</div>'
-      + '<div id="arch-grp-body-' + clientId + '" style="display:none;border-top:1px solid var(--c-border);">'
-      + client.docs.map(d => informeRowHTML(d)).join('')
-      + '</div></div>';
+      + '</div>'
+      + '<svg id="grp-chevron-' + clientId + '" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" '
+      + 'viewBox="0 0 24 24" style="transition:transform 0.2s;flex-shrink:0;">'
+      + '<polyline points="6 9 12 15 18 9"/></svg>'
+      + '</div>'
+      + '<div id="grp-body-' + clientId + '" style="display:none;border-top:1px solid var(--c-border);">'
+      + '<div style="max-height:272px;overflow-y:auto;">' + rowsHtml + '</div>'
+      + '</div>'
+      + '</div>';
   }).join('');
 }
 
@@ -413,38 +431,44 @@ function renderInformesComercial(docs) {
 function informeRowHTML(d) {
   const bucket = d.client_id ? 'client-files' : 'general-files';
   const fecha  = new Date(d.created_at).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' });
-  return '<div class="file-item" style="padding-left:40px;">'
-    + '<div class="file-item__icon">📄</div>'
-    + '<div class="file-item__info">'
-    + '<div class="file-item__name">' + escHtml(d.title) + '</div>'
-    + '<div class="file-item__meta">' + fecha + '</div>'
+  const fp     = d.file_path.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+  return '<div style="display:flex;justify-content:space-between;align-items:center;gap:12px;'
+    + 'padding:10px 20px 10px 40px;border-bottom:1px solid var(--c-border);" '
+    + 'onmouseover="this.style.background=\'var(--c-bg-alt)\'" onmouseout="this.style.background=\'\'">'
+    + '<div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0;">'
+    + '<span style="font-size:1rem;flex-shrink:0;">📄</span>'
+    + '<div style="min-width:0;">'
+    + '<div style="font-size:0.82rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + escHtml(d.title) + '</div>'
+    + '<div style="font-size:0.73rem;color:var(--c-muted);margin-top:2px;">' + fecha + '</div>'
     + '</div>'
-    + '<div class="file-item__actions">'
-    + '<button class="btn btn--ghost btn--sm" onclick="downloadFile(\'' + d.file_path + '\',\'' + bucket + '\')">Descargar</button>'
-    + '<button class="btn btn--danger btn--sm" onclick="deleteDoc(\'' + d.id + '\',\'' + d.file_path + '\',\'' + bucket + '\')">Eliminar</button>'
-    + '</div></div>';
+    + '</div>'
+    + '<div style="display:flex;gap:6px;flex-shrink:0;">'
+    + '<button class="btn btn--ghost btn--sm" onclick="downloadFile(\'' + fp + '\',\'' + bucket + '\')">Descargar</button>'
+    + '<button class="btn btn--danger btn--sm" onclick="deleteDoc(\'' + d.id + '\',\'' + fp + '\',\'' + bucket + '\')">Eliminar</button>'
+    + '</div>'
+    + '</div>';
 }
 
 // ── Controles del acordeón ─────────────────────────────────────────────────
 window.toggleArchGroup = function(id) {
   if (openArchGroupId && openArchGroupId !== id) {
-    const prev  = document.getElementById('arch-grp-body-' + openArchGroupId);
-    const prevC = document.getElementById('arch-grp-chev-' + openArchGroupId);
-    if (prev)  prev.style.display   = 'none';
-    if (prevC) prevC.style.transform = '';
+    const prevBody    = document.getElementById('grp-body-'    + openArchGroupId);
+    const prevChevron = document.getElementById('grp-chevron-' + openArchGroupId);
+    if (prevBody)    prevBody.style.display    = 'none';
+    if (prevChevron) prevChevron.style.transform = '';
   }
-  const body    = document.getElementById('arch-grp-body-' + id);
-  const chevron = document.getElementById('arch-grp-chev-' + id);
+  const body    = document.getElementById('grp-body-'    + id);
+  const chevron = document.getElementById('grp-chevron-' + id);
   if (!body) return;
   const isOpen       = body.style.display !== 'none';
   body.style.display = isOpen ? 'none' : 'block';
   if (chevron) chevron.style.transform = isOpen ? '' : 'rotate(180deg)';
-  openArchGroupId = isOpen ? null : id;
+  openArchGroupId    = isOpen ? null : id;
 };
 
 window.toggleArchSubGroup = function(subId) {
-  const body    = document.getElementById('arch-sub-body-' + subId);
-  const chevron = document.getElementById('arch-sub-chev-' + subId);
+  const body    = document.getElementById('sub-body-'    + subId);
+  const chevron = document.getElementById('sub-chevron-' + subId);
   if (!body) return;
   const isOpen       = body.style.display !== 'none';
   body.style.display = isOpen ? 'none' : 'block';
