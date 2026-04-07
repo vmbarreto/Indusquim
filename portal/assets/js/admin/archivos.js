@@ -112,6 +112,8 @@ document.getElementById('openUploadModal').onclick  = () => {
   hideModalError();
   document.getElementById('uploadForm').reset();
   resetDropArea();
+  // Disparar la lógica del selector de categoría para que aplique el filtro correcto
+  document.getElementById('uploadCategory').dispatchEvent(new Event('change'));
   uploadBackdrop.classList.add('open');
 };
 document.getElementById('closeUploadModal').onclick  = () => uploadBackdrop.classList.remove('open');
