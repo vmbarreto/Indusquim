@@ -14,6 +14,7 @@ let allPresentaciones = []; // Documentos tipo 'presentation'
 let allVideos        = [];  // Videos
 let currentIsCommercial = false;
 let openArchGroupId     = null;
+let openArchSubGroupId  = null;
 let openSoporteGroupId  = null;
 let openPresentGroupId  = null;
 let openVideoGroupId    = null;
@@ -461,6 +462,14 @@ window.toggleArchGroup = function(id) {
     if (prevBody)    prevBody.style.display    = 'none';
     if (prevChevron) prevChevron.style.transform = '';
   }
+  // Al cambiar de comercial, cerrar también la empresa que estaba abierta
+  if (openArchSubGroupId) {
+    const prevSub  = document.getElementById('sub-body-'    + openArchSubGroupId);
+    const prevSubC = document.getElementById('sub-chevron-' + openArchSubGroupId);
+    if (prevSub)  prevSub.style.display    = 'none';
+    if (prevSubC) prevSubC.style.transform = '';
+    openArchSubGroupId = null;
+  }
   const body    = document.getElementById('grp-body-'    + id);
   const chevron = document.getElementById('grp-chevron-' + id);
   if (!body) return;
@@ -471,12 +480,19 @@ window.toggleArchGroup = function(id) {
 };
 
 window.toggleArchSubGroup = function(subId) {
+  if (openArchSubGroupId && openArchSubGroupId !== subId) {
+    const prevBody    = document.getElementById('sub-body-'    + openArchSubGroupId);
+    const prevChevron = document.getElementById('sub-chevron-' + openArchSubGroupId);
+    if (prevBody)    prevBody.style.display    = 'none';
+    if (prevChevron) prevChevron.style.transform = '';
+  }
   const body    = document.getElementById('sub-body-'    + subId);
   const chevron = document.getElementById('sub-chevron-' + subId);
   if (!body) return;
   const isOpen       = body.style.display !== 'none';
   body.style.display = isOpen ? 'none' : 'block';
   if (chevron) chevron.style.transform = isOpen ? '' : 'rotate(180deg)';
+  openArchSubGroupId = isOpen ? null : subId;
 };
 
 async function loadSoporte() {
