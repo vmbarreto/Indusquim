@@ -629,7 +629,7 @@ async function renderVideos(videos) {
     const cardsHtml = g.videos.map(v => {
       const fecha = new Date(v.created_at).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' });
       const fp    = v.file_path.replace(/'/g,"\\'");
-      return '<div style="flex:0 0 360px;background:var(--c-bg);border:1px solid var(--c-border);border-radius:10px;overflow:hidden;">'
+      return '<div style="background:var(--c-bg);border:1px solid var(--c-border);border-radius:10px;overflow:hidden;">'
         + '<video controls src="' + (signedMap[v.id] || '') + '" preload="metadata" '
         + 'style="width:100%;aspect-ratio:16/9;background:#000;display:block;"></video>'
         + '<div style="padding:12px 14px;">'
@@ -657,7 +657,7 @@ async function renderVideos(videos) {
       + '<polyline points="6 9 12 15 18 9"/></svg>'
       + '</div>'
       + '<div id="grp-body-' + groupKey + '" style="display:none;border-top:1px solid var(--c-border);">'
-      + '<div style="display:flex;flex-wrap:wrap;gap:16px;padding:20px;">' + cardsHtml + '</div>'
+      + '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;padding:20px;">' + cardsHtml + '</div>'
       + '</div>'
       + '</div>';
   }).join('');
