@@ -11,6 +11,7 @@ let allLogs = [];
   if (!profile) return;
 
   await initNotifications(profile.id);
+  showAdminOnlyContent(profile);
 
   const isCommercial = profile.role === 'commercial';
 
@@ -22,12 +23,7 @@ let allLogs = [];
     if (isCommercial) roleEl.style.color = '#c084fc';
   }
 
-  if (isCommercial) {
-    const lu = document.getElementById('linkUsuarios');
-    const lc = document.getElementById('linkCatalogo');
-    if (lu) lu.style.display = 'none';
-    if (lc) lc.style.display = 'none';
-  }
+
 
   document.getElementById('logoutBtn').onclick = () => logout();
 

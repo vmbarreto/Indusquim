@@ -35,6 +35,8 @@ let currentProfileId = null;
   isCommercial     = profile.role === 'commercial';
   isAdmin          = profile.role === 'admin';
   currentProfileId = profile.id;
+ 
+  showAdminOnlyContent(profile);
 
   // ── Personalizar el sidebar según el rol ──────────────────────────────
 
@@ -108,7 +110,7 @@ async function loadClients() {
   // Pedimos: nombre, empresa, correo, teléfono, tipo de cliente y fecha de registro
   let query = sb
     .from('profiles')
-    .select('id, full_name, company_name, email, client_type, assigned_commercial_id, created_at')
+    .select('id, full_name, company_name, email, phone, client_type, assigned_commercial_id, created_at')
     .eq('role', 'client')
     .order('company_name', { ascending: true });
 
@@ -165,7 +167,7 @@ function renderTable(clients) {
 
   // Si no hay clientes que mostrar, mostramos un mensaje vacío
   if (clients.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:var(--c-muted); padding:32px;">No se encontraron clientes.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:var(--c-muted); padding:32px;">No se encontraron clientes.</td></tr>';
     document.getElementById('paginationWrap').innerHTML = '';
     return;
   }
@@ -184,10 +186,8 @@ function renderTable(clients) {
   tbody.innerHTML = paginados.map(c => {
 
     // Celda de contacto: correo en la primera línea, teléfono en la segunda (si existe)
-    const contacto =
-      '<span style="font-size:0.82rem; color:var(--c-muted);">'
-      + (c.email || '—')
-      + '</span>';
+    const correo = '<span style="font-size:0.82rem; color:var(--c-muted);">' + (c.email || '—') + '</span>';
+    const telefono = '<span style="font-size:0.82rem; color:var(--c-muted);">' + (c.phone || '—') + '</span>';
 
     // Badge del tipo de cliente: colores diferentes para grande vs pequeño
     const tipoBadge =
@@ -207,7 +207,8 @@ function renderTable(clients) {
     return '<tr>'
       + '<td><strong>' + (c.company_name || '—') + '</strong></td>'
       + '<td>' + (c.full_name || '—') + '</td>'
-      + '<td>' + contacto + '</td>'
+      + '<td>' + correo + '</td>'
+      + '<td>' + telefono + '</td>'
       + '<td>' + tipoBadge + '</td>'
       + '<td style="font-size:0.82rem;">' + comercialCell + '</td>'
       + '<td style="font-size:0.8rem;">' + fecha + '</td>'

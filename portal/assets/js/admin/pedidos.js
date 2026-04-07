@@ -31,6 +31,7 @@ const NEXT_ACTIONS = {
   const isCommercial = profile.role === 'commercial';
 
   await initNotifications(profile.id);
+  showAdminOnlyContent(profile);
 
   document.getElementById('adminName').textContent = profile.full_name || (isCommercial ? 'Comercial' : 'Admin');
 
@@ -40,16 +41,7 @@ const NEXT_ACTIONS = {
     if (isCommercial) roleEl.style.color = '#c084fc';
   }
 
-  // Ocultar enlaces exclusivos de admin para comerciales
-  if (isCommercial) {
-    const lu = document.getElementById('linkUsuarios');
-    const lc = document.getElementById('linkCatalogo');
-    if (lu) lu.style.display = 'none';
-    if (lc) lc.style.display = 'none';
-    // Comercial ve vista agrupada por cliente; el filtro de estado no aplica
-    const sf = document.getElementById('statusFilter');
-    if (sf) sf.closest('div').style.display = 'none';
-  }
+
 
   document.getElementById('logoutBtn').onclick = () => logout();
   initAudit(profile);

@@ -1,5 +1,5 @@
 /**
- * Catálogo Interactivo — Vista Cliente
+ * Hacer pedido — Vista Cliente
  * Incluye: tarjetas con descripción corta, modal de detalle,
  * descarga de ficha técnica, carrito y envío de pedido.
  */
@@ -41,7 +41,7 @@ const isClientRole = () => currentProfile && currentProfile.role === 'client';
 })();
 
 // ==========================================
-// CARGAR CATÁLOGO
+// CARGAR PRODUCTOS
 // ==========================================
 async function fetchCatalog() {
   // Admin y comercial ven todos los productos
@@ -224,7 +224,7 @@ window.removeFromCart = function(productId) {
 function renderCart() {
   const body = document.getElementById('cartItems');
   if (!cart.length) {
-    body.innerHTML = '<div class="cart-panel__empty">Tu pedido está vacío.<br>Agrega productos del catálogo.</div>';
+    body.innerHTML = '<div class="cart-panel__empty">Tu pedido está vacío.<br>Agrega productos de la lista.</div>';
     return;
   }
   body.innerHTML = cart.map(item =>

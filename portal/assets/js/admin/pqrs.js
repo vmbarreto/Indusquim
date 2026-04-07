@@ -32,6 +32,7 @@ const TYPE_CSS = {
   currentProfile = profile;
 
   await initNotifications(profile.id);
+  showAdminOnlyContent(profile);
 
   const isCommercial = profile.role === 'commercial';
 
@@ -43,12 +44,7 @@ const TYPE_CSS = {
     if (isCommercial) roleEl.style.color = '#c084fc';
   }
 
-  if (isCommercial) {
-    ['linkUsuarios', 'linkCatalogo'].forEach(id => {
-      const el = document.getElementById(id);
-      if (el) el.style.display = 'none';
-    });
-  }
+
 
   document.getElementById('logoutBtn').onclick = () => logout();
   initAudit(profile);
@@ -317,8 +313,11 @@ window.openPqrModal = async function(pqrId) {
     document.getElementById('closeProgressBar').style.width = '0%';
     const btn = document.getElementById('confirmClosePqrBtn');
     btn.textContent = 'Confirmar cierre'; btn.disabled = false;
+    btn.style.display = 'inline-block';
   } else {
     closeSection.style.display  = 'none';
+    const btn = document.getElementById('confirmClosePqrBtn');
+    if (btn) btn.style.display = 'none';
     closedSection.style.display = 'block';
     document.getElementById('detailClosedDate').textContent =
       p.closed_at ? new Date(p.closed_at).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
@@ -350,10 +349,8 @@ document.getElementById('pqrDetailBackdrop').addEventListener('click', e => {
 window.showPqrPage = function(n) {
   document.getElementById('pqrModalPage1').style.display = n === 1 ? 'block' : 'none';
   document.getElementById('pqrModalPage2').style.display = n === 2 ? 'block' : 'none';
-  document.getElementById('pqrDot1').style.background = n === 1 ? 'var(--c-brand)' : 'var(--c-bg-alt)';
-  document.getElementById('pqrDot1').style.color       = n === 1 ? '#fff' : 'var(--c-muted)';
-  document.getElementById('pqrDot2').style.background = n === 2 ? 'var(--c-brand)' : 'var(--c-bg-alt)';
-  document.getElementById('pqrDot2').style.color       = n === 2 ? '#fff' : 'var(--c-muted)';
+  const stepText = document.getElementById('pqrStepText');
+  if (stepText) stepText.textContent = n + ' / 2';
 };
 
 document.getElementById('saveResponseBtn').onclick = async () => {

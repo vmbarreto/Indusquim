@@ -11,6 +11,8 @@ let allProducts = [];
     window.location.href = 'index.html';
     return;
   }
+ 
+  showAdminOnlyContent(profile);
   await initNotifications(profile.id);
 
   document.getElementById('adminName').textContent = profile.full_name || 'Admin';
@@ -35,7 +37,7 @@ function closeProdModal() {
   prodBackdrop.classList.remove('open');
   document.getElementById('productForm').reset();
   const imgArea = document.getElementById('prodDropArea');
-  imgArea.innerHTML = '<div class="upload-area__icon" style="font-size:1.4rem;">🖼️</div><p><strong>Haz clic o arrastra</strong> una imagen</p><p style="color:var(--c-muted);font-size:0.8rem;">JPG o PNG — Recomendado 16:9</p>';
+  imgArea.innerHTML = '<div class="upload-area__icon" style="font-size:1.4rem;">🖼️</div><p><strong>Haz clic o arrastra</strong> una imagen</p><p style="color:var(--c-muted);font-size:0.8rem;">JPG o PNG — Recomendado Cuadrado (1:1)</p>';
   imgArea.onclick = () => document.getElementById('prodFile').click();
 }
 
@@ -175,8 +177,8 @@ window.openEditModal = function(id) {
 
   const imgUrl = sb.storage.from('catalog-images').getPublicUrl(p.file_path).data.publicUrl;
   document.getElementById('editImgPreview').innerHTML =
-    '<img src="' + imgUrl + '" style="width:100%;border-radius:6px;margin-top:6px;aspect-ratio:16/9;object-fit:cover;" />'
-    + '<p style="margin-top:6px;font-size:0.78rem;color:var(--c-muted);">Haz clic para cambiar la imagen</p>';
+    '<img src="' + imgUrl + '" style="width:100%;max-width:200px;margin:0 auto;display:block;border-radius:6px;margin-top:6px;aspect-ratio:1/1;object-fit:cover;" />'
+    + '<p style="margin-top:6px;font-size:0.78rem;color:var(--c-muted);">Haz clic para cambiar la imagen (Recomendado 1:1)</p>';
 
   document.getElementById('editModalError').classList.remove('show');
   editBackdrop.classList.add('open');
@@ -193,8 +195,8 @@ document.getElementById('e_imgFile').onchange = (e) => {
   const reader = new FileReader();
   reader.onload = (ev) => {
     document.getElementById('editImgPreview').innerHTML =
-      '<img src="' + ev.target.result + '" style="width:100%;border-radius:6px;margin-top:6px;aspect-ratio:16/9;object-fit:cover;" />'
-      + '<p style="margin-top:6px;font-size:0.78rem;color:var(--c-muted);">Nueva imagen: ' + file.name + '</p>';
+      '<img src="' + ev.target.result + '" style="width:100%;max-width:200px;margin:0 auto;display:block;border-radius:6px;margin-top:6px;aspect-ratio:1/1;object-fit:cover;" />'
+      + '<p style="margin-top:6px;font-size:0.78rem;color:var(--c-muted);">Nueva imagen: ' + file.name + ' (Se ajustará a 1:1)</p>';
   };
   reader.readAsDataURL(file);
 };

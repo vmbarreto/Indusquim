@@ -23,6 +23,8 @@ let pendingClientData = null;
     window.location.href = 'index.html';
     return;
   }
+ 
+  showAdminOnlyContent(profile);
 
   await initNotifications(profile.id);
 
@@ -179,7 +181,8 @@ function openCreateModal() {
 
 function closeCreateModal() {
   backdrop.classList.remove('open');
-  document.getElementById('wizardSteps').style.display = 'none';
+  const stepText = document.getElementById('userStepText');
+  if (stepText) stepText.style.display = 'none';
   pendingClientData = null;
 }
 
@@ -187,12 +190,8 @@ function showStep(n) {
   document.getElementById('step1').style.display = n === 1 ? 'block' : 'none';
   document.getElementById('step2').style.display = n === 2 ? 'block' : 'none';
 
-  const dot1 = document.getElementById('stepDot1');
-  const dot2 = document.getElementById('stepDot2');
-  dot1.style.background = n === 1 ? 'var(--c-brand)' : 'var(--c-bg-alt)';
-  dot1.style.color      = n === 1 ? '#fff' : 'var(--c-muted)';
-  dot2.style.background = n === 2 ? 'var(--c-brand)' : 'var(--c-bg-alt)';
-  dot2.style.color      = n === 2 ? '#fff' : 'var(--c-muted)';
+  const stepText = document.getElementById('userStepText');
+  if (stepText) stepText.textContent = n + ' / 2';
 }
 
 function renderProductChecklist() {
@@ -230,7 +229,8 @@ function syncCreateFormRequired(role) {
   document.getElementById('f_phone').required               = isCommercial;
 
   // Indicador de pasos solo para clientes
-  document.getElementById('wizardSteps').style.display = isClient ? 'flex' : 'none';
+  const stepText = document.getElementById('userStepText');
+  if (stepText) stepText.style.display = isClient ? 'inline-block' : 'none';
   // Texto del botón según rol
   document.getElementById('submitCreate').textContent = isClient ? 'Siguiente →' : 'Crear usuario';
 }

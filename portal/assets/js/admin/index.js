@@ -2,7 +2,7 @@
  * =========================================================================
  * ARCHIVO: assets/js/admin/index.js
  * Objetivo: Manejar la lógica, animaciones y consulta de base de datos
- *           para el Dashboard principal del Administrador.
+ *           para la Home principal del Administrador.
  * =========================================================================
  */
 
@@ -15,6 +15,7 @@
   if (!profile) return;
 
   await initNotifications(profile.id);
+  showAdminOnlyContent(profile);
 
   const isCommercial = profile.role === 'commercial';
 
@@ -33,20 +34,7 @@
   const topbarTitle = document.querySelector('.topbar__title');
   if (topbarTitle && isCommercial) topbarTitle.textContent = 'Panel Comercial';
 
-  // Ocultar elementos exclusivos del Administrador
-  if (isCommercial) {
-    // Botón "Crear usuario" en Accesos rápidos
-    const btnCrear = document.getElementById('btnCrearUsuario');
-    if (btnCrear) btnCrear.style.display = 'none';
 
-    // Enlace "Usuarios" en sidebar
-    const linkUsuarios = document.querySelector('.sidebar__nav a[href="usuarios.html"]');
-    if (linkUsuarios) linkUsuarios.style.display = 'none';
-
-    // Enlace "Catálogo" en sidebar
-    const linkCatalogo = document.querySelector('.sidebar__nav a[href="catalogo.html"]');
-    if (linkCatalogo) linkCatalogo.style.display = 'none';
-  }
 
 
   // ── Bienvenida personalizada solo para el Comercial ──────────────────
@@ -69,7 +57,7 @@
   }
 
   // -----------------------------------------------------------------------
-  // 2. ESTADÍSTICAS DEL DASHBOARD (Cards superiores)
+  // 2. ESTADÍSTICAS DE LA HOME (Cards superiores)
   //    Admin ve: Total, Grandes, Pequeños, Documentos
   //    Comercial ve: Total, Documentos, Videos, Pedidos (próximamente)
   // -----------------------------------------------------------------------

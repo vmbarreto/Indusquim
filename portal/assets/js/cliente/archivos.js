@@ -1,7 +1,7 @@
 /**
  * Archivos — Vista Cliente
- * Pequeños: solo Material General (client_id = null)
- * Grandes: Material General + Mi Material (client_id = perfil propio)
+ * Pequeños: solo Contenido General (client_id = null)
+ * Grandes: Contenido General + Mi Contenido (client_id = perfil propio)
  */
 
 let currentProfile = null;
@@ -18,7 +18,7 @@ let currentProfile = null;
   document.getElementById('homeLink').href = currentProfile.client_type === 'large' ? 'grande.html' : 'pequeno.html';
   document.getElementById('logoutBtn').onclick = () => logout();
 
-  // Mostrar la pestaña "Mi Material" solo para clientes grandes
+  // Mostrar la pestaña "Mi Contenido" solo para clientes grandes
   if (currentProfile.client_type === 'large') {
     document.getElementById('tabPersonal').style.display = '';
   }
@@ -48,7 +48,7 @@ let currentProfile = null;
 })();
 
 // ==========================================
-// CARGAR MATERIAL GENERAL (client_id = null)
+// CARGAR CONTENIDO GENERAL (client_id = null)
 // Sin informes de visita — aplica a todos los clientes (incluidos pequeños)
 // ==========================================
 async function loadGeneral() {
@@ -64,18 +64,16 @@ async function loadGeneral() {
 }
 
 // ==========================================
-// CARGAR MI MATERIAL (client_id = mi perfil)
-// Solo clientes grandes — incluye informes de visita + documentos soporte + capacitaciones
+// CARGAR MI CONTENIDO (client_id = mi perfil)
+// Solo clientes grandes — incluye documentos soporte + capacitaciones
 // ==========================================
 async function loadPersonal() {
-  const [{ data: informes }, { data: soporte }, { data: presentaciones }, { data: videos }] = await Promise.all([
-    sb.from('documents').select('*').eq('type', 'report').eq('client_id', currentProfile.id).order('created_at', { ascending: false }),
+  const [{ data: soporte }, { data: presentaciones }, { data: videos }] = await Promise.all([
     sb.from('documents').select('*').eq('type', 'support').eq('client_id', currentProfile.id).order('created_at', { ascending: false }),
     sb.from('documents').select('*').eq('type', 'presentation').eq('client_id', currentProfile.id).order('created_at', { ascending: false }),
     sb.from('videos').select('*').eq('client_id', currentProfile.id).order('created_at', { ascending: false })
   ]);
 
-  renderFileList('personalInformes',      informes       || [], 'client-files');
   renderFileList('personalSoporte',       soporte        || [], 'client-files');
   renderFileList('personalPresentaciones',presentaciones || [], 'client-files');
   renderVideoGrid('personalVideos',       videos         || []);
