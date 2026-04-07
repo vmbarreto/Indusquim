@@ -68,12 +68,14 @@ async function loadGeneral() {
 // Solo clientes grandes — incluye documentos soporte + capacitaciones
 // ==========================================
 async function loadPersonal() {
-  const [{ data: soporte }, { data: presentaciones }, { data: videos }] = await Promise.all([
+  const [{ data: informes }, { data: soporte }, { data: presentaciones }, { data: videos }] = await Promise.all([
+    sb.from('documents').select('*').eq('type', 'report').eq('client_id', currentProfile.id).order('created_at', { ascending: false }),
     sb.from('documents').select('*').eq('type', 'support').eq('client_id', currentProfile.id).order('created_at', { ascending: false }),
     sb.from('documents').select('*').eq('type', 'presentation').eq('client_id', currentProfile.id).order('created_at', { ascending: false }),
     sb.from('videos').select('*').eq('client_id', currentProfile.id).order('created_at', { ascending: false })
   ]);
 
+  renderFileList('personalInformes',      informes       || [], 'client-files');
   renderFileList('personalSoporte',       soporte        || [], 'client-files');
   renderFileList('personalPresentaciones',presentaciones || [], 'client-files');
   renderVideoGrid('personalVideos',       videos         || []);
