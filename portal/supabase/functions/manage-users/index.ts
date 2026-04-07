@@ -73,6 +73,22 @@ Deno.serve(async (req) => {
     if (action === 'delete') {
       const { userId } = body
 
+      // Limpiar tablas relacionadas antes de borrar el usuario de auth
+      // (evita errores de FK constraint)
+      await supabaseAdmin.from('audit_log').delete().eq('user_id', userId)
+      await supabaseAdmin.from('client_catalog').delete().eq('client_id', userId)
+      await supabaseAdmin.from('order_items')
+        .delete()
+        .in('order_id',
+          (await supabaseAdmin.from('orders').select('id').eq('client_id', userId)).data?.map((o: any) => o.id) || []
+        )
+      await supabaseAdmin.from('orders').delete().eq('client_id', userId)
+      await supabaseAdmin.from('orders').delete().eq('commercial_id', userId)
+      await supabaseAdmin.from('pqrs').delete().eq('user_id', userId)
+      await supabaseAdmin.from('documents').delete().eq('client_id', userId)
+      await supabaseAdmin.from('videos').delete().eq('client_id', userId)
+      await supabaseAdmin.from('profiles').delete().eq('id', userId)
+
       const { error } = await supabaseAdmin.auth.admin.deleteUser(userId)
       if (error) throw error
 
