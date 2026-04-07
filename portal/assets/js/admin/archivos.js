@@ -626,23 +626,20 @@ async function renderVideos(videos) {
   }));
 
   list.innerHTML = groups.map(g => {
-    const rowsHtml = g.videos.map(v => {
+    const cardsHtml = g.videos.map(v => {
       const fecha = new Date(v.created_at).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' });
-      return '<div style="display:flex;justify-content:space-between;align-items:center;gap:12px;'
-        + 'padding:10px 20px 10px 40px;border-bottom:1px solid var(--c-border);" '
-        + 'onmouseover="this.style.background=\'var(--c-bg-alt)\'" onmouseout="this.style.background=\'\'">'
-        + '<div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0;">'
-        + '<span style="font-size:1rem;flex-shrink:0;">🎥</span>'
+      const fp    = v.file_path.replace(/'/g,"\\'");
+      return '<div class="video-card">'
+        + '<video controls src="' + (signedMap[v.id] || '') + '" preload="metadata"></video>'
+        + '<div class="video-card__body">'
+        + '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">'
         + '<div style="min-width:0;">'
-        + '<div style="font-size:0.82rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + escHtml(v.title) + '</div>'
-        + '<div style="font-size:0.73rem;color:var(--c-muted);margin-top:2px;">'
-        + (v.description ? escHtml(v.description) + ' · ' : '') + fecha
+        + '<h3 class="video-card__title">' + escHtml(v.title) + '</h3>'
+        + (v.description ? '<p class="video-card__desc">' + escHtml(v.description) + '</p>' : '')
+        + '<p style="font-size:0.72rem;color:var(--c-muted);margin-top:4px;">' + fecha + '</p>'
         + '</div>'
+        + '<button class="btn btn--danger btn--sm" style="flex-shrink:0;margin-top:2px;" onclick="deleteVideo(\'' + v.id + '\',\'' + fp + '\')">Eliminar</button>'
         + '</div>'
-        + '</div>'
-        + '<div style="display:flex;gap:6px;flex-shrink:0;align-items:center;">'
-        + (signedMap[v.id] ? '<a class="btn btn--ghost btn--sm" href="' + signedMap[v.id] + '" target="_blank">Ver</a>' : '')
-        + '<button class="btn btn--danger btn--sm" onclick="deleteVideo(\'' + v.id + '\',\'' + v.file_path.replace(/'/g,"\\'") + '\')">Eliminar</button>'
         + '</div>'
         + '</div>';
     }).join('');
@@ -661,7 +658,7 @@ async function renderVideos(videos) {
       + '<polyline points="6 9 12 15 18 9"/></svg>'
       + '</div>'
       + '<div id="grp-body-' + groupKey + '" style="display:none;border-top:1px solid var(--c-border);">'
-      + '<div style="max-height:320px;overflow-y:auto;">' + rowsHtml + '</div>'
+      + '<div class="video-grid" style="padding:20px;">' + cardsHtml + '</div>'
       + '</div>'
       + '</div>';
   }).join('');
