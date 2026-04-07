@@ -629,17 +629,14 @@ async function renderVideos(videos) {
     const cardsHtml = g.videos.map(v => {
       const fecha = new Date(v.created_at).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' });
       const fp    = v.file_path.replace(/'/g,"\\'");
-      return '<div class="video-card">'
-        + '<video controls src="' + (signedMap[v.id] || '') + '" preload="metadata"></video>'
-        + '<div class="video-card__body">'
-        + '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">'
-        + '<div style="min-width:0;">'
-        + '<h3 class="video-card__title">' + escHtml(v.title) + '</h3>'
-        + (v.description ? '<p class="video-card__desc">' + escHtml(v.description) + '</p>' : '')
-        + '<p style="font-size:0.72rem;color:var(--c-muted);margin-top:4px;">' + fecha + '</p>'
-        + '</div>'
-        + '<button class="btn btn--danger btn--sm" style="flex-shrink:0;margin-top:2px;" onclick="deleteVideo(\'' + v.id + '\',\'' + fp + '\')">Eliminar</button>'
-        + '</div>'
+      return '<div style="display:flex;gap:16px;align-items:flex-start;padding:16px;border-bottom:1px solid var(--c-border);">'
+        + '<video controls src="' + (signedMap[v.id] || '') + '" preload="metadata" '
+        + 'style="width:480px;min-width:480px;aspect-ratio:16/9;border-radius:8px;background:#000;"></video>'
+        + '<div style="flex:1;min-width:0;padding-top:4px;">'
+        + '<h3 style="font-weight:700;font-size:0.95rem;color:var(--c-heading);margin-bottom:6px;">' + escHtml(v.title) + '</h3>'
+        + (v.description ? '<p style="font-size:0.82rem;color:var(--c-muted);margin-bottom:8px;">' + escHtml(v.description) + '</p>' : '')
+        + '<p style="font-size:0.72rem;color:var(--c-muted);margin-bottom:16px;">' + fecha + '</p>'
+        + '<button class="btn btn--danger btn--sm" onclick="deleteVideo(\'' + v.id + '\',\'' + fp + '\')">Eliminar</button>'
         + '</div>'
         + '</div>';
     }).join('');
@@ -658,7 +655,7 @@ async function renderVideos(videos) {
       + '<polyline points="6 9 12 15 18 9"/></svg>'
       + '</div>'
       + '<div id="grp-body-' + groupKey + '" style="display:none;border-top:1px solid var(--c-border);">'
-      + '<div class="video-grid" style="padding:20px;">' + cardsHtml + '</div>'
+      + cardsHtml
       + '</div>'
       + '</div>';
   }).join('');
