@@ -6,10 +6,13 @@
  * =========================================================================
  */
 
-let allClients  = [];  // Todos los clientes (large + small)
-let allInformes = [];  // Documentos tipo 'report'
-let allSoporte  = [];  // Documentos tipo 'support'
+let allClients       = [];  // Todos los clientes
+let allCommercials   = [];  // Todos los comerciales
+let allInformes      = [];  // Documentos tipo 'report'
+let allSoporte       = [];  // Documentos tipo 'support'
 let allPresentaciones = []; // Documentos tipo 'presentation'
+let currentIsCommercial = false;
+let openArchGroupId  = null;
 
 // -------------------------------------------------------------------------
 // 1. INICIALIZACIÓN
@@ -22,6 +25,7 @@ let allPresentaciones = []; // Documentos tipo 'presentation'
   showAdminOnlyContent(profile);
 
   const isCommercial = profile.role === 'commercial';
+  currentIsCommercial = isCommercial;
 
   document.getElementById('adminName').textContent = profile.full_name || (isCommercial ? 'Comercial' : 'Admin');
 
@@ -39,8 +43,15 @@ let allPresentaciones = []; // Documentos tipo 'presentation'
   // Cargar clientes para el selector del modal
   // Comercial: solo sus clientes asignados (sin opción General)
   // Admin: todos los clientes + opción General
+  // Cargar comerciales (para nombres en el acordeón admin)
+  if (!isCommercial) {
+    const { data: comms } = await sb.from('profiles')
+      .select('id, full_name').eq('role', 'commercial').order('full_name', { ascending: true });
+    allCommercials = comms || [];
+  }
+
   let clientQuery = sb.from('profiles')
-    .select('id, company_name, full_name, client_type')
+    .select('id, company_name, full_name, client_type, assigned_commercial_id')
     .eq('role', 'client')
     .order('company_name', { ascending: true });
 
@@ -291,13 +302,142 @@ async function loadInformes() {
 }
 
 function renderInformes(docs) {
+  if (currentIsCommercial) {
+    renderInformesComercial(docs);
+  } else {
+    renderInformesAdmin(docs);
+  }
+}
+
+// ── Acordeón Admin: Comercial → Cliente → Informe ──────────────────────────
+function renderInformesAdmin(docs) {
   const list = document.getElementById('informesList');
   if (!docs.length) {
     list.innerHTML = '<p style="color:var(--c-muted);font-size:0.875rem;">Sin informes de visita aún.</p>';
     return;
   }
-  list.innerHTML = docs.map(d => fileItemHTML(d, d.client_id ? 'client-files' : 'general-files')).join('');
+
+  // Agrupar por comercial → cliente
+  const map = {};
+  docs.forEach(d => {
+    const client  = allClients.find(c => c.id === d.client_id);
+    const commId  = client?.assigned_commercial_id || '__none__';
+    const commName = allCommercials.find(c => c.id === commId)?.full_name || 'Sin comercial';
+    if (!map[commId]) map[commId] = { name: commName, clients: {} };
+    const clientId   = d.client_id || '__none__';
+    const clientName = client?.company_name || client?.full_name || 'Cliente';
+    if (!map[commId].clients[clientId]) map[commId].clients[clientId] = { name: clientName, docs: [] };
+    map[commId].clients[clientId].docs.push(d);
+  });
+
+  list.innerHTML = Object.entries(map).map(([commId, comm]) => {
+    const totalDocs = Object.values(comm.clients).reduce((s, c) => s + c.docs.length, 0);
+
+    const clientsHtml = Object.entries(comm.clients).map(([clientId, client]) => {
+      const subId = 'ai-sub-' + commId + '-' + clientId;
+      return '<div style="border-bottom:1px solid var(--c-border);">'
+        + '<div onclick="toggleArchSubGroup(\'' + subId + '\')" style="display:flex;justify-content:space-between;align-items:center;padding:10px 20px 10px 32px;cursor:pointer;gap:12px;" onmouseover="this.style.background=\'var(--c-bg-alt)\'" onmouseout="this.style.background=\'\'">'
+        + '<div style="flex:1;min-width:0;">'
+        + '<div style="font-size:0.85rem;font-weight:600;">' + escHtml(client.name) + '</div>'
+        + '<div style="font-size:0.73rem;color:var(--c-muted);margin-top:1px;">' + client.docs.length + ' informe' + (client.docs.length !== 1 ? 's' : '') + '</div>'
+        + '</div>'
+        + '<svg id="arch-sub-chev-' + subId + '" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" style="transition:transform 0.2s;flex-shrink:0;color:var(--c-muted);"><polyline points="6 9 12 15 18 9"/></svg>'
+        + '</div>'
+        + '<div id="arch-sub-body-' + subId + '" style="display:none;">'
+        + client.docs.map(d => informeRowHTML(d)).join('')
+        + '</div></div>';
+    }).join('');
+
+    return '<div class="order-card" style="margin-bottom:12px;">'
+      + '<div class="order-card__header" onclick="toggleArchGroup(\'' + commId + '\')">'
+      + '<div>'
+      + '<div style="font-weight:700;font-size:0.9rem;">' + escHtml(comm.name) + '</div>'
+      + '<div style="font-size:0.78rem;color:var(--c-muted);margin-top:2px;">'
+      + Object.keys(comm.clients).length + ' empresa' + (Object.keys(comm.clients).length !== 1 ? 's' : '')
+      + ' · ' + totalDocs + ' informe' + (totalDocs !== 1 ? 's' : '')
+      + '</div></div>'
+      + '<svg id="arch-grp-chev-' + commId + '" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" style="transition:transform 0.2s;flex-shrink:0;"><polyline points="6 9 12 15 18 9"/></svg>'
+      + '</div>'
+      + '<div id="arch-grp-body-' + commId + '" style="display:none;border-top:1px solid var(--c-border);">' + clientsHtml + '</div>'
+      + '</div>';
+  }).join('');
 }
+
+// ── Acordeón Comercial: Cliente → Informe ─────────────────────────────────
+function renderInformesComercial(docs) {
+  const list = document.getElementById('informesList');
+  if (!docs.length) {
+    list.innerHTML = '<p style="color:var(--c-muted);font-size:0.875rem;">Sin informes de visita aún.</p>';
+    return;
+  }
+
+  // Agrupar por cliente
+  const map = {};
+  docs.forEach(d => {
+    const client     = allClients.find(c => c.id === d.client_id);
+    const clientId   = d.client_id || '__none__';
+    const clientName = client?.company_name || client?.full_name || 'Cliente';
+    if (!map[clientId]) map[clientId] = { name: clientName, docs: [] };
+    map[clientId].docs.push(d);
+  });
+
+  list.innerHTML = Object.entries(map).map(([clientId, client]) => {
+    return '<div class="order-card" style="margin-bottom:12px;">'
+      + '<div class="order-card__header" onclick="toggleArchGroup(\'' + clientId + '\')">'
+      + '<div>'
+      + '<div style="font-weight:700;font-size:0.9rem;">' + escHtml(client.name) + '</div>'
+      + '<div style="font-size:0.78rem;color:var(--c-muted);margin-top:2px;">'
+      + client.docs.length + ' informe' + (client.docs.length !== 1 ? 's' : '')
+      + '</div></div>'
+      + '<svg id="arch-grp-chev-' + clientId + '" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" style="transition:transform 0.2s;flex-shrink:0;"><polyline points="6 9 12 15 18 9"/></svg>'
+      + '</div>'
+      + '<div id="arch-grp-body-' + clientId + '" style="display:none;border-top:1px solid var(--c-border);">'
+      + client.docs.map(d => informeRowHTML(d)).join('')
+      + '</div></div>';
+  }).join('');
+}
+
+// ── Fila individual de informe ─────────────────────────────────────────────
+function informeRowHTML(d) {
+  const bucket = d.client_id ? 'client-files' : 'general-files';
+  const fecha  = new Date(d.created_at).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' });
+  return '<div class="file-item" style="padding-left:40px;">'
+    + '<div class="file-item__icon">📄</div>'
+    + '<div class="file-item__info">'
+    + '<div class="file-item__name">' + escHtml(d.title) + '</div>'
+    + '<div class="file-item__meta">' + fecha + '</div>'
+    + '</div>'
+    + '<div class="file-item__actions">'
+    + '<button class="btn btn--ghost btn--sm" onclick="downloadFile(\'' + d.file_path + '\',\'' + bucket + '\')">Descargar</button>'
+    + '<button class="btn btn--danger btn--sm" onclick="deleteDoc(\'' + d.id + '\',\'' + d.file_path + '\',\'' + bucket + '\')">Eliminar</button>'
+    + '</div></div>';
+}
+
+// ── Controles del acordeón ─────────────────────────────────────────────────
+window.toggleArchGroup = function(id) {
+  if (openArchGroupId && openArchGroupId !== id) {
+    const prev  = document.getElementById('arch-grp-body-' + openArchGroupId);
+    const prevC = document.getElementById('arch-grp-chev-' + openArchGroupId);
+    if (prev)  prev.style.display   = 'none';
+    if (prevC) prevC.style.transform = '';
+  }
+  const body    = document.getElementById('arch-grp-body-' + id);
+  const chevron = document.getElementById('arch-grp-chev-' + id);
+  if (!body) return;
+  const isOpen       = body.style.display !== 'none';
+  body.style.display = isOpen ? 'none' : 'block';
+  if (chevron) chevron.style.transform = isOpen ? '' : 'rotate(180deg)';
+  openArchGroupId = isOpen ? null : id;
+};
+
+window.toggleArchSubGroup = function(subId) {
+  const body    = document.getElementById('arch-sub-body-' + subId);
+  const chevron = document.getElementById('arch-sub-chev-' + subId);
+  if (!body) return;
+  const isOpen       = body.style.display !== 'none';
+  body.style.display = isOpen ? 'none' : 'block';
+  if (chevron) chevron.style.transform = isOpen ? '' : 'rotate(180deg)';
+};
 
 async function loadSoporte() {
   const { data } = await sb.from('documents')
