@@ -136,51 +136,53 @@
     <!-- Paso 1: datos del usuario -->
     <div id="step1">
       <form id="createForm">
-        <div class="form-group">
-          <label class="form-label">Tipo de usuario <span style="color:var(--c-brand)">*</span></label>
-          <select class="form-select" id="f_role" required>
-            <option value="">— Seleccionar —</option>
-            <option value="client">Cliente</option>
-            <option value="commercial">Comercial</option>
-          </select>
+        <div class="modal__body">
+          <div class="form-group">
+            <label class="form-label">Tipo de usuario <span style="color:var(--c-brand)">*</span></label>
+            <select class="form-select" id="f_role" required>
+              <option value="">— Seleccionar —</option>
+              <option value="client">Cliente</option>
+              <option value="commercial">Comercial</option>
+            </select>
+          </div>
+          <div class="form-group" id="group_company">
+            <label class="form-label">Razón social / Nombre de empresa <span style="color:var(--c-brand)">*</span></label>
+            <input type="text" class="form-input" id="f_company" placeholder="Empresa S.A.S." required />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Nombre de sucursal <span style="color:var(--c-brand)">*</span></label>
+            <input type="text" class="form-input" id="f_name" placeholder="Sucursal Norte" required />
+          </div>
+          <div class="form-group" id="group_phone">
+            <label class="form-label">Teléfono / Celular <span style="color:var(--c-brand)">*</span></label>
+            <input type="tel" class="form-input" id="f_phone" placeholder="3001234567" required />
+            <p class="form-hint">Se agregará +57 automáticamente.</p>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Correo electrónico <span style="color:var(--c-brand)">*</span></label>
+            <input type="email" class="form-input" id="f_email" placeholder="cliente@empresa.com" required />
+          </div>
+          <div class="form-group" id="group_password">
+            <label class="form-label">Contraseña inicial <span style="color:var(--c-brand)">*</span></label>
+            <input type="password" class="form-input" id="f_password" placeholder="Mínimo 8 caracteres" required minlength="8" />
+            <p class="form-hint">El cliente puede cambiarla después usando "Olvidé mi contraseña".</p>
+          </div>
+          <div class="form-group" id="group_type">
+            <label class="form-label">Tipo de cliente <span style="color:var(--c-brand)">*</span></label>
+            <select class="form-select" id="f_type" required>
+              <option value="">— Seleccionar —</option>
+              <option value="large">Grande — Portal personalizado</option>
+              <option value="small">Pequeño — Portal general</option>
+            </select>
+          </div>
+          <div class="form-group" id="group_commercial">
+            <label class="form-label">Comercial asignado <span style="color:var(--c-brand)">*</span></label>
+            <select class="form-select" id="f_commercial" required>
+              <option value="">— Seleccionar —</option>
+            </select>
+          </div>
+          <div class="alert alert--error" id="createFormError"></div>
         </div>
-        <div class="form-group" id="group_company">
-          <label class="form-label">Razón social / Nombre de empresa <span style="color:var(--c-brand)">*</span></label>
-          <input type="text" class="form-input" id="f_company" placeholder="Empresa S.A.S." required />
-        </div>
-        <div class="form-group">
-          <label class="form-label">Nombre de sucursal <span style="color:var(--c-brand)">*</span></label>
-          <input type="text" class="form-input" id="f_name" placeholder="Sucursal Norte" required />
-        </div>
-        <div class="form-group" id="group_phone">
-          <label class="form-label">Teléfono / Celular <span style="color:var(--c-brand)">*</span></label>
-          <input type="tel" class="form-input" id="f_phone" placeholder="3001234567" required />
-          <p class="form-hint">Se agregará +57 automáticamente.</p>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Correo electrónico <span style="color:var(--c-brand)">*</span></label>
-          <input type="email" class="form-input" id="f_email" placeholder="cliente@empresa.com" required />
-        </div>
-        <div class="form-group" id="group_password">
-          <label class="form-label">Contraseña inicial <span style="color:var(--c-brand)">*</span></label>
-          <input type="password" class="form-input" id="f_password" placeholder="Mínimo 8 caracteres" required minlength="8" />
-          <p class="form-hint">El cliente puede cambiarla después usando "Olvidé mi contraseña".</p>
-        </div>
-        <div class="form-group" id="group_type">
-          <label class="form-label">Tipo de cliente <span style="color:var(--c-brand)">*</span></label>
-          <select class="form-select" id="f_type" required>
-            <option value="">— Seleccionar —</option>
-            <option value="large">Grande — Portal personalizado</option>
-            <option value="small">Pequeño — Portal general</option>
-          </select>
-        </div>
-        <div class="form-group" id="group_commercial">
-          <label class="form-label">Comercial asignado <span style="color:var(--c-brand)">*</span></label>
-          <select class="form-select" id="f_commercial" required>
-            <option value="">— Seleccionar —</option>
-          </select>
-        </div>
-        <div class="alert alert--error" id="createFormError" style="margin-bottom:12px;"></div>
         <div class="modal__footer">
           <button type="button" class="btn btn--ghost" id="cancelModal">Cancelar</button>
           <button type="button" class="btn btn--primary" id="submitCreate">Siguiente →</button>
@@ -190,14 +192,14 @@
 
     <!-- Paso 2: selección de productos (solo para clientes) -->
     <div id="step2" style="display:none;">
-      <p style="font-size:0.82rem;color:var(--c-muted);margin-bottom:14px;">
-        Selecciona los productos que <strong id="step2CompanyName"></strong> podrá ver en su catálogo.
-      </p>
-      <div id="productCheckList"
-           style="max-height:300px;overflow-y:auto;border:1px solid var(--c-border);border-radius:8px;">
+      <div class="modal__body">
+        <p style="font-size:0.82rem;color:var(--c-muted);margin-bottom:14px;">
+          Selecciona los productos que <strong id="step2CompanyName"></strong> podrá ver en su catálogo.
+        </p>
+        <div id="productCheckList" style="border:1px solid var(--c-border);border-radius:8px;"></div>
+        <div class="alert alert--error" id="step2Error" style="margin-top:12px;"></div>
       </div>
-      <div class="alert alert--error" id="step2Error" style="margin-top:12px;"></div>
-      <div class="modal__footer" style="margin-top:16px;">
+      <div class="modal__footer">
         <button type="button" class="btn btn--ghost" id="backToStep1">← Atrás</button>
         <button type="button" class="btn btn--primary" id="confirmCreateClient">Crear cliente</button>
       </div>
@@ -216,38 +218,40 @@
     <form id="editUserForm">
       <input type="hidden" id="eu_id" />
       <input type="hidden" id="eu_role" />
-      <div class="form-group">
-        <label class="form-label">Nombre de sucursal <span style="color:var(--c-brand)">*</span></label>
-        <input type="text" class="form-input" id="eu_name" required />
+      <div class="modal__body">
+        <div class="form-group">
+          <label class="form-label">Nombre de sucursal <span style="color:var(--c-brand)">*</span></label>
+          <input type="text" class="form-input" id="eu_name" required />
+        </div>
+        <div class="form-group" id="eu_group_company">
+          <label class="form-label">Nombre de empresa <span style="color:var(--c-brand)">*</span></label>
+          <input type="text" class="form-input" id="eu_company" />
+        </div>
+        <div class="form-group" id="eu_group_phone">
+          <label class="form-label">Teléfono / Celular</label>
+          <input type="tel" class="form-input" id="eu_phone" placeholder="3001234567" />
+          <p class="form-hint">Sin prefijo +57 — se agrega automáticamente.</p>
+        </div>
+        <div class="form-group" id="eu_group_type">
+          <label class="form-label">Tipo de cliente</label>
+          <select class="form-select" id="eu_type">
+            <option value="large">Grande — Portal personalizado</option>
+            <option value="small">Pequeño — Portal general</option>
+          </select>
+        </div>
+        <div class="form-group" id="eu_group_commercial">
+          <label class="form-label">Comercial asignado</label>
+          <select class="form-select" id="eu_commercial">
+            <option value="">Sin asignar</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label" style="color:var(--c-muted);">Correo electrónico</label>
+          <input type="text" class="form-input" id="eu_email" disabled style="opacity:0.55;cursor:not-allowed;" />
+          <p class="form-hint">El correo no se puede modificar desde aquí.</p>
+        </div>
+        <div class="alert alert--error" id="editUserError"></div>
       </div>
-      <div class="form-group" id="eu_group_company">
-        <label class="form-label">Nombre de empresa <span style="color:var(--c-brand)">*</span></label>
-        <input type="text" class="form-input" id="eu_company" />
-      </div>
-      <div class="form-group" id="eu_group_phone">
-        <label class="form-label">Teléfono / Celular</label>
-        <input type="tel" class="form-input" id="eu_phone" placeholder="3001234567" />
-        <p class="form-hint">Sin prefijo +57 — se agrega automáticamente.</p>
-      </div>
-      <div class="form-group" id="eu_group_type">
-        <label class="form-label">Tipo de cliente</label>
-        <select class="form-select" id="eu_type">
-          <option value="large">Grande — Portal personalizado</option>
-          <option value="small">Pequeño — Portal general</option>
-        </select>
-      </div>
-      <div class="form-group" id="eu_group_commercial">
-        <label class="form-label">Comercial asignado</label>
-        <select class="form-select" id="eu_commercial">
-          <option value="">Sin asignar</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label class="form-label" style="color:var(--c-muted);">Correo electrónico</label>
-        <input type="text" class="form-input" id="eu_email" disabled style="opacity:0.55;cursor:not-allowed;" />
-        <p class="form-hint">El correo no se puede modificar desde aquí.</p>
-      </div>
-      <div class="alert alert--error" id="editUserError" style="margin-bottom:12px;"></div>
       <div class="modal__footer">
         <button type="button" class="btn btn--ghost" id="cancelEditUser">Cancelar</button>
         <button type="submit" class="btn btn--primary" id="submitEditUser">Guardar cambios</button>

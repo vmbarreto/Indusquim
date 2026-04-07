@@ -156,42 +156,44 @@
       <span class="modal__close" id="closeUploadModal">✕</span>
     </div>
     <form id="uploadForm">
-      <div class="form-group">
-        <label class="form-label">Categoría <span style="color:var(--c-brand)">*</span></label>
-        <select class="form-select" id="uploadCategory">
-          <option value="report">Informe de visita (PDF)</option>
-          <option value="support">Documento soporte (PDF)</option>
-          <option value="presentation">Capacitación — Presentación (PDF)</option>
-          <option value="video">Capacitación — Video</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Título <span style="color:var(--c-brand)">*</span></label>
-        <input type="text" class="form-input" id="uploadTitle" placeholder="Ej: Documento soporte — Marzo 2025" required />
-      </div>
-      <div class="form-group" id="uploadDescGroup" style="display:none;">
-        <label class="form-label">Descripción</label>
-        <input type="text" class="form-input" id="uploadDesc" placeholder="Breve descripción del contenido…" />
-      </div>
-      <div class="form-group">
-        <label class="form-label" id="uploadClientLabel">Asignar a cliente</label>
-        <select class="form-select" id="uploadClient">
-          <option value="">— General (visible para todos) —</option>
-        </select>
-        <p class="form-hint" id="uploadClientHint">Deja en blanco para que sea visible para todos los clientes.</p>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Archivo <span style="color:var(--c-brand)">*</span></label>
-        <div class="upload-area" id="uploadDropArea">
-          <div class="upload-area__icon">📄</div>
-          <p><strong>Haz clic o arrastra</strong> el archivo aquí</p>
-          <p style="color:var(--c-muted);font-size:0.8rem;" id="uploadFileHint">PDF — Máximo 50 MB</p>
+      <div class="modal__body">
+        <div class="form-group">
+          <label class="form-label">Categoría <span style="color:var(--c-brand)">*</span></label>
+          <select class="form-select" id="uploadCategory">
+            <option value="report">Informe de visita (PDF)</option>
+            <option value="support">Documento soporte (PDF)</option>
+            <option value="presentation">Capacitación — Presentación (PDF)</option>
+            <option value="video">Capacitación — Video</option>
+          </select>
         </div>
-        <input type="file" id="uploadFile" accept=".pdf" style="display:none;" required />
-      </div>
-      <div class="alert alert--error" id="uploadModalError" style="margin-bottom:12px;"></div>
-      <div class="progress-wrap" id="uploadProgress" style="display:none;margin-bottom:12px;">
-        <div class="progress-bar" id="uploadProgressBar"></div>
+        <div class="form-group">
+          <label class="form-label">Título <span style="color:var(--c-brand)">*</span></label>
+          <input type="text" class="form-input" id="uploadTitle" placeholder="Ej: Documento soporte — Marzo 2025" required />
+        </div>
+        <div class="form-group" id="uploadDescGroup" style="display:none;">
+          <label class="form-label">Descripción</label>
+          <input type="text" class="form-input" id="uploadDesc" placeholder="Breve descripción del contenido…" />
+        </div>
+        <div class="form-group">
+          <label class="form-label" id="uploadClientLabel">Asignar a cliente</label>
+          <select class="form-select" id="uploadClient">
+            <option value="">— General (visible para todos) —</option>
+          </select>
+          <p class="form-hint" id="uploadClientHint">Deja en blanco para que sea visible para todos los clientes.</p>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Archivo <span style="color:var(--c-brand)">*</span></label>
+          <div class="upload-area" id="uploadDropArea">
+            <div class="upload-area__icon">📄</div>
+            <p><strong>Haz clic o arrastra</strong> el archivo aquí</p>
+            <p style="color:var(--c-muted);font-size:0.8rem;" id="uploadFileHint">PDF — Máximo 50 MB</p>
+          </div>
+          <input type="file" id="uploadFile" accept=".pdf" style="display:none;" required />
+        </div>
+        <div class="alert alert--error" id="uploadModalError"></div>
+        <div class="progress-wrap" id="uploadProgress" style="display:none;">
+          <div class="progress-bar" id="uploadProgressBar"></div>
+        </div>
       </div>
       <div class="modal__footer">
         <button type="button" class="btn btn--ghost" id="cancelUploadModal">Cancelar</button>
