@@ -629,14 +629,16 @@ async function renderVideos(videos) {
     const cardsHtml = g.videos.map(v => {
       const fecha = new Date(v.created_at).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' });
       const fp    = v.file_path.replace(/'/g,"\\'");
-      return '<div style="display:flex;gap:16px;align-items:flex-start;padding:16px;border-bottom:1px solid var(--c-border);">'
+      return '<div style="flex:0 0 360px;background:var(--c-bg);border:1px solid var(--c-border);border-radius:10px;overflow:hidden;">'
         + '<video controls src="' + (signedMap[v.id] || '') + '" preload="metadata" '
-        + 'style="width:480px;min-width:480px;aspect-ratio:16/9;border-radius:8px;background:#000;"></video>'
-        + '<div style="flex:1;min-width:0;padding-top:4px;">'
-        + '<h3 style="font-weight:700;font-size:0.95rem;color:var(--c-heading);margin-bottom:6px;">' + escHtml(v.title) + '</h3>'
-        + (v.description ? '<p style="font-size:0.82rem;color:var(--c-muted);margin-bottom:8px;">' + escHtml(v.description) + '</p>' : '')
-        + '<p style="font-size:0.72rem;color:var(--c-muted);margin-bottom:16px;">' + fecha + '</p>'
+        + 'style="width:100%;aspect-ratio:16/9;background:#000;display:block;"></video>'
+        + '<div style="padding:12px 14px;">'
+        + '<div style="font-weight:700;font-size:0.88rem;color:var(--c-heading);margin-bottom:4px;">' + escHtml(v.title) + '</div>'
+        + (v.description ? '<div style="font-size:0.78rem;color:var(--c-muted);margin-bottom:6px;">' + escHtml(v.description) + '</div>' : '')
+        + '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;">'
+        + '<span style="font-size:0.72rem;color:var(--c-muted);">' + fecha + '</span>'
         + '<button class="btn btn--danger btn--sm" onclick="deleteVideo(\'' + v.id + '\',\'' + fp + '\')">Eliminar</button>'
+        + '</div>'
         + '</div>'
         + '</div>';
     }).join('');
@@ -655,7 +657,7 @@ async function renderVideos(videos) {
       + '<polyline points="6 9 12 15 18 9"/></svg>'
       + '</div>'
       + '<div id="grp-body-' + groupKey + '" style="display:none;border-top:1px solid var(--c-border);">'
-      + cardsHtml
+      + '<div style="display:flex;flex-wrap:wrap;gap:16px;padding:20px;">' + cardsHtml + '</div>'
       + '</div>'
       + '</div>';
   }).join('');
