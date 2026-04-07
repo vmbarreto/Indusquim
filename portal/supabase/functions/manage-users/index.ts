@@ -73,20 +73,28 @@ Deno.serve(async (req) => {
     if (action === 'delete') {
       const { userId } = body
 
-      // Limpiar tablas relacionadas antes de borrar el usuario de auth
-      // (evita errores de FK constraint)
+      // Limpiar todas las tablas relacionadas antes de borrar el usuario de auth
+      await supabaseAdmin.from('notifications').delete().eq('user_id', userId)
       await supabaseAdmin.from('audit_log').delete().eq('user_id', userId)
       await supabaseAdmin.from('client_catalog').delete().eq('client_id', userId)
-      await supabaseAdmin.from('order_items')
-        .delete()
-        .in('order_id',
-          (await supabaseAdmin.from('orders').select('id').eq('client_id', userId)).data?.map((o: any) => o.id) || []
-        )
-      await supabaseAdmin.from('orders').delete().eq('client_id', userId)
-      await supabaseAdmin.from('orders').delete().eq('commercial_id', userId)
       await supabaseAdmin.from('pqrs').delete().eq('user_id', userId)
       await supabaseAdmin.from('documents').delete().eq('client_id', userId)
       await supabaseAdmin.from('videos').delete().eq('client_id', userId)
+
+      // Órdenes: limpiar items y status_log antes de borrar las órdenes
+      const { data: clientOrders } = await supabaseAdmin.from('orders').select('id').eq('client_id', userId)
+      const { data: commOrders }   = await supabaseAdmin.from('orders').select('id').eq('commercial_id', userId)
+      const allOrderIds = [
+        ...((clientOrders || []).map((o: any) => o.id)),
+        ...((commOrders   || []).map((o: any) => o.id))
+      ]
+      if (allOrderIds.length > 0) {
+        await supabaseAdmin.from('order_items').delete().in('order_id', allOrderIds)
+        await supabaseAdmin.from('order_status_log').delete().in('order_id', allOrderIds)
+      }
+      await supabaseAdmin.from('order_status_log').delete().eq('changed_by', userId)
+      await supabaseAdmin.from('orders').delete().eq('client_id', userId)
+      await supabaseAdmin.from('orders').delete().eq('commercial_id', userId)
       await supabaseAdmin.from('profiles').delete().eq('id', userId)
 
       const { error } = await supabaseAdmin.auth.admin.deleteUser(userId)
