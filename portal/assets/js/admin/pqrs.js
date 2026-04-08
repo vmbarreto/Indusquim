@@ -58,7 +58,7 @@ async function loadPqrs() {
   const isCommercial = currentProfile.role === 'commercial';
 
   let query = sb.from('pqrs')
-    .select('id, type, subject, description, response, status, support_path, attachment_path, created_at, closed_at, client_id, commercial_id, profiles!pqrs_client_id_fkey(full_name, company_name), comercial:profiles!pqrs_commercial_id_fkey(full_name), closer:profiles!pqrs_closed_by_fkey(full_name)')
+    .select('id, type, subject, description, response, status, support_path, attachment_path, created_at, closed_at, client_id, commercial_id, close_requested, close_code_expires_at, profiles!pqrs_client_id_fkey(full_name, company_name), comercial:profiles!pqrs_commercial_id_fkey(full_name), closer:profiles!pqrs_closed_by_fkey(full_name)')
     .order('created_at', { ascending: false });
 
   if (isCommercial) {
@@ -299,26 +299,78 @@ window.openPqrModal = async function(pqrId) {
     }
   }
 
-  const closeSection  = document.getElementById('pqrCloseSection');
-  const closedSection = document.getElementById('pqrClosedSection');
-  const errEl         = document.getElementById('pqrCloseError');
+  const isCommercial      = currentProfile.role === 'commercial';
+  const closeSection      = document.getElementById('pqrCloseSection');
+  const closedSection     = document.getElementById('pqrClosedSection');
+  const commercialPanel   = document.getElementById('commercialClosePanel');
+  const confirmCloseBtn   = document.getElementById('confirmClosePqrBtn');
+  const confirmWithCodeBtn = document.getElementById('confirmCloseWithCodeBtn');
 
   if (isPending) {
-    closeSection.style.display  = 'block';
     closedSection.style.display = 'none';
-    resetCloseDropArea();
-    document.getElementById('closeFile').value = '';
-    errEl.textContent = ''; errEl.classList.remove('show');
-    document.getElementById('closeProgress').style.display = 'none';
-    document.getElementById('closeProgressBar').style.width = '0%';
-    const btn = document.getElementById('confirmClosePqrBtn');
-    btn.textContent = 'Confirmar cierre'; btn.disabled = false;
-    btn.style.display = 'inline-block';
+
+    if (!isCommercial) {
+      // ── Admin: cierre directo ──
+      closeSection.style.display    = 'block';
+      commercialPanel.style.display = 'none';
+
+      resetCloseDropArea();
+      document.getElementById('closeFile').value = '';
+      const errEl = document.getElementById('pqrCloseError');
+      errEl.textContent = ''; errEl.classList.remove('show');
+      document.getElementById('closeProgress').style.display = 'none';
+      document.getElementById('closeProgressBar').style.width = '0%';
+
+      confirmCloseBtn.textContent = 'Confirmar cierre';
+      confirmCloseBtn.disabled    = false;
+      confirmCloseBtn.style.display = 'inline-block';
+      confirmWithCodeBtn.style.display = 'none';
+
+      // Mostrar panel de solicitud pendiente si el comercial solicitó cierre
+      const adminCodePanel = document.getElementById('adminCodeRequestPanel');
+      adminCodePanel.style.display = p.close_requested ? 'block' : 'none';
+      document.getElementById('generatedCodeDisplay').style.display = 'none';
+      document.getElementById('generatedCodeValue').textContent = '';
+
+    } else {
+      // ── Comercial: flujo con código ──
+      closeSection.style.display    = 'none';
+      commercialPanel.style.display = 'block';
+
+      const requestSection = document.getElementById('commercialRequestSection');
+      const codeSection    = document.getElementById('commercialCodeSection');
+
+      if (p.close_requested) {
+        requestSection.style.display = 'none';
+        codeSection.style.display    = 'block';
+        confirmWithCodeBtn.style.display = 'inline-block';
+      } else {
+        requestSection.style.display = 'block';
+        codeSection.style.display    = 'none';
+        confirmWithCodeBtn.style.display = 'none';
+      }
+
+      document.getElementById('closeCodeInput').value = '';
+      const errComEl = document.getElementById('pqrCloseErrorCommercial');
+      errComEl.textContent = ''; errComEl.classList.remove('show');
+      document.getElementById('closeProgressCommercial').style.display = 'none';
+      document.getElementById('closeProgressBarCommercial').style.width = '0%';
+      resetCloseDropAreaCommercial();
+      document.getElementById('closeFileCommercial').value = '';
+
+      confirmCloseBtn.style.display    = 'none';
+      confirmWithCodeBtn.textContent   = 'Confirmar cierre';
+      confirmWithCodeBtn.disabled      = false;
+    }
+
   } else {
-    closeSection.style.display  = 'none';
-    const btn = document.getElementById('confirmClosePqrBtn');
-    if (btn) btn.style.display = 'none';
-    closedSection.style.display = 'block';
+    // ── PQRS cerrada ──
+    closeSection.style.display       = 'none';
+    commercialPanel.style.display    = 'none';
+    confirmCloseBtn.style.display    = 'none';
+    confirmWithCodeBtn.style.display = 'none';
+    closedSection.style.display      = 'block';
+
     document.getElementById('detailClosedDate').textContent =
       p.closed_at ? new Date(p.closed_at).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
     document.getElementById('detailClosedBy').textContent = p.closer?.full_name || '—';
@@ -347,8 +399,8 @@ document.getElementById('pqrDetailBackdrop').addEventListener('click', e => {
 });
 
 window.showPqrPage = function(n) {
-  document.getElementById('pqrModalPage1').style.display = n === 1 ? 'block' : 'none';
-  document.getElementById('pqrModalPage2').style.display = n === 2 ? 'block' : 'none';
+  document.getElementById('pqrModalPage1').style.display = n === 1 ? 'flex' : 'none';
+  document.getElementById('pqrModalPage2').style.display = n === 2 ? 'flex' : 'none';
   const stepText = document.getElementById('pqrStepText');
   if (stepText) stepText.textContent = n + ' / 2';
 };
@@ -466,6 +518,170 @@ document.getElementById('confirmClosePqrBtn').onclick = async () => {
   btn.textContent = 'Confirmar cierre'; btn.disabled = false;
   showSuccess('PQRS cerrada correctamente.');
   await loadPqrs();
+};
+
+// ==========================================
+// UPLOAD ÁREA — COMERCIAL
+// ==========================================
+const closeDropAreaCommercial = document.getElementById('closeDropAreaCommercial');
+closeDropAreaCommercial.onclick = () => document.getElementById('closeFileCommercial').click();
+
+document.getElementById('closeFileCommercial').onchange = e => {
+  const file = e.target.files[0];
+  if (file) {
+    const size = (file.size / 1024 / 1024).toFixed(1);
+    closeDropAreaCommercial.innerHTML = '<div class="upload-area__icon">✅</div>'
+      + '<p><strong>' + escHtml(file.name) + '</strong></p>'
+      + '<p style="color:var(--c-muted);font-size:0.8rem;">' + size + ' MB listo para subir</p>';
+    closeDropAreaCommercial.onclick = () => document.getElementById('closeFileCommercial').click();
+  } else {
+    resetCloseDropAreaCommercial();
+  }
+};
+
+function resetCloseDropAreaCommercial() {
+  closeDropAreaCommercial.innerHTML = '<div class="upload-area__icon">📎</div>'
+    + '<p><strong>Haz clic o arrastra</strong> el archivo aquí</p>'
+    + '<p style="color:var(--c-muted);font-size:0.8rem;">Imagen (JPG, PNG) o PDF — Máximo 10 MB</p>';
+  closeDropAreaCommercial.onclick = () => document.getElementById('closeFileCommercial').click();
+}
+
+// ==========================================
+// SOLICITAR CÓDIGO DE CIERRE (comercial)
+// ==========================================
+document.getElementById('requestCloseCodeBtn').onclick = async () => {
+  const btn = document.getElementById('requestCloseCodeBtn');
+  btn.textContent = 'Enviando solicitud…'; btn.disabled = true;
+
+  try {
+    const { data: { session } } = await sb.auth.getSession();
+    const res = await fetch(SUPABASE_URL + '/functions/v1/manage-users', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + session.access_token, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'request_pqr_close', pqrId: currentPqrId })
+    });
+    const result = await res.json();
+    if (!res.ok) throw new Error(result.error || 'Error desconocido');
+
+    // Actualizar estado local
+    const pqr = allPqrs.find(x => x.id === currentPqrId);
+    if (pqr) pqr.close_requested = true;
+
+    document.getElementById('commercialRequestSection').style.display = 'none';
+    document.getElementById('commercialCodeSection').style.display    = 'block';
+    document.getElementById('confirmCloseWithCodeBtn').style.display  = 'inline-block';
+
+  } catch (err) {
+    showError('Error al enviar solicitud: ' + err.message);
+    btn.textContent = 'Solicitar código al administrador';
+    btn.disabled = false;
+  }
+};
+
+// ==========================================
+// GENERAR CÓDIGO DE AUTORIZACIÓN (admin)
+// ==========================================
+document.getElementById('generateCloseCodeBtn').onclick = async () => {
+  const btn = document.getElementById('generateCloseCodeBtn');
+  btn.textContent = 'Generando…'; btn.disabled = true;
+
+  try {
+    const { data: { session } } = await sb.auth.getSession();
+    const res = await fetch(SUPABASE_URL + '/functions/v1/manage-users', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + session.access_token, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'generate_close_code', pqrId: currentPqrId })
+    });
+    const result = await res.json();
+    if (!res.ok) throw new Error(result.error || 'Error desconocido');
+
+    document.getElementById('generatedCodeValue').textContent = result.code;
+    document.getElementById('generatedCodeDisplay').style.display = 'block';
+    btn.textContent = 'Regenerar código';
+    btn.disabled = false;
+
+  } catch (err) {
+    showError('Error al generar código: ' + err.message);
+    btn.textContent = 'Generar código de autorización';
+    btn.disabled = false;
+  }
+};
+
+// ==========================================
+// CERRAR CON CÓDIGO (comercial)
+// ==========================================
+document.getElementById('confirmCloseWithCodeBtn').onclick = async () => {
+  const code  = (document.getElementById('closeCodeInput').value || '').trim();
+  const file  = document.getElementById('closeFileCommercial').files[0];
+  const errEl = document.getElementById('pqrCloseErrorCommercial');
+
+  if (!code || code.length !== 6) {
+    errEl.textContent = 'Ingresa el código de autorización de 6 dígitos.';
+    errEl.classList.add('show'); return;
+  }
+  if (!file) {
+    errEl.textContent = 'Debes cargar el soporte antes de cerrar la PQRS.';
+    errEl.classList.add('show'); return;
+  }
+  if (file.size > 10 * 1024 * 1024) {
+    errEl.textContent = 'El archivo supera el límite de 10 MB.';
+    errEl.classList.add('show'); return;
+  }
+
+  errEl.classList.remove('show');
+  const btn = document.getElementById('confirmCloseWithCodeBtn');
+  btn.textContent = 'Cerrando…'; btn.disabled = true;
+  document.getElementById('closeProgressCommercial').style.display = 'block';
+  document.getElementById('closeProgressBarCommercial').classList.add('progress-bar--active');
+
+  // Subir soporte
+  const safeName = file.name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-zA-Z0-9._-]/g, '_');
+  const path     = currentPqrId + '/' + Date.now() + '_' + safeName;
+
+  const { error: upErr } = await sb.storage.from('pqrs-support').upload(path, file);
+  if (upErr) {
+    errEl.textContent = 'Error al subir el soporte: ' + upErr.message;
+    errEl.classList.add('show');
+    document.getElementById('closeProgressCommercial').style.display = 'none';
+    btn.textContent = 'Confirmar cierre'; btn.disabled = false;
+    return;
+  }
+
+  // Llamar Edge Function con validación del código
+  try {
+    const { data: { session } } = await sb.auth.getSession();
+    const res = await fetch(SUPABASE_URL + '/functions/v1/manage-users', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + session.access_token, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'close_pqr_with_code', pqrId: currentPqrId, code, supportPath: path })
+    });
+    const result = await res.json();
+    if (!res.ok) throw new Error(result.error || 'Error desconocido');
+
+    document.getElementById('closeProgressBarCommercial').classList.remove('progress-bar--active');
+    document.getElementById('closeProgressBarCommercial').style.width = '100%';
+    setTimeout(() => {
+      document.getElementById('closeProgressCommercial').style.display = 'none';
+      document.getElementById('closeProgressBarCommercial').style.width = '0%';
+    }, 600);
+
+    const pqr     = allPqrs.find(x => x.id === currentPqrId);
+    const company = pqr?.profiles?.company_name || pqr?.profiles?.full_name || 'Cliente';
+    await logAudit('PQRS cerrada con código', '#' + currentPqrId.slice(-6).toUpperCase() + ' — ' + (pqr?.subject || '') + ' (' + company + ')');
+
+    closePqrDetailModal();
+    btn.textContent = 'Confirmar cierre'; btn.disabled = false;
+    showSuccess('PQRS cerrada correctamente.');
+    await loadPqrs();
+
+  } catch (err) {
+    // Si el código falló, eliminar el archivo subido
+    await sb.storage.from('pqrs-support').remove([path]);
+    errEl.textContent = err.message;
+    errEl.classList.add('show');
+    document.getElementById('closeProgressCommercial').style.display = 'none';
+    btn.textContent = 'Confirmar cierre'; btn.disabled = false;
+  }
 };
 
 // ==========================================

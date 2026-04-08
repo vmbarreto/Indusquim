@@ -91,7 +91,8 @@ function renderFileList(containerId, docs, bucket) {
     return;
   }
   el.innerHTML = docs.map(d => {
-    const fecha = new Date(d.created_at).toLocaleDateString('es-CO');
+    const fecha      = new Date(d.created_at).toLocaleDateString('es-CO');
+    const realBucket = d.file_path.startsWith('general/') ? 'general-files' : 'client-files';
     return '<div class="file-item">'
       + '<div class="file-item__icon">📄</div>'
       + '<div class="file-item__info">'
@@ -99,7 +100,7 @@ function renderFileList(containerId, docs, bucket) {
       + '<div class="file-item__meta">' + fecha + '</div>'
       + '</div>'
       + '<div class="file-item__actions">'
-      + '<button class="btn btn--ghost btn--sm" onclick="downloadFile(\'' + d.file_path + '\',\'' + bucket + '\')">Descargar</button>'
+      + '<button class="btn btn--ghost btn--sm" onclick="downloadFile(\'' + d.file_path + '\',\'' + realBucket + '\')">Descargar</button>'
       + '</div>'
       + '</div>';
   }).join('');
@@ -126,15 +127,50 @@ async function renderVideoGrid(containerId, videos) {
   }).join('');
 }
 
-// Descarga con URL firmada (válida 60 s)
+// Previsualizar archivo en modal
 window.downloadFile = async function(path, bucket) {
-  const { data } = await sb.storage.from(bucket).createSignedUrl(path, 60);
-  if (data?.signedUrl) {
-    const a = document.createElement('a');
-    a.href = data.signedUrl;
-    a.download = path.split('/').pop();
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+  const filename = path.split('/').pop();
+  const ext      = filename.split('.').pop().toLowerCase();
+  const isPdf    = ext === 'pdf';
+  const isImg    = ['jpg','jpeg','png','gif','webp','svg'].includes(ext);
+
+  const { data } = await sb.storage.from(bucket).createSignedUrl(path, 300);
+  if (!data?.signedUrl) return;
+  const url = data.signedUrl;
+
+  const existing = document.getElementById('filePreviewBackdrop');
+  if (existing) existing.remove();
+
+  const backdrop = document.createElement('div');
+  backdrop.id = 'filePreviewBackdrop';
+  backdrop.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;';
+
+  let contentHtml = '';
+  if (isPdf) {
+    contentHtml = '<iframe src="' + url + '" style="width:100%;height:100%;border:none;border-radius:0 0 12px 12px;"></iframe>';
+  } else if (isImg) {
+    contentHtml = '<div style="flex:1;overflow:auto;display:flex;align-items:center;justify-content:center;padding:16px;">'
+      + '<img src="' + url + '" style="max-width:100%;max-height:100%;border-radius:8px;object-fit:contain;" />'
+      + '</div>';
+  } else {
+    contentHtml = '<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:32px;">'
+      + '<div style="font-size:3rem;">📄</div>'
+      + '<div style="font-size:0.9rem;color:var(--c-muted);text-align:center;">Este tipo de archivo no se puede previsualizar.</div>'
+      + '<a href="' + url + '" target="_blank" class="btn btn--primary btn--sm">Descargar archivo</a>'
+      + '</div>';
   }
+
+  backdrop.innerHTML = '<div style="background:var(--c-white);border-radius:12px;width:100%;max-width:860px;height:90vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,0.3);">'
+    + '<div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--c-border);flex-shrink:0;">'
+    + '<div style="font-weight:700;font-size:0.9rem;color:var(--c-heading);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:70%;">' + filename + '</div>'
+    + '<div style="display:flex;gap:8px;flex-shrink:0;">'
+    + '<a href="' + url + '" target="_blank" download="' + filename + '" class="btn btn--outline btn--sm">Descargar</a>'
+    + '<button onclick="document.getElementById(\'filePreviewBackdrop\').remove()" class="btn btn--ghost btn--sm" style="padding:6px 10px;">✕</button>'
+    + '</div>'
+    + '</div>'
+    + contentHtml
+    + '</div>';
+
+  document.body.appendChild(backdrop);
+  backdrop.addEventListener('click', e => { if (e.target === backdrop) backdrop.remove(); });
 };

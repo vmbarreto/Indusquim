@@ -392,25 +392,64 @@ async function executeCreateUser(data, catalogIds, btn) {
 // 6. ELIMINAR USUARIO
 // -------------------------------------------------------------------------
 window.deleteUser = async function(id) {
-  if (!confirm('¿Eliminar este usuario? Esta acción no se puede deshacer.')) return;
+  const user = allUsers.find(u => u.id === id);
+
+  // Solo clientes tienen validaciones de bloqueo
+  if (user && user.role === 'client') {
+    // Verificar PQRS pendientes
+    const { data: openPqrs } = await sb.from('pqrs')
+      .select('id, subject').eq('client_id', id).eq('status', 'pending');
+
+    if (openPqrs && openPqrs.length > 0) {
+      const n     = openPqrs.length;
+      const names = openPqrs.slice(0, 2).map(p => '"' + (p.subject || 'Sin asunto') + '"').join(', ');
+      const extra = n > 2 ? ' y ' + (n - 2) + ' más' : '';
+      showError(
+        'No se puede eliminar: el cliente tiene ' + n + ' PQRS pendiente' + (n > 1 ? 's' : '') +
+        ' (' + names + extra + '). Cierra todas las PQRS antes de eliminar.'
+      );
+      return;
+    }
+
+    // Verificar pedidos pendientes
+    const { data: openOrders } = await sb.from('orders')
+      .select('id, status')
+      .eq('client_id', id)
+      .not('status', 'in', '("delivered","cancelled")');
+
+    if (openOrders && openOrders.length > 0) {
+      const n = openOrders.length;
+      showError(
+        'No se puede eliminar: el cliente tiene ' + n + ' pedido' + (n > 1 ? 's' : '') +
+        ' pendiente' + (n > 1 ? 's' : '') + '. Cierra todos los pedidos antes de eliminar.'
+      );
+      return;
+    }
+  }
+
+  if (!confirm('¿Eliminar este usuario? Esta acción eliminará todos sus datos y no se puede deshacer.')) return;
 
   try {
-    const { data: { session } } = await sb.auth.getSession();
+    // Paso 1: limpiar datos relacionados vía RPC
+    const { data: rpcResult, error: rpcErr } = await sb.rpc('delete_user_safe', { target_user_id: id });
+    if (rpcErr) throw new Error('Error limpiando datos: ' + rpcErr.message);
+    if (rpcResult && rpcResult.ok === false) {
+      showError('No se puede eliminar: ' + rpcResult.message);
+      return;
+    }
 
+    // Paso 2: eliminar el usuario de auth vía Edge Function
+    const { data: { session } } = await sb.auth.getSession();
     const res = await fetch(SUPABASE_URL + '/functions/v1/manage-users', {
       method: 'POST',
-      headers: {
-        'Authorization': 'Bearer ' + session.access_token,
-        'Content-Type': 'application/json'
-      },
+      headers: { 'Authorization': 'Bearer ' + session.access_token, 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'delete', userId: id })
     });
 
     const result = await res.json();
     if (!res.ok) throw new Error(result.error || 'Error desconocido');
 
-    const deleted = allUsers.find(u => u.id === id);
-    await logAudit('Usuario eliminado', (deleted?.full_name || '—') + ' (' + (deleted?.email || id) + ')');
+    await logAudit('Usuario eliminado', (user?.full_name || '—') + ' (' + (user?.email || id) + ')');
     await loadUsers();
     showSuccess('Usuario eliminado correctamente.');
 
