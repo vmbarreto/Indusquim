@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pedidos — Indusquim Portal</title>
+  <link rel="stylesheet" href="../assets/css/portal.css" />
+  <style>
+    .order-card { background: var(--c-bg); border: 1px solid var(--c-border); border-radius: 12px; margin-bottom: 14px; overflow: hidden; }
+    .order-card__header { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; cursor: pointer; gap: 12px; flex-wrap: wrap; }
+    .order-card__header:hover { background: var(--c-bg-alt); }
+    .order-card__body { padding: 0 20px 16px; display: none; border-top: 1px solid var(--c-border); }
+    .order-card__body.open { display: block; }
+    .order-item-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--c-border); font-size: 0.875rem; }
+    .order-item-row:last-child { border-bottom: none; }
+    .status-badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; white-space: nowrap; }
+    .status-pending    { background: rgba(245,158,11,0.12); color: #d97706; }
+    .status-approved   { background: rgba(59,130,246,0.12); color: #3b82f6; }
+    .status-processing { background: rgba(139,92,246,0.12); color: #7c3aed; }
+    .status-dispatched { background: rgba(16,185,129,0.12); color: #059669; }
+    .status-completed  { background: rgba(107,114,128,0.12); color: #6b7280; }
+    /* Tooltip flotante de detalle de pedido */
+    #orderTooltip {
+      display: none; position: fixed; z-index: 9999; width: 240px;
+      background: var(--c-card, #fff); border: 1px solid var(--c-border);
+      border-radius: 12px; padding: 14px 16px;
+      box-shadow: 0 8px 28px rgba(0,0,0,0.14);
+      pointer-events: none; font-size: 0.8rem;
+      transition: opacity 0.1s;
+    }
+  </style>
+</head>
+<body>
+<div class="portal-wrap">
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar__logo"><a href="../../index.html" style="display:block;"><img src="../../assets/images/logo-indusquim-blanco.png" alt="Indusquim" /></a></div>
+    <nav class="sidebar__nav">
+      <a href="index.html" class="sidebar__link">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+        Home
+      </a>
+      <a href="clientes.html" class="sidebar__link">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+        Clientes
+      </a>
+      <a href="pedidos.html" class="sidebar__link active">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/></svg>
+        Pedidos
+      </a>
+      <a href="pqrs.html" class="sidebar__link">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+        PQRS
+      </a>
+      <a href="usuarios.html" class="sidebar__link admin-only" id="linkUsuarios" style="display: none;">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+        Usuarios
+      </a>
+      <a href="archivos.html" class="sidebar__link">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        Archivos y Videos
+      </a>
+      <a href="catalogo.html" class="sidebar__link admin-only" id="linkCatalogo" style="display: none;">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h7"/></svg>
+        Catálogo
+      </a>
+      <a href="historial.html" class="sidebar__link" id="linkHistorial">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        Historial
+      </a>
+    </nav>
+    <div class="sidebar__footer">
+      <div class="sidebar__user">
+        <strong id="adminName">Cargando…</strong>
+        <span id="userRole" style="font-size:0.7rem;opacity:0.7;text-transform:uppercase;letter-spacing:0.05em;">Indusquim</span>
+      </div>
+      <button class="btn-logout" id="logoutBtn">Cerrar sesión</button>
+    </div>
+
+    <div style="text-align:center;font-size:0.65rem;color:rgba(255,255,255,0.3);padding-bottom:6px;letter-spacing:0.05em;">v2.0</div>
+  </aside>
+
+  <div class="sidebar-overlay" id="sidebarOverlay"></div>
+  <div class="main-content">
+    <div class="topbar">
+      <button class="hamburger" id="hamburger" aria-label="Menú"><span></span><span></span><span></span></button>
+      <span class="topbar__title">Pedidos</span>
+      <div class="notif-wrap" id="notifWrap" style="position:relative;margin-left:auto;">
+        <button class="btn btn--ghost btn--sm" id="notifBtn" style="position:relative;padding:8px 12px;" title="Notificaciones">
+          <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
+          <span class="notif-badge" id="notifBadge" style="display:none;">0</span>
+        </button>
+        <div class="notif-panel" id="notifPanel">
+          <div class="notif-panel__header"><span>Notificaciones</span><button id="markAllRead">Marcar todas leídas</button></div>
+          <div id="notifList"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="page-body">
+      <div class="alert alert--success" id="successMsg"></div>
+      <div class="alert alert--error"   id="errorMsg"></div>
+
+      <!-- Stats -->
+      <div class="stats-row" style="margin-bottom:24px;">
+        <div class="card stat-card">
+          <div class="stat-card__num" id="statTotal">—</div>
+          <div class="stat-card__label">Total pedidos</div>
+        </div>
+        <div class="card stat-card">
+          <div class="stat-card__num" id="statPending">—</div>
+          <div class="stat-card__label">Pendientes</div>
+        </div>
+        <div class="card stat-card">
+          <div class="stat-card__num" id="statActive">—</div>
+          <div class="stat-card__label">Aprobados</div>
+        </div>
+      </div>
+
+      <!-- Filtros -->
+      <div style="margin-bottom:20px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+        <span style="font-size:0.85rem;color:var(--c-muted);">Filtrar:</span>
+        <select id="statusFilter" class="form-select" style="width:auto;padding:7px 28px 7px 12px;font-size:0.85rem;">
+          <option value="all">Todos</option>
+          <option value="pending">Pendiente</option>
+          <option value="approved">Aprobado</option>
+        </select>
+        <input type="text" id="ticketSearch" class="form-input"
+          placeholder="Buscar por código de ticket…"
+          style="width:220px;padding:7px 12px;font-size:0.85rem;" />
+      </div>
+
+      <div id="ordersList">
+        <p style="color:var(--c-muted);font-size:0.875rem;">Cargando pedidos…</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: detalle e historial de un pedido -->
+<div class="modal-backdrop" id="orderDetailBackdrop">
+  <div class="modal" style="max-width:560px;">
+    <div class="modal__header">
+      <div style="flex:1;min-width:0;">
+        <div class="modal__title" id="detailCompany" style="font-size:1rem;">—</div>
+        <div style="font-size:0.75rem;color:var(--c-muted);margin-top:2px;">
+          Ticket <span id="detailTicket" style="font-weight:700;">—</span>
+          <span class="status-badge" id="detailStatusBadge" style="margin-left:8px;vertical-align:middle;"></span>
+        </div>
+      </div>
+      <button class="modal__close" id="closeOrderDetail">✕</button>
+    </div>
+    <div class="modal__body">
+      <div id="detailMeta" style="margin:12px 0;"></div>
+      <div style="margin:16px 0 6px;font-size:0.72rem;font-weight:700;color:var(--c-muted);text-transform:uppercase;letter-spacing:0.06em;">Productos</div>
+      <div id="detailItems"></div>
+      <div style="margin:16px 0 6px;font-size:0.72rem;font-weight:700;color:var(--c-muted);text-transform:uppercase;letter-spacing:0.06em;">Historial</div>
+      <div id="detailHistory"><p style="color:var(--c-muted);font-size:0.8rem;">Cargando…</p></div>
+    </div>
+    <div class="modal__footer" id="detailActionWrap" style="display:none; padding: 16px 28px;">
+      <button class="btn btn--primary" style="width:100%;" id="detailActionBtn"></button>
+    </div>
+  </div>
+</div>
+
+<!-- Tooltip flotante de detalle rápido de pedido -->
+<div id="orderTooltip"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../assets/js/supabase-client.js"></script>
+<script src="../assets/js/auth.js"></script>
+<script src="../assets/js/notifications.js"></script>
+<script src="../assets/js/audit.js"></script>
+<script src="../assets/js/admin/pedidos.js"></script>
+</body>
+</html>

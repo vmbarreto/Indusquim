@@ -1,0 +1,6 @@
+name = "indusquim"
+compatibility_date = "2024-01-01"
+
+[assets]
+directory = "."
+exclude = ["assets/*.mp4", "assets/*.mov", "assets/videos/*", "Manual de marca*"]

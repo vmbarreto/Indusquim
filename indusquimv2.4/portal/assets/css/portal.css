@@ -1,0 +1,1288 @@
+/* ============================================================
+   INDUSQUIM — Portal CSS
+   Usa el mismo sistema de diseño del sitio principal
+   ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600&display=swap');
+
+:root {
+  --c-brand: #2C5F26;
+  --c-brand-light: #5CBB3C;
+  --c-brand-tint: #EFF7EE;
+  --c-dark: #0D150C;
+  --c-heading: #111C10;
+  --c-body: #3C4A39;
+  --c-muted: #7A8A77;
+  --c-bg: #F8F6F1;
+  --c-bg-alt: #F0EDE7;
+  --c-border: #DDD9D1;
+  --c-white: #FFFFFF;
+  --c-danger: #D64045;
+  --c-warning: #F4A261;
+  --f-display: 'Barlow', system-ui, sans-serif;
+  --f-body: 'Inter', system-ui, sans-serif;
+  --r-sm: 6px;
+  --r-md: 12px;
+  --r-lg: 20px;
+  --r-full: 9999px;
+  --sh-sm: 0 2px 8px rgba(0, 0, 0, 0.08);
+  --sh-md: 0 4px 20px rgba(0, 0, 0, 0.10);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 16px;
+}
+
+body {
+  font-family: var(--f-body);
+  color: var(--c-body);
+  background: var(--c-bg);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+  border: none;
+  background: none;
+}
+
+img {
+  display: block;
+  max-width: 100%;
+}
+
+input,
+select,
+textarea {
+  font-family: inherit;
+}
+
+/* ─── Layout ────────────────────────────────────────────────── */
+.portal-wrap {
+  display: flex;
+  min-height: 100vh;
+}
+
+.sidebar {
+  width: 260px;
+  flex-shrink: 0;
+  background: var(--c-dark);
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+}
+
+.sidebar__logo {
+  padding: 28px 24px 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.sidebar__logo img {
+  height: 36px;
+  display: block;
+}
+
+.sidebar__logo a {
+  display: block;
+  opacity: 0.9;
+  transition: opacity .2s;
+}
+
+.sidebar__logo a:hover {
+  opacity: 1;
+}
+
+/* Login logo link */
+.login-box__logo a {
+  display: inline-block;
+}
+
+.login-box__logo a:hover {
+  opacity: 0.85;
+}
+
+.sidebar__nav {
+  flex: 1;
+  padding: 16px 0;
+}
+
+.sidebar__link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 24px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.60);
+  border-left: 3px solid transparent;
+  transition: all 0.2s;
+}
+
+.sidebar__link:hover,
+.sidebar__link.active {
+  color: var(--c-white);
+  background: rgba(255, 255, 255, 0.06);
+  border-left-color: var(--c-brand-light);
+}
+
+.sidebar__link svg {
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+
+.sidebar__link:hover svg,
+.sidebar__link.active svg {
+  opacity: 1;
+}
+
+.sidebar__footer {
+  padding: 20px 24px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.sidebar__user {
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.5);
+  margin-bottom: 10px;
+  line-height: 1.4;
+}
+
+.sidebar__user strong {
+  display: block;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 0.875rem;
+}
+
+.btn-logout {
+  width: 100%;
+  padding: 8px 14px;
+  border-radius: var(--r-md);
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.8rem;
+  text-align: center;
+  transition: all 0.2s;
+}
+
+.btn-logout:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--c-white);
+}
+
+.main-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.topbar {
+  background: var(--c-white);
+  border-bottom: 1px solid var(--c-border);
+  padding: 0 32px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+}
+
+.topbar__title {
+  font-family: var(--f-display);
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--c-heading);
+}
+
+.page-body {
+  flex: 1;
+  padding: 32px;
+  overflow-y: auto;
+}
+
+/* ─── Cards ─────────────────────────────────────────────────── */
+.card {
+  background: var(--c-white);
+  border-radius: var(--r-lg);
+  border: 1px solid var(--c-border);
+  box-shadow: var(--sh-sm);
+  padding: 24px;
+}
+
+.card__title {
+  font-family: var(--f-display);
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--c-heading);
+  margin-bottom: 16px;
+}
+
+.stat-card {
+  text-align: center;
+}
+
+.stat-card__num {
+  font-family: var(--f-display);
+  font-size: 2.2rem;
+  font-weight: 800;
+  color: var(--c-brand);
+}
+
+.stat-card__label {
+  font-size: 0.8rem;
+  color: var(--c-muted);
+  margin-top: 4px;
+}
+
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 16px;
+  margin-bottom: 28px;
+}
+
+/* ─── Buttons ────────────────────────────────────────────────── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border-radius: var(--r-full);
+  font-family: var(--f-body);
+  font-size: 0.875rem;
+  font-weight: 600;
+  transition: all 0.2s;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.btn--primary {
+  background: var(--c-brand);
+  color: var(--c-white);
+}
+
+.btn--primary:hover {
+  background: #245020;
+}
+
+.btn--outline {
+  border: 1.5px solid var(--c-brand);
+  color: var(--c-brand);
+}
+
+.btn--outline:hover {
+  background: var(--c-brand-tint);
+}
+
+.btn--ghost {
+  border: 1.5px solid var(--c-border);
+  color: var(--c-body);
+}
+
+.btn--ghost:hover {
+  border-color: var(--c-brand);
+  color: var(--c-brand);
+}
+
+.btn--danger {
+  background: var(--c-danger);
+  color: var(--c-white);
+}
+
+.btn--sm {
+  padding: 6px 14px;
+  font-size: 0.8rem;
+}
+
+.btn--icon {
+  padding: 8px;
+  border-radius: var(--r-md);
+}
+
+/* ─── Forms ──────────────────────────────────────────────────── */
+.form-group {
+  margin-bottom: 18px;
+}
+
+.form-label {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--c-heading);
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.form-input,
+.form-select {
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: var(--r-md);
+  border: 1.5px solid var(--c-border);
+  background: var(--c-white);
+  font-size: 0.9rem;
+  color: var(--c-heading);
+  transition: border-color 0.2s;
+}
+
+.form-input:focus,
+.form-select:focus {
+  outline: none;
+  border-color: var(--c-brand);
+}
+
+.form-input::placeholder {
+  color: var(--c-muted);
+}
+
+.form-hint {
+  font-size: 0.75rem;
+  color: var(--c-muted);
+  margin-top: 4px;
+}
+
+/* ─── Tables ─────────────────────────────────────────────────── */
+.table-wrap {
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+th {
+  text-align: left;
+  padding: 10px 14px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--c-muted);
+  border-bottom: 1px solid var(--c-border);
+}
+
+td {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--c-bg-alt);
+  color: var(--c-body);
+  vertical-align: middle;
+}
+
+tr:last-child td {
+  border-bottom: none;
+}
+
+tr:hover td {
+  background: var(--c-bg);
+}
+
+.badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: var(--r-full);
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.badge--admin {
+  background: #E8F4FD;
+  color: #1A6FA0;
+}
+
+.badge--large {
+  background: var(--c-brand-tint);
+  color: var(--c-brand);
+}
+
+.badge--small {
+  background: #FFF3E0;
+  color: #9C5700;
+}
+
+/* ─── Role-based Visibility (fixes FOUC) ─────────────────────── */
+/* Cuando el body tiene la clase 'role-admin', mostramos los elementos .admin-only de inmediato */
+.role-admin .admin-only {
+  display: block !important;
+}
+
+.role-admin .sidebar__link.admin-only {
+  display: flex !important;
+}
+
+.role-admin .btn.admin-only {
+  display: inline-flex !important;
+}
+
+/* ─── Modal ──────────────────────────────────────────────────── */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s;
+}
+
+.modal-backdrop.open {
+  opacity: 1;
+  pointer-events: all;
+}
+
+.modal {
+  background: var(--c-white);
+  border-radius: var(--r-lg);
+  padding: 0;
+  width: 100%;
+  max-width: 480px;
+  max-height: 85vh; /* Limitamos la altura máxima al 85% de la pantalla */
+  display: flex;
+  flex-direction: column; /* Usamos flexbox en columna para separar Header, Body y Footer */
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.18);
+  transform: translateY(12px);
+  transition: transform 0.25s;
+  overflow: hidden; /* Evitamos que el contenido se salga de los bordes redondeados */
+}
+
+/* 
+   PROFESOR: Para que el scroll funcione dentro de un flexbox, todos los padres 
+   intermedios (como formas o contenedores de pasos) deben tener flex: 1 y min-height: 0.
+   Esto les permite "encogerse" o "estirarse" correctamente dentro del modal.
+*/
+.modal > :not(.modal__header):not(.modal__footer),
+.modal form,
+.modal div[id^="step"],
+.modal div[id^="pqrModalPage"] {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0; /* Truco de CSS: permite que el hijo ignore la altura del padre para calcular el scroll */
+}
+
+.modal__body {
+  flex: 1; /* Ocupa todo el espacio sobrante */
+  overflow-y: auto; /* Solo aquí permitimos el desplazamiento vertical */
+  padding: 20px 28px;
+  min-height: 0; 
+}
+
+/* Personalización de la barra de desplazamiento (Scrollbar) */
+.modal__body::-webkit-scrollbar,
+.modal::-webkit-scrollbar {
+  width: 8px; /* Un ancho sutil para que no sea intrusiva */
+}
+
+.modal__body::-webkit-scrollbar-track,
+.modal::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: 0 var(--r-lg) var(--r-lg) 0;
+}
+
+.modal__body::-webkit-scrollbar-thumb,
+.modal::-webkit-scrollbar-thumb {
+  /* PROFESOR: He aumentado la opacidad de 0.12 a 0.25 para que sea más visible */
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: 10px;
+  /* El borde crea un efecto de margen interno muy elegante */
+  border: 2px solid var(--c-white); 
+}
+
+.modal__body::-webkit-scrollbar-thumb:hover,
+.modal::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.35); /* Se oscurece al pasar el ratón para dar feedback */
+}
+
+.modal-backdrop.open .modal {
+  transform: translateY(0);
+}
+
+.modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 24px 28px 16px;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--c-border);
+}
+
+.modal__title {
+  font-family: var(--f-display);
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--c-heading);
+}
+
+.modal__close {
+  color: var(--c-muted);
+  font-size: 1.2rem;
+  cursor: pointer;
+  padding: 4px;
+}
+
+.modal__close:hover {
+  color: var(--c-heading);
+}
+
+.modal__footer {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  padding: 16px 28px;
+  flex-shrink: 0;
+  border-top: 1px solid var(--c-border);
+  background: var(--c-white);
+  border-radius: 0 0 var(--r-lg) var(--r-lg);
+}
+
+/* ─── Search bar ─────────────────────────────────────────────── */
+.search-bar {
+  position: relative;
+}
+
+.search-bar input {
+  width: 100%;
+  padding: 10px 14px 10px 40px;
+  border-radius: var(--r-full);
+  border: 1.5px solid var(--c-border);
+  background: var(--c-white);
+  font-size: 0.9rem;
+  transition: border-color 0.2s;
+}
+
+.search-bar input:focus {
+  outline: none;
+  border-color: var(--c-brand);
+}
+
+.search-bar__icon {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--c-muted);
+  pointer-events: none;
+}
+
+.search-bar.animated-search input {
+  width: 220px;
+  transition: width 0.35s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.2s;
+}
+
+.search-bar.animated-search input:focus {
+  width: 320px;
+}
+
+/* ─── Tabs ───────────────────────────────────────────────────── */
+.tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 2px solid var(--c-border);
+  margin-bottom: 24px;
+}
+
+.tab-btn {
+  padding: 10px 18px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--c-muted);
+  border-radius: var(--r-sm) var(--r-sm) 0 0;
+  transition: all 0.2s;
+  position: relative;
+  bottom: -2px;
+  border-bottom: 2px solid transparent;
+}
+
+.tab-btn:hover {
+  color: var(--c-brand);
+}
+
+.tab-btn.active {
+  color: var(--c-brand);
+  border-bottom-color: var(--c-brand);
+}
+
+.tab-panel {
+  display: none;
+}
+
+.tab-panel.active {
+  display: block;
+}
+
+/* ─── File items ─────────────────────────────────────────────── */
+.file-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.file-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  background: var(--c-bg);
+  border-radius: var(--r-md);
+  border: 1px solid var(--c-border);
+  transition: box-shadow 0.2s;
+}
+
+.file-item:hover {
+  box-shadow: var(--sh-sm);
+}
+
+.file-item__icon {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--r-sm);
+  background: var(--c-brand-tint);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.file-item__info {
+  flex: 1;
+  min-width: 0;
+}
+
+.file-item__name {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--c-heading);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.file-item__meta {
+  font-size: 0.75rem;
+  color: var(--c-muted);
+  margin-top: 2px;
+}
+
+.file-item__actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+/* ─── Password toggle ───────────────────────────────────────── */
+.input-password-wrap {
+  position: relative;
+}
+
+.input-password-wrap .form-input {
+  padding-right: 46px;
+}
+
+.pwd-toggle {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--c-muted);
+  display: flex;
+  align-items: center;
+  padding: 4px;
+  border-radius: 6px;
+  transition: color 0.2s, transform 0.2s;
+}
+
+.pwd-toggle:hover {
+  color: var(--c-brand);
+}
+
+.pwd-toggle.active {
+  color: var(--c-brand);
+}
+
+.pwd-toggle svg {
+  transition: transform 0.3s ease;
+}
+
+.pwd-toggle.active svg {
+  transform: rotateY(180deg);
+}
+
+/* ─── Empty state ────────────────────────────────────────────── */
+.empty-state {
+  text-align: center;
+  padding: 48px 24px;
+  color: var(--c-muted);
+}
+
+.empty-state svg {
+  margin: 0 auto 12px;
+  opacity: 0.35;
+}
+
+.empty-state p {
+  font-size: 0.9rem;
+}
+
+/* ─── Alert ──────────────────────────────────────────────────── */
+.alert {
+  padding: 12px 16px;
+  border-radius: var(--r-md);
+  font-size: 0.875rem;
+  margin-bottom: 16px;
+  display: none;
+}
+
+.alert.show {
+  display: block;
+}
+
+.alert--error {
+  background: #FEE2E2;
+  color: #B91C1C;
+  border: 1px solid #FECACA;
+}
+
+.alert--success {
+  background: #DCFCE7;
+  color: #15803D;
+  border: 1px solid #BBF7D0;
+}
+
+/* ─── Login page ─────────────────────────────────────────────── */
+.login-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  position: relative;
+  overflow: hidden;
+  background: var(--c-dark);
+}
+
+/* Fondo: dos imágenes con crossfade, opacidad 70% */
+.login-page::before,
+.login-page::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  z-index: 0;
+}
+
+.login-page::before {
+  /* Ruta desde portal/assets/css/ → subir 3 niveles al root */
+  background-image: url('../../../assets/images/Portal%20clientes.jpg');
+  opacity: 0.70;
+  animation: loginBgSwitch 14s ease-in-out infinite alternate;
+}
+
+.login-page::after {
+  background-image: url('../../../assets/images/Portal%20clientes%202.jpg');
+  opacity: 0;
+  animation: loginBgSwitch2 14s ease-in-out infinite alternate;
+}
+
+@keyframes loginBgSwitch {
+
+  0%,
+  45% {
+    opacity: 0.70;
+  }
+
+  55%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes loginBgSwitch2 {
+
+  0%,
+  45% {
+    opacity: 0;
+  }
+
+  55%,
+  100% {
+    opacity: 0.70;
+  }
+}
+
+.login-box {
+  position: relative;
+  z-index: 1;
+}
+
+.login-box {
+  background: var(--c-white);
+  border-radius: var(--r-lg);
+  box-shadow: var(--sh-md);
+  padding: 40px;
+  width: 100%;
+  max-width: 400px;
+}
+
+.login-box__logo {
+  text-align: center;
+  margin-bottom: 28px;
+}
+
+.login-box__logo img {
+  height: 40px;
+  margin: 0 auto 12px;
+}
+
+.login-box__title {
+  font-family: var(--f-display);
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: var(--c-heading);
+  text-align: center;
+  margin-bottom: 4px;
+}
+
+.login-box__sub {
+  font-size: 0.85rem;
+  color: var(--c-muted);
+  text-align: center;
+  margin-bottom: 28px;
+}
+
+/* ─── Upload area ────────────────────────────────────────────── */
+.upload-area {
+  border: 2px dashed var(--c-border);
+  border-radius: var(--r-lg);
+  padding: 32px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: var(--c-bg);
+}
+
+.upload-area:hover,
+.upload-area.dragover {
+  border-color: var(--c-brand);
+  background: var(--c-brand-tint);
+}
+
+.upload-area__icon {
+  font-size: 2rem;
+  margin-bottom: 8px;
+}
+
+.upload-area p {
+  font-size: 0.875rem;
+  color: var(--c-muted);
+}
+
+.upload-area strong {
+  color: var(--c-brand);
+}
+
+/* ─── Video card ─────────────────────────────────────────────── */
+.video-card {
+  background: var(--c-white);
+  border-radius: var(--r-lg);
+  border: 1px solid var(--c-border);
+  overflow: hidden;
+}
+
+.video-card video {
+  width: 100%;
+  aspect-ratio: 16/9;
+  object-fit: cover;
+  background: #000;
+}
+
+.video-card__body {
+  padding: 14px 16px;
+}
+
+.video-card__title {
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--c-heading);
+}
+
+.video-card__desc {
+  font-size: 0.8rem;
+  color: var(--c-muted);
+  margin-top: 4px;
+}
+
+.video-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 16px;
+}
+
+/* ─── Progress bar ───────────────────────────────────────────── */
+.progress-wrap {
+  background: var(--c-bg-alt);
+  border-radius: var(--r-full);
+  height: 6px;
+  overflow: hidden;
+}
+
+.progress-bar {
+  height: 100%;
+  background: var(--c-brand);
+  border-radius: var(--r-full);
+  width: 0%;
+  transition: width 0.4s ease;
+}
+
+.progress-bar--active {
+  animation: progress-slide 1.4s ease-in-out infinite;
+}
+
+@keyframes progress-slide {
+  0% {
+    transform: translateX(-100%);
+    width: 60%;
+  }
+
+  50% {
+    transform: translateX(60%);
+    width: 60%;
+  }
+
+  100% {
+    transform: translateX(160%);
+    width: 60%;
+  }
+}
+
+/* ─── Hamburger ──────────────────────────────────────────────── */
+.hamburger {
+  display: none;
+  flex-direction: column;
+  justify-content: space-between;
+  width: 22px;
+  height: 16px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.hamburger span {
+  display: block;
+  height: 2px;
+  background: var(--c-heading);
+  border-radius: 2px;
+  transition: all 0.3s;
+}
+
+.hamburger.open span:nth-child(1) {
+  transform: translateY(7px) rotate(45deg);
+}
+
+.hamburger.open span:nth-child(2) {
+  opacity: 0;
+}
+
+.hamburger.open span:nth-child(3) {
+  transform: translateY(-7px) rotate(-45deg);
+}
+
+/* ─── Sidebar overlay ────────────────────────────────────────── */
+.sidebar-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 199;
+}
+
+.sidebar-overlay.show {
+  display: block;
+}
+
+/* ─── Responsive ─────────────────────────────────────────────── */
+@media (max-width: 768px) {
+
+  /* Hamburger visible */
+  .hamburger {
+    display: flex;
+  }
+
+  /* Sidebar: oculto por defecto, slide desde la izquierda */
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: -260px;
+    height: 100vh;
+    z-index: 200;
+    transition: left 0.3s ease;
+  }
+
+  .sidebar.open {
+    left: 0;
+  }
+
+  /* Topbar */
+  .topbar {
+    padding: 0 16px;
+    gap: 10px;
+    flex-wrap: wrap;
+    height: auto;
+    min-height: 56px;
+  }
+
+  .topbar__title {
+    font-size: 1rem;
+  }
+
+  .topbar .search-bar {
+    display: none;
+  }
+
+  /* se mueve a page-body */
+
+  /* Page body */
+  .page-body {
+    padding: 16px;
+  }
+
+  .search-bar--top {
+    display: block;
+    margin-bottom: 20px;
+  }
+
+  /* Stats */
+  .stats-row {
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+
+  .stat-card__num {
+    font-size: 1.8rem;
+  }
+
+  /* Cards */
+  .card {
+    padding: 16px;
+  }
+
+  /* Table: scroll horizontal */
+  .table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  th,
+  td {
+    padding: 8px 10px;
+    white-space: nowrap;
+  }
+
+  /* File items */
+  .file-item {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .file-item__actions {
+    width: 100%;
+  }
+
+  .file-item__actions .btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* Videos */
+  .video-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* Modal: bottom sheet */
+  .modal-backdrop {
+    align-items: flex-end;
+  }
+
+  .modal {
+    max-width: 100%;
+    max-height: 90vh;
+    /* PROFESOR: Eliminamos overflow-y aquí para que se encargue .modal__body como en escritorio */
+    overflow: hidden; 
+    border-radius: var(--r-lg) var(--r-lg) 0 0;
+  }
+
+  /* Tabs */
+  .tabs {
+    gap: 0;
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    padding-bottom: 0;
+  }
+
+  .tab-btn {
+    padding: 10px 14px;
+    font-size: 0.8rem;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  /* Botones de tabla */
+  .btn--sm {
+    padding: 5px 10px;
+    font-size: 0.75rem;
+  }
+
+  /* Upload area */
+  .upload-area {
+    padding: 20px 16px;
+  }
+}
+
+/* ─── Search bar móvil (visible solo en mobile) ──────────────── */
+.search-bar--top {
+  display: none;
+}
+
+/* ─── Notificaciones ─────────────────────────────────────────── */
+.notif-badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  background: #ef4444;
+  color: #fff;
+  border-radius: 50%;
+  width: 18px;
+  height: 18px;
+  font-size: 0.65rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+}
+
+.notif-panel {
+  display: none;
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  width: 320px;
+  max-height: 420px;
+  overflow-y: auto;
+  background: var(--c-bg);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-lg);
+  box-shadow: var(--sh-lg);
+  z-index: 300;
+}
+
+.notif-panel.open {
+  display: block;
+}
+
+.notif-panel__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--c-border);
+  font-weight: 700;
+  font-size: 0.875rem;
+  position: sticky;
+  top: 0;
+  background: var(--c-bg);
+}
+
+.notif-panel__header button {
+  font-size: 0.75rem;
+  color: var(--c-brand);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+}
+
+.notif-item {
+  display: flex;
+  gap: 10px;
+  padding: 12px 16px;
+  cursor: pointer;
+  border-bottom: 1px solid var(--c-border);
+  transition: background 0.15s;
+}
+
+.notif-item:hover {
+  background: var(--c-bg-alt);
+}
+
+.notif-item--unread {
+  background: rgba(37, 99, 235, 0.04);
+}
+
+.notif-item__icon {
+  font-size: 1.2rem;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.notif-item__msg {
+  font-size: 0.82rem;
+  line-height: 1.4;
+  margin: 0 0 4px;
+}
+
+.notif-item__date {
+  font-size: 0.72rem;
+  color: var(--c-muted);
+}
+
+.notif-empty {
+  text-align: center;
+  padding: 28px 16px;
+  color: var(--c-muted);
+  font-size: 0.85rem;
+}
+
+/* 
+   =========================================================================
+   UTILIDADES PROFESIONALES
+   =========================================================================
+*/
+
+/* 
+   PROFESOR: Usamos una clase .v-hidden en lugar de style.display = 'none' 
+   desde JavaScript. ¿Por qué? Porque el display: none !important nos asegura 
+   que el elemento se oculte, pero al quitar la clase, el elemento recupera 
+   su display: flex original definido en nuestro CSS, evitando conflictos de diseño.
+*/
+.v-hidden {
+  display: none !important;
+}

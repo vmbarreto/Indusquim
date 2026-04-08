@@ -1,0 +1,827 @@
+/**
+ * =========================================================================
+ * ARCHIVO: assets/js/admin/archivos.js
+ * Objetivo: Gestión de archivos PDF y videos (carga via modal, listado y eliminar).
+ *           Categorías: Informes de visita | Capacitaciones (PDF + Video)
+ * =========================================================================
+ */
+
+let allClients       = [];  // Todos los clientes
+let allCommercials   = [];  // Todos los comerciales
+let allInformes      = [];  // Documentos tipo 'report'
+let allSoporte       = [];  // Documentos tipo 'support'
+let allPresentaciones = []; // Documentos tipo 'presentation'
+let allVideos        = [];  // Videos
+let currentIsCommercial = false;
+let openArchGroupId     = null;
+let openArchSubGroupId  = null;
+let openSoporteGroupId  = null;
+let openPresentGroupId  = null;
+let openVideoGroupId    = null;
+
+function escHtml(str) {
+  if (!str) return '';
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// -------------------------------------------------------------------------
+// 1. INICIALIZACIÓN
+// -------------------------------------------------------------------------
+(async () => {
+  const profile = await requireAdminOrCommercial();
+  if (!profile) return;
+
+  await initNotifications(profile.id);
+  showAdminOnlyContent(profile);
+
+  const isCommercial = profile.role === 'commercial';
+  currentIsCommercial = isCommercial;
+
+  document.getElementById('adminName').textContent = profile.full_name || (isCommercial ? 'Comercial' : 'Admin');
+
+  const roleEl = document.getElementById('userRole');
+  if (roleEl) {
+    roleEl.textContent = isCommercial ? 'Comercial' : 'Administrador';
+    if (isCommercial) roleEl.style.color = '#c084fc';
+  }
+
+
+
+  document.getElementById('logoutBtn').onclick = () => logout();
+  initAudit(profile);
+
+  // Cargar clientes para el selector del modal
+  // Comercial: solo sus clientes asignados (sin opción General)
+  // Admin: todos los clientes + opción General
+  // Cargar comerciales (para nombres en el acordeón admin)
+  if (!isCommercial) {
+    const { data: comms } = await sb.from('profiles')
+      .select('id, full_name').eq('role', 'commercial').order('full_name', { ascending: true });
+    allCommercials = comms || [];
+  }
+
+  let clientQuery = sb.from('profiles')
+    .select('id, company_name, full_name, client_type, assigned_commercial_id')
+    .eq('role', 'client')
+    .order('company_name', { ascending: true });
+
+  if (isCommercial) {
+    clientQuery = clientQuery.eq('assigned_commercial_id', profile.id);
+  }
+
+  const { data } = await clientQuery;
+  allClients = data || [];
+
+  const sel = document.getElementById('uploadClient');
+
+  // Guardar en el selector si es comercial, para usarlo al cambiar categoría
+  sel.dataset.commercial = isCommercial ? 'true' : 'false';
+
+  if (isCommercial) {
+    // Quitar la opción "General" — comerciales deben asignar siempre a un cliente
+    const generalOpt = sel.querySelector('option[value=""]');
+    if (generalOpt) generalOpt.remove();
+    sel.required = true;
+    const lbl  = document.getElementById('uploadClientLabel');
+    const hint = document.getElementById('uploadClientHint');
+    if (lbl)  lbl.innerHTML  = 'Cliente <span style="color:var(--c-brand)">*</span>';
+    if (hint) hint.textContent = 'Selecciona el cliente al que pertenece este archivo.';
+  }
+
+  allClients.forEach(c => {
+    const opt = document.createElement('option');
+    opt.value = c.id;
+    opt.textContent = c.company_name || c.full_name || 'Sin nombre';
+    sel.appendChild(opt);
+  });
+
+  await loadInformes();
+  await loadSoporte();
+  await loadPresentaciones();
+  await loadVideos();
+})();
+
+// -------------------------------------------------------------------------
+// 2. TABS
+// -------------------------------------------------------------------------
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+  });
+});
+
+// -------------------------------------------------------------------------
+// 3. MODAL DE SUBIDA
+// -------------------------------------------------------------------------
+const uploadBackdrop = document.getElementById('uploadModalBackdrop');
+
+document.getElementById('openUploadModal').onclick  = () => {
+  hideModalError();
+  document.getElementById('uploadForm').reset();
+  resetDropArea();
+  // Disparar la lógica del selector de categoría para que aplique el filtro correcto
+  document.getElementById('uploadCategory').dispatchEvent(new Event('change'));
+  uploadBackdrop.classList.add('open');
+};
+document.getElementById('closeUploadModal').onclick  = () => uploadBackdrop.classList.remove('open');
+document.getElementById('cancelUploadModal').onclick = () => uploadBackdrop.classList.remove('open');
+
+// Adaptar formulario según categoría elegida
+document.getElementById('uploadCategory').addEventListener('change', () => {
+  const cat = document.getElementById('uploadCategory').value;
+  const isVideo   = cat === 'video';
+  const isInforme = cat === 'report';
+
+  document.getElementById('uploadDescGroup').style.display = isVideo ? 'block' : 'none';
+
+  // Cambiar el tipo de archivo aceptado y el hint
+  const fileInput = document.getElementById('uploadFile');
+  const hint = document.getElementById('uploadFileHint');
+  if (isVideo) {
+    fileInput.accept = 'video/*';
+    hint.textContent = 'MP4, MOV — Máximo 500 MB';
+    document.querySelector('#uploadDropArea .upload-area__icon').textContent = '🎥';
+  } else {
+    fileInput.accept = '.pdf';
+    hint.textContent = 'PDF — Máximo 50 MB';
+    document.querySelector('#uploadDropArea .upload-area__icon').textContent = '📄';
+  }
+
+  // Informes de visita: solo clientes grandes, campo obligatorio
+  const sel  = document.getElementById('uploadClient');
+  const lbl  = document.getElementById('uploadClientLabel');
+  const hint2 = document.getElementById('uploadClientHint');
+  // Reconstruir opciones del selector según la categoría
+  while (sel.options.length > 0) sel.remove(0);
+  if (isInforme) {
+    // Sin opción "General" — siempre asignado a un cliente grande
+    sel.required = true;
+    if (lbl)  lbl.innerHTML  = 'Cliente grande <span style="color:var(--c-brand)">*</span>';
+    if (hint2) hint2.textContent = 'Los informes de visita son exclusivos para clientes grandes.';
+    allClients.filter(c => c.client_type === 'large').forEach(c => {
+      const opt = document.createElement('option');
+      opt.value = c.id;
+      opt.textContent = c.company_name || c.full_name || 'Sin nombre';
+      sel.appendChild(opt);
+    });
+  } else {
+    // Restaurar selector normal
+    const isCommercial = document.getElementById('uploadClient').dataset.commercial === 'true';
+    if (!isCommercial) {
+      const generalOpt = document.createElement('option');
+      generalOpt.value = '';
+      generalOpt.textContent = '— General (visible para todos) —';
+      sel.appendChild(generalOpt);
+      sel.required = false;
+      if (lbl)  lbl.innerHTML  = 'Asignar a cliente';
+      if (hint2) hint2.textContent = 'Deja en blanco para que sea visible para todos los clientes.';
+    } else {
+      sel.required = true;
+      if (lbl)  lbl.innerHTML  = 'Cliente <span style="color:var(--c-brand)">*</span>';
+      if (hint2) hint2.textContent = 'Selecciona el cliente al que pertenece este archivo.';
+    }
+    allClients.forEach(c => {
+      const opt = document.createElement('option');
+      opt.value = c.id;
+      opt.textContent = c.company_name || c.full_name || 'Sin nombre';
+      sel.appendChild(opt);
+    });
+  }
+
+  // Resetear archivo seleccionado al cambiar categoría
+  fileInput.value = '';
+  resetDropArea();
+  hideModalError();
+});
+
+// Drag & Drop del modal
+const dropArea = document.getElementById('uploadDropArea');
+dropArea.onclick = () => document.getElementById('uploadFile').click();
+
+document.getElementById('uploadFile').onchange = (e) => {
+  const file = e.target.files[0];
+  if (file) {
+    const size = (file.size / 1024 / 1024).toFixed(1);
+    dropArea.innerHTML = '<div class="upload-area__icon">✅</div>'
+      + '<p><strong>' + file.name + '</strong></p>'
+      + '<p style="color:var(--c-muted)">' + size + ' MB listo para subir</p>';
+    dropArea.onclick = () => document.getElementById('uploadFile').click();
+  } else {
+    resetDropArea();
+  }
+};
+
+function resetDropArea() {
+  const cat = document.getElementById('uploadCategory').value;
+  const isVideo = cat === 'video';
+  dropArea.innerHTML = '<div class="upload-area__icon">' + (isVideo ? '🎥' : '📄') + '</div>'
+    + '<p><strong>Haz clic o arrastra</strong> el archivo aquí</p>'
+    + '<p style="color:var(--c-muted);font-size:0.8rem;" id="uploadFileHint">'
+    + (isVideo ? 'MP4, MOV — Máximo 500 MB' : 'PDF — Máximo 50 MB') + '</p>';
+  dropArea.onclick = () => document.getElementById('uploadFile').click();
+}
+
+// -------------------------------------------------------------------------
+// 4. SUBMIT: SUBIR ARCHIVO
+// -------------------------------------------------------------------------
+document.getElementById('uploadForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  hideModalError();
+
+  const file     = document.getElementById('uploadFile').files[0];
+  const category = document.getElementById('uploadCategory').value;
+  const title    = document.getElementById('uploadTitle').value.trim();
+  const desc     = document.getElementById('uploadDesc').value.trim();
+  const clientId = document.getElementById('uploadClient').value || null;
+
+  if (!file) {
+    showModalError('Debes seleccionar un archivo antes de subir.');
+    return;
+  }
+  if (!title) {
+    showModalError('El título es obligatorio.');
+    return;
+  }
+
+  const btn = document.getElementById('uploadSubmit');
+  const bar = document.getElementById('uploadProgressBar');
+  btn.textContent = 'Subiendo…'; btn.disabled = true;
+  document.getElementById('uploadProgress').style.display = 'block';
+  bar.classList.add('progress-bar--active');
+
+  const safeName = file.name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-zA-Z0-9._-]/g, '_');
+  const path = (clientId || 'general') + '/' + Date.now() + '_' + safeName;
+
+  try {
+    if (category === 'video') {
+      // Subir a bucket 'videos'
+      const { error: upErr } = await sb.storage.from('videos').upload(path, file);
+      if (upErr) throw upErr;
+      const { error: dbErr } = await sb.from('videos').insert({ title, description: desc, file_path: path, client_id: clientId });
+      if (dbErr) throw dbErr;
+      const clientName = clientId ? (allClients.find(c => c.id === clientId)?.company_name || clientId) : 'General';
+      await logAudit('Video subido', title + ' → ' + clientName);
+    } else {
+      // Subir a 'client-files' o 'general-files'
+      const bucket = clientId ? 'client-files' : 'general-files';
+      const { error: upErr } = await sb.storage.from(bucket).upload(path, file);
+      if (upErr) throw upErr;
+      const { error: dbErr } = await sb.from('documents').insert({ title, type: category, file_path: path, client_id: clientId });
+      if (dbErr) throw dbErr;
+      const clientName = clientId ? (allClients.find(c => c.id === clientId)?.company_name || clientId) : 'General';
+      const typeLabel = category === 'report' ? 'Informe de visita subido'
+                     : category === 'support' ? 'Documento soporte subido' : 'Presentación subida';
+      await logAudit(typeLabel, title + ' → ' + clientName);
+    }
+
+    bar.classList.remove('progress-bar--active');
+    bar.style.width = '100%';
+    setTimeout(() => { document.getElementById('uploadProgress').style.display = 'none'; bar.style.width = '0%'; }, 700);
+
+    uploadBackdrop.classList.remove('open');
+    document.getElementById('uploadForm').reset();
+    resetDropArea();
+
+    showSuccess('Archivo subido correctamente.');
+
+    // Recargar la lista correspondiente
+    if (category === 'report') await loadInformes();
+    else if (category === 'support') await loadSoporte();
+    else if (category === 'presentation') await loadPresentaciones();
+    else await loadVideos();
+
+  } catch (err) {
+    bar.classList.remove('progress-bar--active');
+    document.getElementById('uploadProgress').style.display = 'none';
+    showModalError('Error al subir: ' + (err.message || 'Error desconocido'));
+  }
+
+  btn.textContent = 'Subir archivo'; btn.disabled = false;
+});
+
+// -------------------------------------------------------------------------
+// 5. CARGAR Y RENDERIZAR LISTAS
+// -------------------------------------------------------------------------
+
+async function loadInformes() {
+  const { data, error } = await sb.from('documents')
+    .select('*').eq('type', 'report').order('created_at', { ascending: false });
+  if (error) {
+    document.getElementById('informesList').innerHTML =
+      '<p style="color:var(--c-danger);font-size:0.875rem;">Error al cargar: ' + error.message + '</p>';
+    return;
+  }
+  allInformes = data || [];
+  renderInformes(allInformes);
+}
+
+function renderInformes(docs) {
+  if (currentIsCommercial) {
+    renderInformesComercial(docs);
+  } else {
+    renderInformesAdmin(docs);
+  }
+}
+
+// ── Acordeón Admin: Comercial → Cliente → Informe ──────────────────────────
+function renderInformesAdmin(docs) {
+  const list = document.getElementById('informesList');
+  if (!docs.length) {
+    list.innerHTML = '<div style="text-align:center;padding:48px 0;color:var(--c-muted);"><p style="font-size:1.5rem;margin-bottom:8px;">📄</p><p>No hay informes de visita aún.</p></div>';
+    return;
+  }
+
+  // Agrupar por comercial → cliente
+  const map = {};
+  docs.forEach(d => {
+    const client   = allClients.find(c => c.id === d.client_id);
+    const commId   = client?.assigned_commercial_id || '__none__';
+    const commName = allCommercials.find(c => c.id === commId)?.full_name || 'Sin comercial';
+    if (!map[commId]) map[commId] = { name: commName, clients: {} };
+    const clientId   = d.client_id || '__none__';
+    const clientName = client?.company_name || client?.full_name || 'Cliente';
+    if (!map[commId].clients[clientId]) map[commId].clients[clientId] = { name: clientName, docs: [] };
+    map[commId].clients[clientId].docs.push(d);
+  });
+
+  list.innerHTML = Object.entries(map).map(([commId, comm]) => {
+    const totalDocs    = Object.values(comm.clients).reduce((s, c) => s + c.docs.length, 0);
+    const totalClients = Object.keys(comm.clients).length;
+
+    const clientsHtml = Object.entries(comm.clients).map(([clientId, client]) => {
+      const subId   = 'inf-' + commId + '-' + clientId;
+      const rowsHtml = client.docs.map(d => informeRowHTML(d)).join('');
+      return '<div style="border-bottom:1px solid var(--c-border);">'
+        + '<div onclick="toggleArchSubGroup(\'' + subId + '\')" '
+        + 'style="display:flex;justify-content:space-between;align-items:center;padding:10px 20px 10px 32px;cursor:pointer;gap:12px;" '
+        + 'onmouseover="this.style.background=\'var(--c-bg-alt)\'" onmouseout="this.style.background=\'\'">'
+        + '<div style="flex:1;min-width:0;">'
+        + '<div style="font-size:0.85rem;font-weight:600;">' + escHtml(client.name) + '</div>'
+        + '<div style="font-size:0.73rem;color:var(--c-muted);margin-top:1px;">'
+        + client.docs.length + ' informe' + (client.docs.length !== 1 ? 's' : '')
+        + '</div>'
+        + '</div>'
+        + '<svg id="sub-chevron-' + subId + '" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" '
+        + 'viewBox="0 0 24 24" style="transition:transform 0.2s;flex-shrink:0;color:var(--c-muted);">'
+        + '<polyline points="6 9 12 15 18 9"/></svg>'
+        + '</div>'
+        + '<div id="sub-body-' + subId + '" style="display:none;">'
+        + '<div style="max-height:272px;overflow-y:auto;">' + rowsHtml + '</div>'
+        + '</div></div>';
+    }).join('');
+
+    return '<div class="order-card">'
+      + '<div class="order-card__header" onclick="toggleArchGroup(\'' + commId + '\')">'
+      + '<div>'
+      + '<div style="font-weight:700;font-size:0.9rem;">' + escHtml(comm.name) + '</div>'
+      + '<div style="font-size:0.78rem;color:var(--c-muted);margin-top:2px;">'
+      + totalClients + ' empresa' + (totalClients !== 1 ? 's' : '')
+      + ' · ' + totalDocs + ' informe' + (totalDocs !== 1 ? 's' : '')
+      + '</div>'
+      + '</div>'
+      + '<svg id="grp-chevron-' + commId + '" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" '
+      + 'viewBox="0 0 24 24" style="transition:transform 0.2s;flex-shrink:0;">'
+      + '<polyline points="6 9 12 15 18 9"/></svg>'
+      + '</div>'
+      + '<div id="grp-body-' + commId + '" style="display:none;border-top:1px solid var(--c-border);">'
+      + clientsHtml
+      + '</div>'
+      + '</div>';
+  }).join('');
+}
+
+// ── Acordeón Comercial: Cliente → Informe ─────────────────────────────────
+function renderInformesComercial(docs) {
+  const list = document.getElementById('informesList');
+  if (!docs.length) {
+    list.innerHTML = '<div style="text-align:center;padding:48px 0;color:var(--c-muted);"><p style="font-size:1.5rem;margin-bottom:8px;">📄</p><p>No hay informes de visita aún.</p></div>';
+    return;
+  }
+
+  // Agrupar por cliente
+  const map = {};
+  docs.forEach(d => {
+    const client     = allClients.find(c => c.id === d.client_id);
+    const clientId   = d.client_id || '__none__';
+    const clientName = client?.company_name || client?.full_name || 'Cliente';
+    if (!map[clientId]) map[clientId] = { name: clientName, docs: [] };
+    map[clientId].docs.push(d);
+  });
+
+  list.innerHTML = Object.entries(map).map(([clientId, client]) => {
+    const rowsHtml = client.docs.map(d => informeRowHTML(d)).join('');
+    return '<div class="order-card">'
+      + '<div class="order-card__header" onclick="toggleArchGroup(\'' + clientId + '\')">'
+      + '<div>'
+      + '<div style="font-weight:700;font-size:0.9rem;">' + escHtml(client.name) + '</div>'
+      + '<div style="font-size:0.78rem;color:var(--c-muted);margin-top:2px;">'
+      + client.docs.length + ' informe' + (client.docs.length !== 1 ? 's' : '')
+      + '</div>'
+      + '</div>'
+      + '<svg id="grp-chevron-' + clientId + '" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" '
+      + 'viewBox="0 0 24 24" style="transition:transform 0.2s;flex-shrink:0;">'
+      + '<polyline points="6 9 12 15 18 9"/></svg>'
+      + '</div>'
+      + '<div id="grp-body-' + clientId + '" style="display:none;border-top:1px solid var(--c-border);">'
+      + '<div style="max-height:272px;overflow-y:auto;">' + rowsHtml + '</div>'
+      + '</div>'
+      + '</div>';
+  }).join('');
+}
+
+// Determina el bucket real según el file_path (no el client_id)
+function getBucket(filePath) {
+  return filePath.startsWith('general/') ? 'general-files' : 'client-files';
+}
+
+// ── Fila individual de informe ─────────────────────────────────────────────
+function informeRowHTML(d) {
+  const bucket = getBucket(d.file_path);
+  const fecha  = new Date(d.created_at).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' });
+  const fp     = d.file_path.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+  return '<div style="display:flex;justify-content:space-between;align-items:center;gap:12px;'
+    + 'padding:10px 20px 10px 40px;border-bottom:1px solid var(--c-border);" '
+    + 'onmouseover="this.style.background=\'var(--c-bg-alt)\'" onmouseout="this.style.background=\'\'">'
+    + '<div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0;">'
+    + '<span style="font-size:1rem;flex-shrink:0;">📄</span>'
+    + '<div style="min-width:0;">'
+    + '<div style="font-size:0.82rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + escHtml(d.title) + '</div>'
+    + '<div style="font-size:0.73rem;color:var(--c-muted);margin-top:2px;">' + fecha + '</div>'
+    + '</div>'
+    + '</div>'
+    + '<div style="display:flex;gap:6px;flex-shrink:0;">'
+    + '<button class="btn btn--ghost btn--sm" onclick="downloadFile(\'' + fp + '\',\'' + bucket + '\')">Descargar</button>'
+    + '<button class="btn btn--danger btn--sm" onclick="deleteDoc(\'' + d.id + '\',\'' + fp + '\',\'' + bucket + '\')">Eliminar</button>'
+    + '</div>'
+    + '</div>';
+}
+
+// ── Controles del acordeón ─────────────────────────────────────────────────
+window.toggleArchGroup = function(id) {
+  if (openArchGroupId && openArchGroupId !== id) {
+    const prevBody    = document.getElementById('grp-body-'    + openArchGroupId);
+    const prevChevron = document.getElementById('grp-chevron-' + openArchGroupId);
+    if (prevBody)    prevBody.style.display    = 'none';
+    if (prevChevron) prevChevron.style.transform = '';
+  }
+  // Al cambiar de comercial, cerrar también la empresa que estaba abierta
+  if (openArchSubGroupId) {
+    const prevSub  = document.getElementById('sub-body-'    + openArchSubGroupId);
+    const prevSubC = document.getElementById('sub-chevron-' + openArchSubGroupId);
+    if (prevSub)  prevSub.style.display    = 'none';
+    if (prevSubC) prevSubC.style.transform = '';
+    openArchSubGroupId = null;
+  }
+  const body    = document.getElementById('grp-body-'    + id);
+  const chevron = document.getElementById('grp-chevron-' + id);
+  if (!body) return;
+  const isOpen       = body.style.display !== 'none';
+  body.style.display = isOpen ? 'none' : 'block';
+  if (chevron) chevron.style.transform = isOpen ? '' : 'rotate(180deg)';
+  openArchGroupId    = isOpen ? null : id;
+};
+
+window.toggleArchSubGroup = function(subId) {
+  if (openArchSubGroupId && openArchSubGroupId !== subId) {
+    const prevBody    = document.getElementById('sub-body-'    + openArchSubGroupId);
+    const prevChevron = document.getElementById('sub-chevron-' + openArchSubGroupId);
+    if (prevBody)    prevBody.style.display    = 'none';
+    if (prevChevron) prevChevron.style.transform = '';
+  }
+  const body    = document.getElementById('sub-body-'    + subId);
+  const chevron = document.getElementById('sub-chevron-' + subId);
+  if (!body) return;
+  const isOpen       = body.style.display !== 'none';
+  body.style.display = isOpen ? 'none' : 'block';
+  if (chevron) chevron.style.transform = isOpen ? '' : 'rotate(180deg)';
+  openArchSubGroupId = isOpen ? null : subId;
+};
+
+async function loadSoporte() {
+  const { data } = await sb.from('documents')
+    .select('*').eq('type', 'support').order('created_at', { ascending: false });
+  allSoporte = data || [];
+  renderSoporte(allSoporte);
+}
+
+async function loadPresentaciones() {
+  const { data } = await sb.from('documents')
+    .select('*').eq('type', 'presentation').order('created_at', { ascending: false });
+  allPresentaciones = data || [];
+  renderPresentaciones(allPresentaciones);
+}
+
+async function loadVideos() {
+  const { data } = await sb.from('videos').select('*').order('created_at', { ascending: false });
+  allVideos = data || [];
+  await renderVideos(allVideos);
+}
+
+// ── Agrupar documentos por cliente (General primero, luego clientes A-Z) ──
+function groupDocsByClient(docs) {
+  const map = {};
+  docs.forEach(d => {
+    const key  = d.client_id || '__general__';
+    if (!map[key]) {
+      const c = allClients.find(c => c.id === d.client_id);
+      map[key] = {
+        id:   key,
+        name: d.client_id ? (c?.company_name || c?.full_name || 'Cliente') : 'General',
+        docs: []
+      };
+    }
+    map[key].docs.push(d);
+  });
+  // General primero, luego A-Z
+  return Object.values(map).sort((a, b) => {
+    if (a.id === '__general__') return -1;
+    if (b.id === '__general__') return  1;
+    return a.name.localeCompare(b.name, 'es');
+  });
+}
+
+function renderDocAccordion(listId, groups, prefix, toggleFn) {
+  const list = document.getElementById(listId);
+  if (!groups.length) {
+    list.innerHTML = '<div style="text-align:center;padding:48px 0;color:var(--c-muted);"><p style="font-size:1.5rem;margin-bottom:8px;">📄</p><p>No hay archivos aún.</p></div>';
+    return;
+  }
+  list.innerHTML = groups.map(g => {
+    const rowsHtml = g.docs.map(d => {
+      const bucket = getBucket(d.file_path);
+      const fp     = d.file_path.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+      const fecha  = new Date(d.created_at).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' });
+      return '<div style="display:flex;justify-content:space-between;align-items:center;gap:12px;'
+        + 'padding:10px 20px 10px 40px;border-bottom:1px solid var(--c-border);" '
+        + 'onmouseover="this.style.background=\'var(--c-bg-alt)\'" onmouseout="this.style.background=\'\'">'
+        + '<div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0;">'
+        + '<span style="font-size:1rem;flex-shrink:0;">📄</span>'
+        + '<div style="min-width:0;">'
+        + '<div style="font-size:0.82rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + escHtml(d.title) + '</div>'
+        + '<div style="font-size:0.73rem;color:var(--c-muted);margin-top:2px;">' + fecha + '</div>'
+        + '</div>'
+        + '</div>'
+        + '<div style="display:flex;gap:6px;flex-shrink:0;">'
+        + '<button class="btn btn--ghost btn--sm" onclick="downloadFile(\'' + fp + '\',\'' + bucket + '\')">Descargar</button>'
+        + '<button class="btn btn--danger btn--sm" onclick="deleteDoc(\'' + d.id + '\',\'' + fp + '\',\'' + bucket + '\')">Eliminar</button>'
+        + '</div>'
+        + '</div>';
+    }).join('');
+
+    const groupKey = prefix + g.id;
+    return '<div class="order-card">'
+      + '<div class="order-card__header" onclick="' + toggleFn + '(\'' + groupKey + '\')">'
+      + '<div>'
+      + '<div style="font-weight:700;font-size:0.9rem;">' + escHtml(g.name) + '</div>'
+      + '<div style="font-size:0.78rem;color:var(--c-muted);margin-top:2px;">'
+      + g.docs.length + ' archivo' + (g.docs.length !== 1 ? 's' : '')
+      + '</div>'
+      + '</div>'
+      + '<svg id="grp-chevron-' + groupKey + '" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" '
+      + 'viewBox="0 0 24 24" style="transition:transform 0.2s;flex-shrink:0;">'
+      + '<polyline points="6 9 12 15 18 9"/></svg>'
+      + '</div>'
+      + '<div id="grp-body-' + groupKey + '" style="display:none;border-top:1px solid var(--c-border);">'
+      + '<div style="max-height:272px;overflow-y:auto;">' + rowsHtml + '</div>'
+      + '</div>'
+      + '</div>';
+  }).join('');
+}
+
+function renderSoporte(docs) {
+  renderDocAccordion('soporteList', groupDocsByClient(docs), 'sop-', 'toggleSoporteGroup');
+}
+
+function renderPresentaciones(docs) {
+  renderDocAccordion('presentacionesList', groupDocsByClient(docs), 'pre-', 'togglePresentGroup');
+}
+
+async function renderVideos(videos) {
+  const list = document.getElementById('videoList');
+  if (!videos.length) {
+    list.innerHTML = '<div style="text-align:center;padding:48px 0;color:var(--c-muted);"><p style="font-size:1.5rem;margin-bottom:8px;">🎥</p><p>No hay videos aún.</p></div>';
+    return;
+  }
+
+  // Agrupar por cliente
+  const map = {};
+  videos.forEach(v => {
+    const key = v.client_id || '__general__';
+    if (!map[key]) {
+      const c = allClients.find(c => c.id === v.client_id);
+      map[key] = { id: key, name: v.client_id ? (c?.company_name || c?.full_name || 'Cliente') : 'General', videos: [] };
+    }
+    map[key].videos.push(v);
+  });
+  const groups = Object.values(map).sort((a, b) => {
+    if (a.id === '__general__') return -1;
+    if (b.id === '__general__') return  1;
+    return a.name.localeCompare(b.name, 'es');
+  });
+
+  // Obtener URLs firmadas para todos los videos
+  const allVids   = groups.flatMap(g => g.videos);
+  const signedMap = {};
+  await Promise.all(allVids.map(async v => {
+    const { data } = await sb.storage.from('videos').createSignedUrl(v.file_path, 3600);
+    signedMap[v.id] = data?.signedUrl || '';
+  }));
+
+  list.innerHTML = groups.map(g => {
+    const cardsHtml = g.videos.map(v => {
+      const fecha = new Date(v.created_at).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' });
+      const fp    = v.file_path.replace(/'/g,"\\'");
+      return '<div style="background:var(--c-bg);border:1px solid var(--c-border);border-radius:10px;overflow:hidden;">'
+        + '<video controls src="' + (signedMap[v.id] || '') + '" preload="metadata" '
+        + 'style="width:100%;aspect-ratio:16/9;background:#000;display:block;"></video>'
+        + '<div style="padding:12px 14px;">'
+        + '<div style="font-weight:700;font-size:0.88rem;color:var(--c-heading);margin-bottom:4px;">' + escHtml(v.title) + '</div>'
+        + (v.description ? '<div style="font-size:0.78rem;color:var(--c-muted);margin-bottom:6px;">' + escHtml(v.description) + '</div>' : '')
+        + '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;">'
+        + '<span style="font-size:0.72rem;color:var(--c-muted);">' + fecha + '</span>'
+        + '<button class="btn btn--danger btn--sm" onclick="deleteVideo(\'' + v.id + '\',\'' + fp + '\')">Eliminar</button>'
+        + '</div>'
+        + '</div>'
+        + '</div>';
+    }).join('');
+
+    const groupKey = 'vid-' + g.id;
+    return '<div class="order-card">'
+      + '<div class="order-card__header" onclick="toggleVideoGroup(\'' + groupKey + '\')">'
+      + '<div>'
+      + '<div style="font-weight:700;font-size:0.9rem;">' + escHtml(g.name) + '</div>'
+      + '<div style="font-size:0.78rem;color:var(--c-muted);margin-top:2px;">'
+      + g.videos.length + ' video' + (g.videos.length !== 1 ? 's' : '')
+      + '</div>'
+      + '</div>'
+      + '<svg id="grp-chevron-' + groupKey + '" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" '
+      + 'viewBox="0 0 24 24" style="transition:transform 0.2s;flex-shrink:0;">'
+      + '<polyline points="6 9 12 15 18 9"/></svg>'
+      + '</div>'
+      + '<div id="grp-body-' + groupKey + '" style="display:none;border-top:1px solid var(--c-border);">'
+      + '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;padding:20px;">' + cardsHtml + '</div>'
+      + '</div>'
+      + '</div>';
+  }).join('');
+}
+
+// ── Toggles independientes por sección ────────────────────────────────────
+function makeToggle(getOpen, setOpen) {
+  return function(id) {
+    const prev = getOpen();
+    if (prev && prev !== id) {
+      const pb = document.getElementById('grp-body-'    + prev);
+      const pc = document.getElementById('grp-chevron-' + prev);
+      if (pb) pb.style.display    = 'none';
+      if (pc) pc.style.transform  = '';
+    }
+    const body    = document.getElementById('grp-body-'    + id);
+    const chevron = document.getElementById('grp-chevron-' + id);
+    if (!body) return;
+    const isOpen       = body.style.display !== 'none';
+    body.style.display = isOpen ? 'none' : 'block';
+    if (chevron) chevron.style.transform = isOpen ? '' : 'rotate(180deg)';
+    setOpen(isOpen ? null : id);
+  };
+}
+
+window.toggleSoporteGroup  = makeToggle(() => openSoporteGroupId, v => openSoporteGroupId = v);
+window.togglePresentGroup  = makeToggle(() => openPresentGroupId, v => openPresentGroupId = v);
+window.toggleVideoGroup    = makeToggle(() => openVideoGroupId,   v => openVideoGroupId   = v);
+
+// -------------------------------------------------------------------------
+// 6. BÚSQUEDAS EN TIEMPO REAL
+// -------------------------------------------------------------------------
+document.getElementById('informesSearch').addEventListener('input', (e) => {
+  const q = e.target.value.toLowerCase();
+  renderInformes(allInformes.filter(d => d.title.toLowerCase().includes(q)));
+});
+
+document.getElementById('soporteSearch').addEventListener('input', (e) => {
+  const q = e.target.value.toLowerCase();
+  renderSoporte(allSoporte.filter(d => d.title.toLowerCase().includes(q)));
+});
+
+document.getElementById('presentacionesSearch').addEventListener('input', (e) => {
+  const q = e.target.value.toLowerCase();
+  renderPresentaciones(allPresentaciones.filter(d => d.title.toLowerCase().includes(q)));
+});
+
+// -------------------------------------------------------------------------
+// 7. ACCIONES GLOBALES (DESCARGAR / ELIMINAR)
+// -------------------------------------------------------------------------
+window.downloadFile = async function(path, bucket) {
+  const filename = path.split('/').pop();
+  const ext      = filename.split('.').pop().toLowerCase();
+  const isPdf    = ext === 'pdf';
+  const isImg    = ['jpg','jpeg','png','gif','webp','svg'].includes(ext);
+
+  const { data, error: urlErr } = await sb.storage.from(bucket).createSignedUrl(path, 300);
+  if (!data?.signedUrl) { showError('No se pudo obtener el archivo.'); return; }
+
+  const url = data.signedUrl;
+
+  // Crear modal de previsualización
+  const existing = document.getElementById('filePreviewBackdrop');
+  if (existing) existing.remove();
+
+  const backdrop = document.createElement('div');
+  backdrop.id = 'filePreviewBackdrop';
+  backdrop.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;';
+
+  let contentHtml = '';
+  if (isPdf) {
+    contentHtml = '<iframe src="' + url + '" style="width:100%;height:100%;border:none;border-radius:0 0 12px 12px;"></iframe>';
+  } else if (isImg) {
+    contentHtml = '<div style="flex:1;overflow:auto;display:flex;align-items:center;justify-content:center;padding:16px;">'
+      + '<img src="' + url + '" style="max-width:100%;max-height:100%;border-radius:8px;object-fit:contain;" />'
+      + '</div>';
+  } else {
+    contentHtml = '<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:32px;">'
+      + '<div style="font-size:3rem;">📄</div>'
+      + '<div style="font-size:0.9rem;color:var(--c-muted);text-align:center;">Este tipo de archivo no se puede previsualizar.</div>'
+      + '<a href="' + url + '" target="_blank" class="btn btn--primary btn--sm" download="' + escHtml(filename) + '">Descargar archivo</a>'
+      + '</div>';
+  }
+
+  backdrop.innerHTML = '<div style="background:var(--c-white);border-radius:12px;width:100%;max-width:860px;height:90vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,0.3);">'
+    + '<div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--c-border);flex-shrink:0;">'
+    + '<div style="font-weight:700;font-size:0.9rem;color:var(--c-heading);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:70%;">' + escHtml(filename) + '</div>'
+    + '<div style="display:flex;gap:8px;flex-shrink:0;">'
+    + '<a href="' + url + '" target="_blank" download="' + escHtml(filename) + '" class="btn btn--outline btn--sm">Descargar</a>'
+    + '<button onclick="document.getElementById(\'filePreviewBackdrop\').remove()" class="btn btn--ghost btn--sm" style="padding:6px 10px;">✕</button>'
+    + '</div>'
+    + '</div>'
+    + contentHtml
+    + '</div>';
+
+  document.body.appendChild(backdrop);
+  backdrop.addEventListener('click', e => { if (e.target === backdrop) backdrop.remove(); });
+};
+
+window.deleteDoc = async function(id, path, bucket) {
+  if (!confirm('¿Eliminar este documento?')) return;
+  const doc = [...allInformes, ...allSoporte, ...allPresentaciones].find(d => d.id === id);
+  await sb.storage.from(bucket).remove([path]);
+  await sb.from('documents').delete().eq('id', id);
+  await logAudit('Documento eliminado', doc?.title || path.split('/').pop());
+  await loadInformes();
+  await loadSoporte();
+  await loadPresentaciones();
+  showSuccess('Documento eliminado.');
+};
+
+window.deleteVideo = async function(id, path) {
+  if (!confirm('¿Eliminar este video?')) return;
+  await sb.storage.from('videos').remove([path]);
+  await sb.from('videos').delete().eq('id', id);
+  await logAudit('Video eliminado', path.split('/').pop());
+  await loadVideos();
+  showSuccess('Video eliminado.');
+};
+
+// -------------------------------------------------------------------------
+// 8. ALERTAS
+// -------------------------------------------------------------------------
+function showModalError(msg) {
+  const el = document.getElementById('uploadModalError');
+  el.textContent = msg;
+  el.classList.add('show');
+}
+
+function hideModalError() {
+  const el = document.getElementById('uploadModalError');
+  if (el) el.classList.remove('show');
+}
+
+function showSuccess(msg) {
+  const el = document.getElementById('successMsg');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 4000);
+}
+
+function showError(msg) {
+  const el = document.getElementById('errorMsg');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 6000);
+}
+
+// -------------------------------------------------------------------------
+// 9. MENÚ MÓVIL
+// -------------------------------------------------------------------------
+const hbg     = document.getElementById('hamburger');
+const sidebar = document.querySelector('.sidebar');
+const overlay = document.getElementById('sidebarOverlay');
+
+function toggleSidebar() {
+  sidebar.classList.toggle('open');
+  hbg.classList.toggle('open');
+  overlay.classList.toggle('show');
+}
+hbg.addEventListener('click', toggleSidebar);
+overlay.addEventListener('click', toggleSidebar);

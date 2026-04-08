@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PQRS — Indusquim Portal</title>
+  <link rel="stylesheet" href="../assets/css/portal.css" />
+  <style>
+    .order-card { background: var(--c-bg); border: 1px solid var(--c-border); border-radius: 12px; margin-bottom: 14px; overflow: hidden; }
+    .order-card__header { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; cursor: pointer; gap: 12px; }
+    .order-card__header:hover { background: var(--c-bg-alt); }
+    .status-badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; white-space: nowrap; }
+    .pqr-pending { background: rgba(245,158,11,0.12); color: #d97706; }
+    .pqr-closed  { background: rgba(107,114,128,0.12); color: #6b7280; }
+    .pqr-type-badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 0.72rem; font-weight: 700; white-space: nowrap; }
+    .pqr-type--peticion   { background: rgba(59,130,246,0.12);  color: #3b82f6; }
+    .pqr-type--queja      { background: rgba(245,158,11,0.12);  color: #d97706; }
+    .pqr-type--reclamo    { background: rgba(214,64,69,0.12);   color: #d64045; }
+    .pqr-type--sugerencia { background: rgba(16,185,129,0.12);  color: #059669; }
+  </style>
+</head>
+<body>
+<div class="portal-wrap">
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar__logo"><a href="../../index.html" style="display:block;"><img src="../../assets/images/logo-indusquim-blanco.png" alt="Indusquim" /></a></div>
+    <nav class="sidebar__nav">
+      <a href="index.html" class="sidebar__link">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+        Home
+      </a>
+      <a href="clientes.html" class="sidebar__link">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+        Clientes
+      </a>
+      <a href="pedidos.html" class="sidebar__link">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/></svg>
+        Pedidos
+      </a>
+      <a href="pqrs.html" class="sidebar__link active">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+        PQRS
+      </a>
+      <a href="usuarios.html" class="sidebar__link admin-only" id="linkUsuarios" style="display: none;">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+        Usuarios
+      </a>
+      <a href="archivos.html" class="sidebar__link">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        Archivos y Videos
+      </a>
+      <a href="catalogo.html" class="sidebar__link admin-only" id="linkCatalogo" style="display: none;">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h7"/></svg>
+        Catálogo
+      </a>
+      <a href="historial.html" class="sidebar__link" id="linkHistorial">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        Historial
+      </a>
+    </nav>
+    <div class="sidebar__footer">
+      <div class="sidebar__user">
+        <strong id="adminName">Cargando…</strong>
+        <span id="userRole" style="font-size:0.7rem;opacity:0.7;text-transform:uppercase;letter-spacing:0.05em;">Indusquim</span>
+      </div>
+      <button class="btn-logout" id="logoutBtn">Cerrar sesión</button>
+    </div>
+
+    <div style="text-align:center;font-size:0.65rem;color:rgba(255,255,255,0.3);padding-bottom:6px;letter-spacing:0.05em;">v2.0</div>
+  </aside>
+
+  <div class="sidebar-overlay" id="sidebarOverlay"></div>
+  <div class="main-content">
+    <div class="topbar">
+      <button class="hamburger" id="hamburger" aria-label="Menú"><span></span><span></span><span></span></button>
+      <span class="topbar__title">PQRS</span>
+      <div class="notif-wrap" id="notifWrap" style="position:relative;margin-left:auto;">
+        <button class="btn btn--ghost btn--sm" id="notifBtn" style="position:relative;padding:8px 12px;" title="Notificaciones">
+          <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
+          <span class="notif-badge" id="notifBadge" style="display:none;">0</span>
+        </button>
+        <div class="notif-panel" id="notifPanel">
+          <div class="notif-panel__header"><span>Notificaciones</span><button id="markAllRead">Marcar todas leídas</button></div>
+          <div id="notifList"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="page-body">
+      <div class="alert alert--success" id="successMsg"></div>
+      <div class="alert alert--error"   id="errorMsg"></div>
+
+      <!-- Stats -->
+      <div class="stats-row" style="margin-bottom:24px;">
+        <div class="card stat-card">
+          <div class="stat-card__num" id="statTotal">—</div>
+          <div class="stat-card__label">Total PQRS</div>
+        </div>
+        <div class="card stat-card">
+          <div class="stat-card__num" id="statPending">—</div>
+          <div class="stat-card__label">Pendientes</div>
+        </div>
+        <div class="card stat-card">
+          <div class="stat-card__num" id="statClosed">—</div>
+          <div class="stat-card__label">Cerradas</div>
+        </div>
+      </div>
+
+      <!-- Filtros -->
+      <div style="margin-bottom:20px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+        <input type="text" id="pqrSearch" class="form-input"
+          placeholder="Buscar por asunto…"
+          style="flex:1;max-width:280px;padding:7px 12px;font-size:0.85rem;" />
+        <select id="statusFilter" class="form-select" style="width:auto;padding:7px 28px 7px 12px;font-size:0.85rem;">
+          <option value="all">Todos los estados</option>
+          <option value="pending">Pendientes</option>
+          <option value="closed">Cerradas</option>
+        </select>
+      </div>
+
+      <div id="pqrsList">
+        <p style="color:var(--c-muted);font-size:0.875rem;">Cargando PQRS…</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: detalle de PQRS -->
+<div class="modal-backdrop" id="pqrDetailBackdrop">
+  <div class="modal" style="max-width:540px;">
+    <div class="modal__header" style="align-items:center;">
+      <div style="flex:1;min-width:0;">
+        <div class="modal__title" id="detailCompany" style="font-size:1rem;">—</div>
+        <div style="font-size:0.75rem;color:var(--c-muted);margin-top:4px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+          <span id="detailCode" style="font-weight:700;">—</span>
+          <span id="detailTypeBadge" class="pqr-type-badge"></span>
+          <span id="detailStatusBadge" class="status-badge"></span>
+        </div>
+      </div>
+      <span id="pqrStepText" style="margin-left:auto;margin-right:12px;font-size:0.85rem;font-weight:600;color:var(--c-muted);">1 / 2</span>
+      <button class="modal__close" id="closePqrDetail">✕</button>
+    </div>
+
+    <!-- PÁGINA 1: detalle -->
+    <div id="pqrModalPage1" style="display:flex;flex-direction:column;flex:1;min-height:0;">
+      <div class="modal__body">
+        <div style="margin-bottom:4px;font-size:0.72rem;font-weight:700;color:var(--c-muted);text-transform:uppercase;letter-spacing:0.06em;">Asunto</div>
+        <div id="detailSubject" style="font-weight:600;font-size:0.9rem;"></div>
+        <div style="margin:14px 0 4px;font-size:0.72rem;font-weight:700;color:var(--c-muted);text-transform:uppercase;letter-spacing:0.06em;">Descripción</div>
+        <div id="detailDescription" style="font-size:0.875rem;line-height:1.6;color:var(--c-body);white-space:pre-wrap;"></div>
+        <div style="margin-top:12px;font-size:0.78rem;color:var(--c-muted);">Recibida el <span id="detailDate">—</span></div>
+        <div id="detailAttachWrap" style="display:none;margin-top:12px;">
+          <a id="detailAttachLink" href="#" target="_blank" class="btn btn--ghost btn--sm" style="gap:6px;">
+            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"/></svg>
+            Ver anexo del cliente
+          </a>
+        </div>
+      </div>
+      <div class="modal__footer">
+        <span></span>
+        <button type="button" class="btn btn--primary" onclick="showPqrPage(2)">Respuesta →</button>
+      </div>
+    </div>
+
+    <!-- PÁGINA 2: respuesta y cierre -->
+    <div id="pqrModalPage2" style="display:none;flex-direction:column;flex:1;min-height:0;">
+      <div class="modal__body">
+
+        <!-- Respuesta -->
+        <div style="margin-bottom:6px;font-size:0.72rem;font-weight:700;color:var(--c-muted);text-transform:uppercase;letter-spacing:0.06em;">Respuesta</div>
+        <textarea id="detailResponse" class="form-input" rows="4" placeholder="Escribe aquí la respuesta al cliente…" style="resize:vertical;font-size:0.875rem;"></textarea>
+        <div class="alert alert--success" id="responseSavedMsg" style="margin-top:8px;font-size:0.82rem;"></div>
+
+        <!-- PQRS ya cerrada -->
+        <div id="pqrClosedSection" style="display:none;margin-top:18px;padding:14px;background:var(--c-bg-alt);border-radius:8px;font-size:0.82rem;">
+          <div style="font-weight:700;margin-bottom:8px;color:var(--c-muted);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.06em;">Cierre</div>
+          <div>Cerrada el <strong id="detailClosedDate">—</strong> por <strong id="detailClosedBy">—</strong></div>
+          <div style="margin-top:10px;">
+            <a id="detailSupportLink" href="#" target="_blank" class="btn btn--ghost btn--sm" style="display:none;gap:6px;">
+              <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+              Ver soporte
+            </a>
+          </div>
+        </div>
+
+        <!-- ── CIERRE DIRECTO (solo admin) ── -->
+        <div id="pqrCloseSection" style="display:none;margin-top:20px;border-top:1px solid var(--c-border);padding-top:18px;">
+          <div style="font-size:0.72rem;font-weight:700;color:var(--c-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:10px;">Cerrar PQRS</div>
+          <p style="font-size:0.82rem;color:var(--c-muted);margin-bottom:12px;">Adjunta el soporte de la gestión realizada. Este campo es obligatorio.</p>
+          <div class="upload-area" id="closeDropArea">
+            <div class="upload-area__icon">📎</div>
+            <p><strong>Haz clic o arrastra</strong> el archivo aquí</p>
+            <p style="color:var(--c-muted);font-size:0.8rem;">Imagen (JPG, PNG) o PDF — Máximo 10 MB</p>
+          </div>
+          <input type="file" id="closeFile" accept="image/*,.pdf" style="display:none;" />
+          <div class="alert alert--error" id="pqrCloseError" style="margin-top:10px;"></div>
+          <div class="progress-wrap" id="closeProgress" style="display:none;margin-top:10px;">
+            <div class="progress-bar" id="closeProgressBar"></div>
+          </div>
+          <!-- Panel de solicitud pendiente (admin ve esto) -->
+          <div id="adminCodeRequestPanel" style="display:none;margin-top:16px;padding:14px;background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.3);border-radius:8px;">
+            <div style="font-size:0.82rem;font-weight:600;color:#d97706;margin-bottom:10px;">⚠️ El comercial ha solicitado el cierre de esta PQRS</div>
+            <button type="button" class="btn btn--outline btn--sm" id="generateCloseCodeBtn">Generar código de autorización</button>
+            <div id="generatedCodeDisplay" style="display:none;margin-top:14px;padding:14px;background:var(--c-bg);border-radius:8px;text-align:center;">
+              <div style="font-size:0.75rem;color:var(--c-muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.05em;">Código de autorización · válido 1 hora</div>
+              <div id="generatedCodeValue" style="font-size:2.2rem;font-weight:800;letter-spacing:0.2em;color:var(--c-primary);font-family:monospace;"></div>
+              <div style="font-size:0.72rem;color:var(--c-muted);margin-top:8px;">Comparte este código con el comercial</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── CIERRE CON CÓDIGO (solo comercial) ── -->
+        <div id="commercialClosePanel" style="display:none;margin-top:20px;border-top:1px solid var(--c-border);padding-top:18px;">
+          <div style="font-size:0.72rem;font-weight:700;color:var(--c-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:12px;">Cierre de PQRS</div>
+
+          <!-- Estado 1: no solicitado aún -->
+          <div id="commercialRequestSection">
+            <p style="font-size:0.82rem;color:var(--c-muted);margin-bottom:14px;">Para cerrar esta PQRS necesitas un código de autorización del administrador.</p>
+            <button type="button" class="btn btn--outline btn--sm" id="requestCloseCodeBtn">Solicitar código al administrador</button>
+          </div>
+
+          <!-- Estado 2: solicitado, esperando / ingresando código -->
+          <div id="commercialCodeSection" style="display:none;">
+            <p style="font-size:0.82rem;color:var(--c-muted);margin-bottom:14px;">Solicitud enviada. Contacta al administrador para obtener el código de autorización y adjunta el soporte.</p>
+            <div style="margin-bottom:16px;">
+              <label style="display:block;font-size:0.78rem;font-weight:600;margin-bottom:6px;">Código de autorización (6 dígitos)</label>
+              <input type="text" id="closeCodeInput" class="form-input" maxlength="6" placeholder="000000"
+                style="font-size:1.2rem;letter-spacing:0.25em;text-align:center;max-width:180px;" />
+            </div>
+            <div class="upload-area" id="closeDropAreaCommercial">
+              <div class="upload-area__icon">📎</div>
+              <p><strong>Haz clic o arrastra</strong> el archivo aquí</p>
+              <p style="color:var(--c-muted);font-size:0.8rem;">Imagen (JPG, PNG) o PDF — Máximo 10 MB</p>
+            </div>
+            <input type="file" id="closeFileCommercial" accept="image/*,.pdf" style="display:none;" />
+            <div class="alert alert--error" id="pqrCloseErrorCommercial" style="margin-top:10px;"></div>
+            <div class="progress-wrap" id="closeProgressCommercial" style="display:none;margin-top:10px;">
+              <div class="progress-bar" id="closeProgressBarCommercial"></div>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /.modal__body -->
+
+      <div class="modal__footer" style="display:flex;justify-content:space-between;align-items:center;">
+        <button type="button" class="btn btn--ghost" onclick="showPqrPage(1)">← PQRS</button>
+        <div style="display:flex;gap:10px;">
+          <button type="button" class="btn btn--ghost btn--sm" id="saveResponseBtn">Guardar respuesta</button>
+          <button type="button" class="btn btn--primary btn--sm" id="confirmClosePqrBtn"     style="display:none;">Confirmar cierre</button>
+          <button type="button" class="btn btn--primary btn--sm" id="confirmCloseWithCodeBtn" style="display:none;">Confirmar cierre</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../assets/js/supabase-client.js"></script>
+<script src="../assets/js/auth.js"></script>
+<script src="../assets/js/notifications.js"></script>
+<script src="../assets/js/audit.js"></script>
+<script src="../assets/js/admin/pqrs.js"></script>
+</body>
+</html>
